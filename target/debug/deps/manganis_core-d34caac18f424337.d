@@ -1,0 +1,13 @@
+/Users/zxl/Sites/rust/UI/css-in-rust/target/debug/deps/manganis_core-d34caac18f424337.d: /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/lib.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/folder.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/images.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/options.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/css.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/js.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/asset.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/linker.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/hash.rs
+
+/Users/zxl/Sites/rust/UI/css-in-rust/target/debug/deps/libmanganis_core-d34caac18f424337.rmeta: /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/lib.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/folder.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/images.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/options.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/css.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/js.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/asset.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/linker.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/hash.rs
+
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/lib.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/folder.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/images.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/options.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/css.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/js.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/asset.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/linker.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/manganis-core-0.6.2/src/hash.rs:

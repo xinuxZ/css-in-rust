@@ -1,0 +1,20 @@
+/Users/zxl/Sites/rust/UI/css-in-rust/target/debug/deps/rustversion-cddceb6f57be4357.d: /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/lib.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/attr.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/bound.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/constfn.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/date.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/error.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/expand.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/expr.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/iter.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/release.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/time.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/token.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/version.rs /Users/zxl/Sites/rust/UI/css-in-rust/target/debug/build/rustversion-293b0954820d219b/out/version.expr
+
+/Users/zxl/Sites/rust/UI/css-in-rust/target/debug/deps/librustversion-cddceb6f57be4357.dylib: /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/lib.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/attr.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/bound.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/constfn.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/date.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/error.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/expand.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/expr.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/iter.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/release.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/time.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/token.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/version.rs /Users/zxl/Sites/rust/UI/css-in-rust/target/debug/build/rustversion-293b0954820d219b/out/version.expr
+
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/lib.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/attr.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/bound.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/constfn.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/date.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/error.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/expand.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/expr.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/iter.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/release.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/time.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/token.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/rustversion-1.0.21/src/version.rs:
+/Users/zxl/Sites/rust/UI/css-in-rust/target/debug/build/rustversion-293b0954820d219b/out/version.expr:
+
+# env-dep:OUT_DIR=/Users/zxl/Sites/rust/UI/css-in-rust/target/debug/build/rustversion-293b0954820d219b/out

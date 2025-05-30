@@ -1,0 +1,12 @@
+/Users/zxl/Sites/rust/UI/css-in-rust/target/debug/deps/httparse-de55a1539d451974.d: /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/lib.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/iter.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/macros.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/simd/mod.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/simd/swar.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/simd/neon.rs
+
+/Users/zxl/Sites/rust/UI/css-in-rust/target/debug/deps/libhttparse-de55a1539d451974.rlib: /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/lib.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/iter.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/macros.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/simd/mod.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/simd/swar.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/simd/neon.rs
+
+/Users/zxl/Sites/rust/UI/css-in-rust/target/debug/deps/libhttparse-de55a1539d451974.rmeta: /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/lib.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/iter.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/macros.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/simd/mod.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/simd/swar.rs /Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/simd/neon.rs
+
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/lib.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/iter.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/macros.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/simd/mod.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/simd/swar.rs:
+/Users/zxl/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/httparse-1.10.1/src/simd/neon.rs:
