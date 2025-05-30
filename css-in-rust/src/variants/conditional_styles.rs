@@ -341,10 +341,13 @@ impl ConditionalStyleManager {
         let mut computed_styles = HashMap::new();
         let mut from_cache = false;
 
-        for (rule_name, rule) in &self.dynamic_rules {
-            // 检查缓存
+        // 克隆规则以避免借用冲突
+        let rules_to_process: Vec<(String, DynamicStyleRule)> =
+            self.dynamic_rules.clone().into_iter().collect();
+
+        for (rule_name, rule) in rules_to_process {
             if self.cache_enabled {
-                if let Some(cached_styles) = self.get_cached_styles(rule_name, rule) {
+                if let Some(cached_styles) = self.get_cached_styles(&rule_name, &rule) {
                     computed_styles.extend(cached_styles);
                     from_cache = true;
                     continue;
@@ -352,12 +355,11 @@ impl ConditionalStyleManager {
             }
 
             // 计算样式
-            if let Some(rule_styles) = self.compute_rule_styles(rule) {
+            if let Some(rule_styles) = self.compute_rule_styles(&rule) {
                 computed_styles.extend(rule_styles.clone());
 
-                // 缓存结果
                 if self.cache_enabled {
-                    self.cache_styles(rule_name, rule_styles, start_time);
+                    self.cache_styles(&rule_name, rule_styles, start_time);
                 }
             }
         }
