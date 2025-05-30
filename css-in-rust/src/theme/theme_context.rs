@@ -445,7 +445,7 @@ mod tests {
     fn test_theme_context_creation() {
         let context = ThemeContext::new();
         let current = context.current_theme().unwrap();
-        assert_eq!(current.name, "default");
+        assert_eq!(current.name, "ant-design");
     }
 
     #[test]

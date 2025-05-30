@@ -108,7 +108,12 @@ impl Theme {
 
     /// 创建 Ant Design 默认主题
     pub fn ant_design() -> Self {
-        Self::default()
+        Self {
+            name: "ant-design".to_string(),
+            tokens: DesignTokens::ant_design_default(),
+            custom_variables: HashMap::new(),
+            mode: ThemeMode::Light,
+        }
     }
 
     /// 创建 Ant Design 暗色主题

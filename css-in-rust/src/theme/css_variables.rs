@@ -76,15 +76,19 @@ pub enum OutputFormat {
 
 /// CSS 变量注入器
 ///
-/// 负责将 CSS 变量注入到 DOM 中
+/// 负责将 CSS 变量注入到指定目标中
 #[derive(Debug, Clone)]
 pub struct CssVariableInjector {
-    /// 目标选择器
+    /// 目标选择器（可以是文件路径、选择器等）
     target_selector: String,
     /// 注入策略
     injection_strategy: InjectionStrategy,
     /// 是否启用批量更新
     batch_updates: bool,
+    /// 当前CSS内容缓存
+    current_css: Option<String>,
+    /// 当前变量状态
+    current_variables: HashMap<String, String>,
 }
 
 /// 注入策略
@@ -511,6 +515,8 @@ impl CssVariableInjector {
             target_selector: target_selector.into(),
             injection_strategy: InjectionStrategy::Replace,
             batch_updates: true,
+            current_css: None,
+            current_variables: HashMap::new(),
         }
     }
 
@@ -527,25 +533,143 @@ impl CssVariableInjector {
     }
 
     /// 注入 CSS 变量
-    pub fn inject(&self, css: &str) -> Result<(), String> {
-        // 在实际实现中，这里会将 CSS 注入到 DOM 中
-        // 目前只是模拟实现
-        println!(
-            "Injecting CSS variables to {}: {}",
-            self.target_selector, css
-        );
+    pub fn inject(&mut self, css: &str) -> Result<(), String> {
+        use std::fs;
+        use std::io::Write;
+
+        // 根据注入策略处理CSS内容
+        let final_css = match self.injection_strategy {
+            InjectionStrategy::Replace => css.to_string(),
+            InjectionStrategy::Merge | InjectionStrategy::SmartMerge => {
+                if let Some(existing) = &self.current_css {
+                    format!(
+                        "{}
+{}",
+                        existing, css
+                    )
+                } else {
+                    css.to_string()
+                }
+            }
+            InjectionStrategy::Append => {
+                if let Some(existing) = &self.current_css {
+                    format!(
+                        "{}
+{}",
+                        existing, css
+                    )
+                } else {
+                    css.to_string()
+                }
+            }
+        };
+
+        // 更新内部状态
+        self.current_css = Some(final_css.clone());
+        self.parse_and_store_variables(&final_css);
+
+        // 根据目标选择器决定输出方式
+        if self.target_selector == "stdout" || self.target_selector == ":stdout" {
+            // 输出到标准输出
+            println!("{}", final_css);
+        } else if self.target_selector.starts_with("file:") {
+            // 写入到文件
+            let file_path = self
+                .target_selector
+                .strip_prefix("file:")
+                .unwrap_or(&self.target_selector);
+            fs::write(file_path, &final_css)
+                .map_err(|e| format!("Failed to write CSS to file '{}': {}", file_path, e))?
+        } else if self.target_selector.ends_with(".css") {
+            // 直接作为文件路径处理
+            fs::write(&self.target_selector, &final_css).map_err(|e| {
+                format!(
+                    "Failed to write CSS to file '{}': {}",
+                    self.target_selector, e
+                )
+            })?
+        } else {
+            // 默认输出到标准输出，并显示目标选择器信息
+            println!("/* CSS for selector: {} */", self.target_selector);
+            println!("{}", final_css);
+        }
+
         Ok(())
+    }
+
+    /// 解析CSS并存储变量到内部状态
+    fn parse_and_store_variables(&mut self, css: &str) {
+        // 简单的CSS变量解析
+        for line in css.lines() {
+            let line = line.trim();
+            if line.starts_with("--") && line.contains(':') {
+                if let Some(colon_pos) = line.find(':') {
+                    let var_name = line[..colon_pos].trim().to_string();
+                    let var_value = line[colon_pos + 1..]
+                        .trim()
+                        .trim_end_matches(';')
+                        .trim()
+                        .to_string();
+                    self.current_variables.insert(var_name, var_value);
+                }
+            }
+        }
     }
 
     /// 更新特定变量
-    pub fn update_variable(&self, name: &str, value: &str) -> Result<(), String> {
-        // 在实际实现中，这里会更新 DOM 中的特定 CSS 变量
-        println!("Updating variable {}: {}", name, value);
-        Ok(())
+    pub fn update_variable(&mut self, name: &str, value: &str) -> Result<(), String> {
+        // 确保变量名以--开头
+        let var_name = if name.starts_with("--") {
+            name.to_string()
+        } else {
+            format!("--{}", name)
+        };
+
+        // 更新内部变量状态
+        self.current_variables
+            .insert(var_name.clone(), value.to_string());
+
+        // 重新生成CSS
+        let mut new_css = String::new();
+
+        // 如果有现有CSS，尝试更新其中的变量
+        if let Some(existing_css) = &self.current_css {
+            let mut updated = false;
+            for line in existing_css.lines() {
+                let line = line.trim();
+                if line.starts_with(&var_name) && line.contains(':') {
+                    // 找到要更新的变量，替换其值
+                    new_css.push_str(&format!("  {}: {};\n", var_name, value));
+                    updated = true;
+                } else {
+                    new_css.push_str(line);
+                    new_css.push('\n');
+                }
+            }
+
+            // 如果变量不存在，添加到CSS中
+            if !updated {
+                // 查找合适的位置插入新变量
+                if new_css.contains(":root {") {
+                    // 在:root块中添加
+                    new_css = new_css
+                        .replace(":root {", &format!(":root {{\n  {}: {};", var_name, value));
+                } else {
+                    // 创建新的:root块
+                    new_css = format!(":root {{\n  {}: {};\n}}\n{}", var_name, value, new_css);
+                }
+            }
+        } else {
+            // 没有现有CSS，创建新的
+            new_css = format!(":root {{\n  {}: {};\n}}", var_name, value);
+        }
+
+        // 重新注入更新后的CSS
+        self.inject(&new_css)
     }
 
     /// 批量更新变量
-    pub fn update_variables(&self, variables: &HashMap<String, String>) -> Result<(), String> {
+    pub fn update_variables(&mut self, variables: &HashMap<String, String>) -> Result<(), String> {
         if self.batch_updates {
             // 批量更新
             println!("Batch updating {} variables", variables.len());
@@ -566,25 +690,39 @@ impl CssVariableUtils {
     /// 解析 CSS 变量引用
     pub fn parse_var_reference(css: &str) -> Vec<String> {
         let mut variables = Vec::new();
-        let mut chars = css.chars().peekable();
+        let mut i = 0;
+        let chars: Vec<char> = css.chars().collect();
 
-        while let Some(ch) = chars.next() {
-            if ch == 'v' && chars.peek() == Some(&'a') {
-                // 可能是 var() 函数
-                let remaining: String = chars.by_ref().collect();
-                if remaining.starts_with("ar(") {
-                    // 提取变量名
-                    if let Some(start) = remaining.find("--") {
-                        if let Some(end) = remaining[start..].find(')') {
-                            let var_name = &remaining[start..start + end];
-                            if let Some(comma_pos) = var_name.find(',') {
-                                variables.push(var_name[..comma_pos].trim().to_string());
-                            } else {
-                                variables.push(var_name.trim().to_string());
-                            }
+        while i < chars.len() {
+            if i + 4 < chars.len() && chars[i..i + 4].iter().collect::<String>() == "var(" {
+                // 找到 var( 开始
+                i += 4; // 跳过 "var("
+
+                // 查找变量名开始位置（--）
+                while i < chars.len() && chars[i] != '-' {
+                    i += 1;
+                }
+
+                if i + 1 < chars.len() && chars[i] == '-' && chars[i + 1] == '-' {
+                    let start = i;
+                    // 查找变量名结束位置（, 或 )）
+                    while i < chars.len() && chars[i] != ',' && chars[i] != ')' {
+                        i += 1;
+                    }
+
+                    if i > start {
+                        let var_name: String = chars[start..i]
+                            .iter()
+                            .collect::<String>()
+                            .trim()
+                            .to_string();
+                        if !var_name.is_empty() {
+                            variables.push(var_name);
                         }
                     }
                 }
+            } else {
+                i += 1;
             }
         }
 

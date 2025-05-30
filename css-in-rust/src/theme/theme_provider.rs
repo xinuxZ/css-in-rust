@@ -141,12 +141,17 @@ impl ThemeProvider {
         let variable_injector = CssVariableInjector::new(&config.injection_target);
         let theme_context = ThemeContext::new();
 
+        // 注册暗色主题到 theme_context（默认主题已在 ThemeContext::new() 中注册）
+        let dark_theme = Theme::ant_design_dark();
+        theme_context
+            .register_theme(dark_theme.clone())
+            .expect("Failed to register dark theme");
+
         let inner = ThemeProviderInner {
             current_theme: current_theme.clone(),
             registered_themes: {
                 let mut themes = HashMap::new();
                 themes.insert("ant-design".to_string(), current_theme);
-                let dark_theme = Theme::ant_design_dark();
                 themes.insert("ant-design-dark".to_string(), dark_theme);
                 themes
             },
@@ -174,12 +179,17 @@ impl ThemeProvider {
         let variable_injector = CssVariableInjector::new(&config.injection_target);
         let theme_context = ThemeContext::new();
 
+        // 注册暗色主题到 theme_context（默认主题已在 ThemeContext::new() 中注册）
+        let dark_theme = Theme::ant_design_dark();
+        theme_context
+            .register_theme(dark_theme.clone())
+            .expect("Failed to register dark theme");
+
         let inner = ThemeProviderInner {
             current_theme: current_theme.clone(),
             registered_themes: {
                 let mut themes = HashMap::new();
                 themes.insert("ant-design".to_string(), current_theme);
-                let dark_theme = Theme::ant_design_dark();
                 themes.insert("ant-design-dark".to_string(), dark_theme);
                 themes
             },
@@ -204,7 +214,7 @@ impl ThemeProvider {
             .map_err(|_| "Failed to acquire write lock")?;
 
         inner.registered_themes.insert(name.clone(), theme.clone());
-        inner.theme_context.register_theme(theme);
+        inner.theme_context.register_theme(theme)?;
 
         Ok(())
     }
@@ -777,16 +787,40 @@ mod tests {
 
     #[test]
     fn test_theme_provider_switching() {
-        println!("=== TEST STARTING ====");
+        eprintln!("=== TEST STARTING ====");
         let provider = ThemeProvider::new();
-        println!("=== PROVIDER CREATED ====");
+        eprintln!("=== PROVIDER CREATED ====");
 
         // 强制显示调试信息
         eprintln!("EPRINTLN: Test is running!");
 
+        // 立即检查provider状态
+        eprintln!("Provider created, checking themes immediately...");
+        match provider.registered_themes() {
+            Ok(themes) => {
+                eprintln!("SUCCESS: Got themes: {:?}", themes);
+            }
+            Err(e) => {
+                eprintln!("ERROR: Failed to get themes: {}", e);
+                panic!("Failed to get registered themes: {}", e);
+            }
+        }
+
         // 验证主题已注册
         let themes = provider.registered_themes().expect("Should get themes");
-        assert!(themes.contains(&"ant-design-dark".to_string()));
+        eprintln!("Registered themes: {:?}", themes);
+        eprintln!("Looking for: ant-design-dark");
+        eprintln!(
+            "Contains ant-design-dark: {}",
+            themes.contains(&"ant-design-dark".to_string())
+        );
+
+        if !themes.contains(&"ant-design-dark".to_string()) {
+            panic!(
+                "Theme 'ant-design-dark' not found in registered themes: {:?}",
+                themes
+            );
+        }
 
         // 在切换主题前再次检查
         println!("Before switch_theme call:");
@@ -871,7 +905,7 @@ mod tests {
         assert!(result.is_some());
 
         let current = manager.provider().current_theme().unwrap();
-        assert_eq!(current.name, "Ant Design Dark");
+        assert_eq!(current.name, "ant-design-dark");
     }
 
     #[test]
