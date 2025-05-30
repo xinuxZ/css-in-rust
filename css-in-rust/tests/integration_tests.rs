@@ -9,9 +9,21 @@ use css_in_rust::css;
 use css_in_rust_macros as _;
 
 #[allow(unused_imports)]
+use css_in_rust_macros as _;
+#[allow(unused_imports)]
+use lightningcss as _;
+#[allow(unused_imports)]
+use proc_macro2 as _;
+#[allow(unused_imports)]
+use quote as _;
+#[allow(unused_imports)]
 use serde as _;
 #[allow(unused_imports)]
 use serde_json as _;
+#[allow(unused_imports)]
+use sha2 as _;
+#[allow(unused_imports)]
+use syn as _;
 
 #[cfg(test)]
 mod tests {
