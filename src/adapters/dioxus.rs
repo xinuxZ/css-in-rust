@@ -198,7 +198,7 @@ impl StyleProvider for DioxusStyleProvider {
 /// Dioxus hook for using CSS-in-Rust styles
 #[cfg(feature = "dioxus")]
 pub fn use_style(css_content: &str) -> String {
-    use dioxus_core::prelude::*;
+    use ::dioxus_core::prelude::*;
 
     let class_name = use_memo(move || crate::runtime::generate_class_name(css_content));
 

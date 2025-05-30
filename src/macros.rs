@@ -38,18 +38,13 @@ use syn::{parse_macro_input, Error, LitStr};
 ///     }
 /// "#);
 /// ```
-#[proc_macro]
-pub fn css(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let input = TokenStream::from(input);
-
-    match css_impl(input) {
-        Ok(output) => output.into(),
-        Err(err) => err.to_compile_error().into(),
-    }
+/// Implementation of the css! macro
+pub fn css_impl(input: TokenStream) -> syn::Result<TokenStream> {
+    css_impl_internal(input)
 }
 
 /// Internal implementation of the css! macro
-fn css_impl(input: TokenStream) -> syn::Result<TokenStream> {
+fn css_impl_internal(input: TokenStream) -> syn::Result<TokenStream> {
     // Try to parse as a string literal first
     if let Ok(lit_str) = syn::parse2::<LitStr>(input.clone()) {
         return process_css_string(&lit_str.value(), lit_str.span());
@@ -81,18 +76,48 @@ fn process_css_string(css: &str, span: Span) -> syn::Result<TokenStream> {
             static CSS_INJECTED: ::std::sync::OnceLock<::std::string::String> = ::std::sync::OnceLock::new();
 
             CSS_INJECTED.get_or_init(|| {
-                match ::css_in_rust::inject_style(#css_literal) {
-                    Ok(class_name) => class_name,
-                    Err(err) => {
-                        // In debug mode, panic on CSS errors
-                        #[cfg(debug_assertions)]
-                        panic!("CSS injection failed: {}", err);
+                let class_name = #css_id_literal;
 
-                        // In release mode, return a fallback class name
-                        #[cfg(not(debug_assertions))]
-                        format!("css-error-{}", #css_id_literal)
+                // Inject CSS into document head (web target only)
+                #[cfg(target_arch = "wasm32")]
+                {
+                    use wasm_bindgen::prelude::*;
+
+                    #[wasm_bindgen]
+                    extern "C" {
+                        #[wasm_bindgen(js_namespace = console)]
+                        fn log(s: &str);
+
+                        type Document;
+                        type Element;
+                        type HTMLStyleElement;
+
+                        #[wasm_bindgen(js_name = document)]
+                        static DOCUMENT: Document;
+
+                        #[wasm_bindgen(method, js_name = createElement)]
+                        fn create_element(this: &Document, tag_name: &str) -> Element;
+
+                        #[wasm_bindgen(method, js_name = querySelector)]
+                        fn query_selector(this: &Document, selector: &str) -> Option<Element>;
+
+                        #[wasm_bindgen(method, js_name = appendChild)]
+                        fn append_child(this: &Element, child: &Element);
+
+                        #[wasm_bindgen(method, setter = textContent)]
+                        fn set_text_content(this: &Element, text: &str);
+                    }
+
+                    let style_element = DOCUMENT.create_element("style");
+                    let css_content = format!(".{} {{ {} }}", class_name, #css_literal);
+                    style_element.set_text_content(&css_content);
+
+                    if let Some(head) = DOCUMENT.query_selector("head") {
+                        head.append_child(&style_element);
                     }
                 }
+
+                class_name.to_string()
             }).clone()
         }
     })
@@ -250,18 +275,13 @@ fn calculate_css_hash(css: &str) -> String {
 ///     color: white;
 /// });
 /// ```
-#[proc_macro]
-pub fn css_if(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let input = TokenStream::from(input);
-
-    match css_if_impl(input) {
-        Ok(output) => output.into(),
-        Err(err) => err.to_compile_error().into(),
-    }
+/// Implementation of the css_if! macro
+pub fn css_if_impl(input: TokenStream) -> syn::Result<TokenStream> {
+    css_if_impl_internal(input)
 }
 
 /// Internal implementation of the css_if! macro
-fn css_if_impl(input: TokenStream) -> syn::Result<TokenStream> {
+fn css_if_impl_internal(input: TokenStream) -> syn::Result<TokenStream> {
     let tokens: Vec<_> = input.into_iter().collect();
 
     if tokens.len() < 3 {
@@ -304,12 +324,59 @@ fn css_if_impl(input: TokenStream) -> syn::Result<TokenStream> {
         ));
     }
 
-    let css_literal = css_content;
+    let css_literal = css_content.clone();
+
+    // Generate a unique identifier for this CSS block
+    let css_hash = calculate_css_hash(&css_content);
+    let css_id = format!("css_{}", &css_hash[..8]);
+    let css_id_literal = css_id;
 
     Ok(quote! {
         {
             if #condition_tokens {
-                ::css_in_rust::inject_style(#css_literal).unwrap_or_else(|_| String::new())
+                // Use a static to ensure the CSS is only processed once
+                static CSS_INJECTED: ::std::sync::OnceLock<::std::string::String> = ::std::sync::OnceLock::new();
+
+                CSS_INJECTED.get_or_init(|| {
+                    let class_name = #css_id_literal;
+
+                    // Inject CSS into document head (web target only)
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        use wasm_bindgen::prelude::*;
+
+                        #[wasm_bindgen]
+                        extern "C" {
+                            type Document;
+                            type Element;
+
+                            #[wasm_bindgen(js_name = document)]
+                            static DOCUMENT: Document;
+
+                            #[wasm_bindgen(method, js_name = createElement)]
+                            fn create_element(this: &Document, tag_name: &str) -> Element;
+
+                            #[wasm_bindgen(method, js_name = querySelector)]
+                            fn query_selector(this: &Document, selector: &str) -> Option<Element>;
+
+                            #[wasm_bindgen(method, js_name = appendChild)]
+                            fn append_child(this: &Element, child: &Element);
+
+                            #[wasm_bindgen(method, setter = textContent)]
+                            fn set_text_content(this: &Element, text: &str);
+                        }
+
+                        let style_element = DOCUMENT.create_element("style");
+                        let css_content = format!(".{} {{ {} }}", class_name, #css_literal);
+                        style_element.set_text_content(&css_content);
+
+                        if let Some(head) = DOCUMENT.query_selector("head") {
+                            head.append_child(&style_element);
+                        }
+                    }
+
+                    class_name.to_string()
+                }).clone()
             } else {
                 String::new()
             }
@@ -332,18 +399,13 @@ fn css_if_impl(input: TokenStream) -> syn::Result<TokenStream> {
 ///     color: #333;
 /// });
 /// ```
-#[proc_macro]
-pub fn css_theme(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let input = TokenStream::from(input);
-
-    match css_theme_impl(input) {
-        Ok(output) => output.into(),
-        Err(err) => err.to_compile_error().into(),
-    }
+/// Implementation of the css_theme! macro
+pub fn css_theme_impl(input: TokenStream) -> syn::Result<TokenStream> {
+    css_theme_impl_internal(input)
 }
 
 /// Internal implementation of the css_theme! macro
-fn css_theme_impl(input: TokenStream) -> syn::Result<TokenStream> {
+fn css_theme_impl_internal(_input: TokenStream) -> syn::Result<TokenStream> {
     // For now, just return a placeholder implementation
     // This would be expanded in Phase 2 with proper theme support
     Ok(quote! {

@@ -1,62 +1,73 @@
-//! # CSS-in-Rust
+//! CSS-in-Rust: A compile-time CSS processing library for Rust
 //!
-//! High-performance CSS-in-Rust solution based on stylers + lightningcss.
+//! This library provides macros for processing CSS at compile time,
+//! generating optimized styles and class names for web applications.
 //!
-//! ## Features
+//! # Features
 //!
-//! - 🚀 High-performance CSS parsing and optimization
-//! - 🔒 Type-safe CSS with compile-time validation
-//! - 🎨 Theme system with CSS variables
-//! - 📱 Responsive design support
-//! - 🔧 Framework adapters (Dioxus, Yew, Leptos)
+//! - **Compile-time CSS processing**: CSS is parsed and optimized during compilation
+//! - **Automatic class name generation**: Unique class names are generated based on CSS content
+//! - **CSS validation**: Syntax errors are caught at compile time
+//! - **Framework integration**: Built-in support for Dioxus and other web frameworks
+//! - **SSR support**: Works with server-side rendering
 //!
-//! ## Quick Start
+//! # Quick Start
 //!
 //! ```rust
 //! use css_in_rust::css;
 //!
-//! let button_class = css! {
-//!     ".button {
-//!         background: #007bff;
-//!         color: white;
-//!         padding: 8px 16px;
-//!         border: none;
-//!         border-radius: 4px;
-//!         cursor: pointer;
+//! let class_name = css! {
+//!     color: red;
+//!     font-size: 16px;
+//!     &:hover {
+//!         color: blue;
 //!     }
-//!
-//!     .button:hover {
-//!         background: #0056b3;
-//!     }"
 //! };
 //! ```
 
-pub mod core;
-pub mod macros;
-pub mod runtime;
+// Internal modules for macro implementation
+mod adapters;
+mod core;
+mod runtime;
 
-#[cfg(any(feature = "dioxus"))]
-pub mod adapters;
+// Macro implementation functions
+mod macros;
 
-// Re-export the main macro
-pub use crate::macros::css;
+use proc_macro2::{Span, TokenStream};
+use quote::quote;
+use syn::{parse_macro_input, Error, LitStr};
 
-// Re-export core types
-pub use crate::core::{CssError, Result};
-pub use crate::runtime::{inject_style, StyleProvider};
+/// The main CSS macro for processing CSS at compile time
+#[proc_macro]
+pub fn css(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let input = TokenStream::from(input);
 
-#[cfg(feature = "dioxus")]
-pub use crate::adapters::dioxus::DioxusStyleProvider;
+    match macros::css_impl(input) {
+        Ok(output) => output.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
+}
 
-/// Version information
-pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+/// CSS macro with conditional processing
+#[proc_macro]
+pub fn css_if(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let input = TokenStream::from(input);
 
-/// Initialize the CSS-in-Rust runtime
-///
-/// This function should be called once at the start of your application
-/// to set up the style injection system.
-pub fn init() {
-    runtime::init_runtime();
+    match macros::css_if_impl(input) {
+        Ok(output) => output.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
+}
+
+/// CSS macro for theme-aware styles
+#[proc_macro]
+pub fn css_theme(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let input = TokenStream::from(input);
+
+    match macros::css_theme_impl(input) {
+        Ok(output) => output.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
 }
 
 #[cfg(test)]
