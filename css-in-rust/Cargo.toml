@@ -3,7 +3,7 @@ name = "css-in-rust"
 version = "0.1.0"
 edition = "2021"
 authors = ["AI Architect <ai@example.com>"]
-description = "High-performance CSS-in-Rust solution based on stylers + lightningcss"
+description = "High-performance CSS-in-Rust solution powered by lightningcss"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/your-username/css-in-rust"
 keywords = ["css", "rust", "styling", "web", "dioxus"]
@@ -12,6 +12,8 @@ readme = "../README.md"
 
 [dependencies]
 css-in-rust-macros = { path = "../css-in-rust-macros", optional = true }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
 
 # Web platform dependencies
 [target.'cfg(target_arch = "wasm32")'.dependencies]

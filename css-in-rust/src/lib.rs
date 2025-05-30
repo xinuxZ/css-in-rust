@@ -38,11 +38,13 @@
 pub mod adapters;
 // pub mod core; // Temporarily disabled lightningcss integration
 pub mod runtime;
+pub mod theme;
 
 // Re-exports for convenience
 pub use adapters::*;
 pub use core::*;
 pub use runtime::*;
+pub use theme::*;
 
 // Re-export macros when proc-macro feature is enabled
 #[cfg(feature = "proc-macro")]

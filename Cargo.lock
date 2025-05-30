@@ -186,6 +186,8 @@ name = "css-in-rust"
 version = "0.1.0"
 dependencies = [
  "css-in-rust-macros",
+ "serde",
+ "serde_json",
  "wasm-bindgen",
  "web-sys",
 ]

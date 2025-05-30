@@ -1,6 +1,6 @@
 # CSS-in-Rust
 
-🚀 A high-performance CSS-in-Rust solution based on stylers + lightningcss.
+🚀 A high-performance CSS-in-Rust solution based on lightningcss.
 
 ## Features
 
