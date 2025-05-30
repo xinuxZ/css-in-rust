@@ -5,17 +5,22 @@
 //! for high-performance minification and optimization.
 
 use crate::core::parser::{ParseError, StyleSheet};
+
+#[cfg(feature = "optimizer")]
 use lightningcss::{
     printer::PrinterOptions, stylesheet::StyleSheet as LightningStyleSheet, targets::Browsers,
 };
 
-/// Configuration for CSS optimizer based on lightningcss
+/// Configuration for CSS optimizer
 #[derive(Debug, Clone)]
 pub struct OptimizerConfig {
     /// Whether to minify the CSS output
     pub minify: bool,
-    /// Target browsers for optimization
+    /// Target browsers for optimization (only available with optimizer feature)
+    #[cfg(feature = "optimizer")]
     pub targets: Option<Browsers>,
+    #[cfg(not(feature = "optimizer"))]
+    pub targets: Option<String>, // Fallback type
     /// Whether to analyze dependencies for unused code elimination
     pub analyze_dependencies: bool,
     /// Whether to enable vendor prefix removal based on targets
@@ -26,7 +31,10 @@ impl Default for OptimizerConfig {
     fn default() -> Self {
         Self {
             minify: true,
+            #[cfg(feature = "optimizer")]
             targets: Some(Browsers::default()),
+            #[cfg(not(feature = "optimizer"))]
+            targets: None,
             analyze_dependencies: false,
             vendor_prefix: true,
         }
@@ -92,7 +100,8 @@ impl CssOptimizer {
         self.optimize_string(&stylesheet.source)
     }
 
-    /// Optimize CSS string directly using lightningcss
+    /// Optimize CSS string
+    #[cfg(feature = "optimizer")]
     pub fn optimize_string(&self, css: &str) -> Result<String, OptimizationError> {
         use lightningcss::stylesheet::ParserOptions;
 
@@ -115,6 +124,24 @@ impl CssOptimizer {
         })?;
 
         Ok(result.code)
+    }
+
+    /// Fallback optimize CSS string (without lightningcss)
+    #[cfg(not(feature = "optimizer"))]
+    pub fn optimize_string(&self, css: &str) -> Result<String, OptimizationError> {
+        // Simple fallback: just return the CSS as-is or do basic minification
+        if self.config.minify {
+            // Very basic minification: remove extra whitespace
+            let minified = css
+                .lines()
+                .map(|line| line.trim())
+                .filter(|line| !line.is_empty())
+                .collect::<Vec<_>>()
+                .join(" ");
+            Ok(minified)
+        } else {
+            Ok(css.to_string())
+        }
     }
 }
 

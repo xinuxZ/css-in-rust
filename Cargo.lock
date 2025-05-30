@@ -186,8 +186,13 @@ name = "css-in-rust"
 version = "0.1.0"
 dependencies = [
  "css-in-rust-macros",
+ "lightningcss",
+ "proc-macro2",
+ "quote",
  "serde",
  "serde_json",
+ "sha2",
+ "syn 2.0.101",
  "wasm-bindgen",
  "web-sys",
 ]

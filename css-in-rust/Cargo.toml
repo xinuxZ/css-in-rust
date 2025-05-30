@@ -14,6 +14,11 @@ readme = "../README.md"
 css-in-rust-macros = { path = "../css-in-rust-macros", optional = true }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
+proc-macro2 = { version = "1.0", optional = true }
+quote = { version = "1.0", optional = true }
+syn = { version = "2.0", features = ["full", "extra-traits"], optional = true }
+lightningcss = { version = "1.0.0-alpha.66", optional = true }
+sha2 = { version = "0.10", optional = true }
 
 # Web platform dependencies
 [target.'cfg(target_arch = "wasm32")'.dependencies]
@@ -31,8 +36,9 @@ wasm-bindgen = "0.2"
 [dev-dependencies]
 
 [features]
-default = ["proc-macro"]
-proc-macro = ["css-in-rust-macros"]
+default = ["proc-macro", "optimizer"]
+proc-macro = ["css-in-rust-macros", "proc-macro2", "quote", "syn"]
+optimizer = ["lightningcss", "sha2"]
 dioxus = []
 
 [lib]
@@ -40,4 +46,12 @@ name = "css_in_rust"
 
 [[example]]
 name = "basic"
+required-features = []
+
+[[example]]
+name = "variant_system_demo"
+required-features = []
+
+[[example]]
+name = "simple_variant_demo"
 required-features = []

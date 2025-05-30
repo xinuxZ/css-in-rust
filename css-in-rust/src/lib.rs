@@ -36,15 +36,18 @@
 
 // Module declarations
 pub mod adapters;
-// pub mod core; // Temporarily disabled lightningcss integration
+pub mod core;
+pub mod macros;
 pub mod runtime;
 pub mod theme;
+pub mod variants;
 
 // Re-exports for convenience
 pub use adapters::*;
 pub use core::*;
 pub use runtime::*;
 pub use theme::*;
+pub use variants::*;
 
 // Re-export macros when proc-macro feature is enabled
 #[cfg(feature = "proc-macro")]
@@ -57,7 +60,7 @@ use css_in_rust_macros as _;
 
 // Provide fallback implementations when proc-macro feature is disabled
 #[cfg(not(feature = "proc-macro"))]
-pub mod macros {
+pub mod fallback_macros {
     /// Fallback css! macro that returns a placeholder when proc-macro feature is disabled
     #[macro_export]
     macro_rules! css {
@@ -91,7 +94,7 @@ pub mod macros {
 }
 
 #[cfg(not(feature = "proc-macro"))]
-pub use macros::*;
+pub use fallback_macros::*;
 
 /// Initialize the CSS-in-Rust runtime system
 ///

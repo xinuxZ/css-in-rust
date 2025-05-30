@@ -4,6 +4,7 @@
 //! This module provides CSS parsing capabilities using lightningcss as the core engine
 //! for high-performance CSS processing and optimization.
 
+#[cfg(feature = "optimizer")]
 use lightningcss::{
     error::Error as LightningError,
     printer::PrinterOptions,
@@ -12,11 +13,14 @@ use lightningcss::{
 };
 // use std::collections::HashMap; // Unused import
 
-/// Configuration for CSS parser based on lightningcss
+/// Configuration for CSS parser
 #[derive(Debug, Clone)]
 pub struct ParserConfig {
     /// Target browsers for CSS compatibility
+    #[cfg(feature = "optimizer")]
     pub targets: Option<Browsers>,
+    #[cfg(not(feature = "optimizer"))]
+    pub targets: Option<String>, // Fallback type
     /// Enable minification during parsing
     pub minify: bool,
 }
@@ -24,7 +28,10 @@ pub struct ParserConfig {
 impl Default for ParserConfig {
     fn default() -> Self {
         Self {
+            #[cfg(feature = "optimizer")]
             targets: Some(Browsers::default()),
+            #[cfg(not(feature = "optimizer"))]
+            targets: None,
             minify: false,
         }
     }
@@ -33,6 +40,7 @@ impl Default for ParserConfig {
 /// CSS parser error wrapper for lightningcss errors
 #[derive(Debug)]
 pub enum ParseError {
+    #[cfg(feature = "optimizer")]
     LightningCssError(LightningError<()>),
     InvalidInput(String),
     ProcessingError(String),
@@ -41,6 +49,7 @@ pub enum ParseError {
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            #[cfg(feature = "optimizer")]
             ParseError::LightningCssError(err) => write!(f, "LightningCSS error: {:?}", err),
             ParseError::InvalidInput(msg) => write!(f, "Invalid input: {}", msg),
             ParseError::ProcessingError(msg) => write!(f, "Processing error: {}", msg),
@@ -50,6 +59,7 @@ impl std::fmt::Display for ParseError {
 
 impl std::error::Error for ParseError {}
 
+#[cfg(feature = "optimizer")]
 impl From<LightningError<()>> for ParseError {
     fn from(err: LightningError<()>) -> Self {
         ParseError::LightningCssError(err)
@@ -98,7 +108,8 @@ impl CssParser {
         Self { config }
     }
 
-    /// Parse CSS string into a stylesheet using lightningcss
+    /// Parse CSS string into a stylesheet
+    #[cfg(feature = "optimizer")]
     pub fn parse(&self, css: &str) -> Result<StyleSheet, ParseError> {
         if css.trim().is_empty() {
             return Ok(StyleSheet {
@@ -133,7 +144,37 @@ impl CssParser {
         })
     }
 
+    /// Parse CSS string into a stylesheet (fallback implementation)
+    #[cfg(not(feature = "optimizer"))]
+    pub fn parse(&self, css: &str) -> Result<StyleSheet, ParseError> {
+        if css.trim().is_empty() {
+            return Ok(StyleSheet {
+                source: css.to_string(),
+                optimized: String::new(),
+                metadata: StyleSheetMetadata::default(),
+            });
+        }
+
+        // Simple fallback: basic minification if enabled
+        let optimized = if self.config.minify {
+            css.lines()
+                .map(|line| line.trim())
+                .filter(|line| !line.is_empty())
+                .collect::<Vec<_>>()
+                .join(" ")
+        } else {
+            css.to_string()
+        };
+
+        Ok(StyleSheet {
+            source: css.to_string(),
+            optimized,
+            metadata: StyleSheetMetadata::default(),
+        })
+    }
+
     /// Extract metadata from parsed stylesheet
+    #[cfg(feature = "optimizer")]
     fn extract_metadata(&self, _stylesheet: &LightningStyleSheet) -> StyleSheetMetadata {
         // This is a simplified implementation
         // In a full implementation, we would traverse the stylesheet AST
