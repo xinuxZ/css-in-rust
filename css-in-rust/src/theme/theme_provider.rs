@@ -146,7 +146,8 @@ impl ThemeProvider {
             registered_themes: {
                 let mut themes = HashMap::new();
                 themes.insert("ant-design".to_string(), current_theme);
-                themes.insert("ant-design-dark".to_string(), Theme::ant_design_dark());
+                let dark_theme = Theme::ant_design_dark();
+                themes.insert("ant-design-dark".to_string(), dark_theme);
                 themes
             },
             variable_manager,
@@ -178,7 +179,8 @@ impl ThemeProvider {
             registered_themes: {
                 let mut themes = HashMap::new();
                 themes.insert("ant-design".to_string(), current_theme);
-                themes.insert("ant-design-dark".to_string(), Theme::ant_design_dark());
+                let dark_theme = Theme::ant_design_dark();
+                themes.insert("ant-design-dark".to_string(), dark_theme);
                 themes
             },
             variable_manager,
@@ -216,11 +218,28 @@ impl ThemeProvider {
             .write()
             .map_err(|_| "Failed to acquire write lock")?;
 
+        // 调试：打印当前注册的主题
+        println!("DEBUG: Looking for theme '{}'", theme_name);
+        println!(
+            "DEBUG: Available themes: {:?}",
+            inner.registered_themes.keys().collect::<Vec<_>>()
+        );
+        println!(
+            "DEBUG: Theme exists: {}",
+            inner.registered_themes.contains_key(theme_name)
+        );
+
         // 获取目标主题
+        let available_themes: Vec<String> = inner.registered_themes.keys().cloned().collect();
         let target_theme = inner
             .registered_themes
             .get(theme_name)
-            .ok_or_else(|| format!("Theme '{}' not found", theme_name))?
+            .ok_or_else(|| {
+                format!(
+                    "Theme '{}' not found. Available themes: {:?}",
+                    theme_name, available_themes
+                )
+            })?
             .clone();
 
         // 通知监听器主题即将变更
@@ -749,15 +768,57 @@ mod tests {
     }
 
     #[test]
-    fn test_theme_switching() {
+    fn test_theme_ant_design_dark_creation() {
+        // 测试Theme::ant_design_dark()方法是否正常工作
+        let dark_theme = Theme::ant_design_dark();
+        println!("Dark theme created with name: '{}'", dark_theme.name);
+        assert_eq!(dark_theme.name, "ant-design-dark");
+    }
+
+    #[test]
+    fn test_theme_provider_switching() {
+        println!("=== TEST STARTING ====");
         let provider = ThemeProvider::new();
+        println!("=== PROVIDER CREATED ====");
 
-        let result = provider.switch_theme("ant-design-dark").unwrap();
-        assert!(result.success);
-        assert!(result.duration_ms >= 0);
+        // 强制显示调试信息
+        eprintln!("EPRINTLN: Test is running!");
 
-        let current = provider.current_theme().unwrap();
-        assert_eq!(current.name, "Ant Design Dark");
+        // 验证主题已注册
+        let themes = provider.registered_themes().expect("Should get themes");
+        assert!(themes.contains(&"ant-design-dark".to_string()));
+
+        // 在切换主题前再次检查
+        println!("Before switch_theme call:");
+        let themes_before = provider.registered_themes().expect("Should get themes");
+        println!("Available themes before switch: {:?}", themes_before);
+
+        // 直接检查内部状态
+        {
+            let inner = provider.inner.read().unwrap();
+            println!(
+                "Direct inner check - registered themes: {:?}",
+                inner.registered_themes.keys().collect::<Vec<_>>()
+            );
+            println!(
+                "Direct inner check - contains ant-design-dark: {}",
+                inner.registered_themes.contains_key("ant-design-dark")
+            );
+        }
+
+        // 现在尝试切换主题
+        match provider.switch_theme("ant-design-dark") {
+            Ok(result) => {
+                assert!(result.success);
+                assert!(result.duration_ms >= 0);
+
+                let current = provider.current_theme().unwrap();
+                assert_eq!(current.name, "ant-design-dark");
+            }
+            Err(e) => {
+                panic!("Switch theme failed: {}", e);
+            }
+        }
     }
 
     #[test]
