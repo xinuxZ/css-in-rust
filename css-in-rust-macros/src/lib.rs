@@ -3,6 +3,11 @@
 //! This crate provides procedural macros for compile-time CSS processing
 //! and runtime style injection.
 
+use lightningcss::{
+    printer::PrinterOptions,
+    stylesheet::{ParserOptions, StyleSheet as LightningStyleSheet},
+    targets::{Browsers, Targets},
+};
 use proc_macro::TokenStream;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
@@ -34,6 +39,7 @@ pub fn css(input: TokenStream) -> TokenStream {
 /// ```rust
 /// use css_in_rust_macros::css_if;
 ///
+/// let is_active = true;
 /// let class_name = css_if!(is_active, "background-color: blue;");
 /// ```
 #[proc_macro]
@@ -196,15 +202,18 @@ fn css_class_impl_internal(input: TokenStream2) -> syn::Result<TokenStream2> {
 
 /// Process CSS string and generate runtime injection code
 fn process_css_string(css: &str, span: Span) -> syn::Result<TokenStream2> {
-    // Validate CSS syntax
-    if let Err(err) = validate_css_syntax(css) {
-        return Err(Error::new(span, format!("Invalid CSS syntax: {}", err)));
-    }
+    // Validate and optimize CSS using lightningcss
+    let optimized_css = match optimize_css_with_lightningcss(css) {
+        Ok(optimized) => optimized,
+        Err(err) => {
+            return Err(Error::new(span, format!("CSS processing error: {}", err)));
+        }
+    };
 
     // Generate a unique identifier for this CSS block
-    let css_hash = calculate_css_hash(css);
+    let css_hash = calculate_css_hash(&optimized_css);
     let css_id = format!("css-{}", &css_hash[..8]);
-    let css_literal = css.to_string();
+    let css_literal = optimized_css;
 
     Ok(quote! {
         {
@@ -268,52 +277,152 @@ fn process_css_string(css: &str, span: Span) -> syn::Result<TokenStream2> {
 
 /// Parse CSS syntax from token stream
 fn parse_css_syntax(input: TokenStream2) -> syn::Result<String> {
-    // For now, convert the token stream to string
-    // In a more sophisticated implementation, you might parse CSS properties individually
-    let css_str = input.to_string();
+    use proc_macro2::{Delimiter, TokenTree};
 
-    // Remove any surrounding quotes if present
-    let css_content = if css_str.starts_with('"') && css_str.ends_with('"') {
-        css_str[1..css_str.len() - 1].to_string()
-    } else {
-        css_str
-    };
+    let mut css_parts = Vec::new();
+    let mut tokens = input.into_iter().peekable();
 
-    Ok(css_content)
+    while let Some(token) = tokens.next() {
+        match token {
+            TokenTree::Ident(ident) => {
+                css_parts.push(ident.to_string());
+            }
+            TokenTree::Punct(punct) => {
+                css_parts.push(punct.to_string());
+            }
+            TokenTree::Literal(lit) => {
+                css_parts.push(lit.to_string());
+            }
+            TokenTree::Group(group) => {
+                if group.delimiter() == Delimiter::Brace {
+                    // This is a variable interpolation {variable}
+                    let var_content = group.stream().to_string();
+                    // For compile-time processing, we need to treat this as a placeholder
+                    // The actual variable substitution will happen at runtime
+                    css_parts.push(format!("var(--{})", var_content.replace(' ', "")));
+                } else {
+                    css_parts.push(group.to_string());
+                }
+            }
+        }
+    }
+
+    let css_content = css_parts.join("");
+
+    // Clean up the CSS content
+    let cleaned = css_content
+        .replace(" :", ":")
+        .replace(": ", ":")
+        .replace(" ;", ";")
+        .replace("; ", ";")
+        .trim()
+        .to_string();
+
+    Ok(cleaned)
 }
 
-/// Validate CSS syntax (basic validation)
-fn validate_css_syntax(css: &str) -> Result<(), String> {
-    // Basic CSS validation
+/// Optimize CSS using lightningcss at compile time
+fn optimize_css_with_lightningcss(css: &str) -> Result<String, String> {
     if css.trim().is_empty() {
         return Err("CSS cannot be empty".to_string());
     }
 
-    // Check for balanced braces (for CSS rules)
-    let mut brace_count = 0;
-    for ch in css.chars() {
-        match ch {
-            '{' => brace_count += 1,
-            '}' => {
-                brace_count -= 1;
-                if brace_count < 0 {
-                    return Err("Unmatched closing brace".to_string());
+    // Check if CSS contains special syntax that lightningcss can't handle
+    let has_special_syntax = css.contains('&') || css.contains("var(--") || css.contains('{');
+
+    if has_special_syntax {
+        // Use simple validation for CSS with special syntax
+        return validate_css_simple(css);
+    }
+
+    // For standard CSS, use lightningcss
+    let wrapped_css = if !css.trim_start().starts_with('.')
+        && !css.trim_start().starts_with('#')
+        && !css.trim_start().starts_with('@')
+    {
+        format!(".temp {{ {} }}", css)
+    } else {
+        css.to_string()
+    };
+
+    // Try to parse with lightningcss
+    let result = match LightningStyleSheet::parse(&wrapped_css, ParserOptions::default()) {
+        Ok(stylesheet) => {
+            // Create printer options for optimization
+            let printer_options = PrinterOptions {
+                minify: true,
+                targets: Targets::from(Browsers::default()),
+                ..Default::default()
+            };
+
+            // Generate optimized CSS
+            match stylesheet.to_css(printer_options) {
+                Ok(result) => {
+                    // Extract the CSS properties from the wrapped result
+                    let optimized = if !css.trim_start().starts_with('.')
+                        && !css.trim_start().starts_with('#')
+                        && !css.trim_start().starts_with('@')
+                    {
+                        // Remove the temporary wrapper
+                        let code = result.code;
+                        if let Some(start) = code.find('{') {
+                            if let Some(end) = code.rfind('}') {
+                                code[start + 1..end].trim().to_string()
+                            } else {
+                                code
+                            }
+                        } else {
+                            code
+                        }
+                    } else {
+                        result.code
+                    };
+                    Ok(optimized)
+                }
+                Err(_) => {
+                    // Fallback to simple validation
+                    validate_css_simple(css)
                 }
             }
-            _ => {}
         }
+        Err(_) => {
+            // Fallback to simple validation
+            validate_css_simple(css)
+        }
+    };
+
+    result
+}
+
+/// Simple CSS validation for special syntax
+fn validate_css_simple(css: &str) -> Result<String, String> {
+    let trimmed = css.trim();
+
+    if trimmed.is_empty() {
+        return Err("CSS cannot be empty".to_string());
     }
 
-    if brace_count != 0 {
-        return Err("Unmatched braces".to_string());
+    // Basic syntax checks
+    let open_braces = trimmed.matches('{').count();
+    let close_braces = trimmed.matches('}').count();
+
+    // For CSS fragments (properties only), braces should be balanced or absent
+    if open_braces != close_braces {
+        return Err("Unbalanced braces in CSS".to_string());
     }
 
-    // Check for basic CSS property syntax (property: value;)
-    if !css.contains(':') {
-        return Err("CSS must contain at least one property-value pair".to_string());
+    // Check for basic CSS property syntax
+    if !trimmed.contains(':') && !trimmed.contains('{') {
+        return Err("Invalid CSS syntax: missing property declarations".to_string());
     }
 
-    Ok(())
+    // Return the CSS as-is for special syntax
+    Ok(trimmed.to_string())
+}
+
+/// Validate CSS syntax using lightningcss (for backward compatibility)
+fn validate_css_syntax(css: &str) -> Result<(), String> {
+    optimize_css_with_lightningcss(css).map(|_| ())
 }
 
 /// Calculate SHA-256 hash of CSS content for unique class names

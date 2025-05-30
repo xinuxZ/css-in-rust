@@ -1,30 +1,34 @@
 //! CSS optimization functionality
+//! CSS Optimizer Module
 //!
-//! This module provides CSS optimization capabilities including
-//! minification, dead code elimination, and property optimization.
+//! This module provides CSS optimization capabilities leveraging lightningcss
+//! for high-performance minification and optimization.
 
-use crate::core::parser::StyleSheet;
+use crate::core::parser::{ParseError, StyleSheet};
+use lightningcss::{
+    printer::PrinterOptions, stylesheet::StyleSheet as LightningStyleSheet, targets::Browsers,
+};
 
-/// Configuration for CSS optimizer
+/// Configuration for CSS optimizer based on lightningcss
 #[derive(Debug, Clone)]
 pub struct OptimizerConfig {
     /// Whether to minify the CSS output
     pub minify: bool,
-    /// Whether to remove unused CSS rules
-    pub remove_unused: bool,
-    /// Whether to merge duplicate rules
-    pub merge_duplicates: bool,
-    /// Whether to optimize property values
-    pub optimize_properties: bool,
+    /// Target browsers for optimization
+    pub targets: Option<Browsers>,
+    /// Whether to analyze dependencies for unused code elimination
+    pub analyze_dependencies: bool,
+    /// Whether to enable vendor prefix removal based on targets
+    pub vendor_prefix: bool,
 }
 
 impl Default for OptimizerConfig {
     fn default() -> Self {
         Self {
             minify: true,
-            remove_unused: false, // Requires usage analysis
-            merge_duplicates: true,
-            optimize_properties: true,
+            targets: Some(Browsers::default()),
+            analyze_dependencies: false,
+            vendor_prefix: true,
         }
     }
 }
@@ -32,16 +36,20 @@ impl Default for OptimizerConfig {
 /// CSS optimization error
 #[derive(Debug)]
 pub enum OptimizationError {
+    ParseError(ParseError),
     OptimizationFailed(String),
-    InvalidCss(String),
+    InvalidConfiguration(String),
 }
 
 impl std::fmt::Display for OptimizationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            OptimizationError::ParseError(err) => {
+                write!(f, "Parse error during optimization: {}", err)
+            }
             OptimizationError::OptimizationFailed(msg) => write!(f, "Optimization failed: {}", msg),
-            OptimizationError::InvalidCss(msg) => {
-                write!(f, "Invalid CSS for optimization: {}", msg)
+            OptimizationError::InvalidConfiguration(msg) => {
+                write!(f, "Invalid configuration: {}", msg)
             }
         }
     }
@@ -49,7 +57,13 @@ impl std::fmt::Display for OptimizationError {
 
 impl std::error::Error for OptimizationError {}
 
-/// CSS optimizer
+impl From<ParseError> for OptimizationError {
+    fn from(err: ParseError) -> Self {
+        OptimizationError::ParseError(err)
+    }
+}
+
+/// CSS optimizer using lightningcss
 pub struct CssOptimizer {
     config: OptimizerConfig,
 }
@@ -67,126 +81,40 @@ impl CssOptimizer {
         Self { config }
     }
 
-    /// Optimize a CSS stylesheet
+    /// Optimize a CSS stylesheet using lightningcss
     pub fn optimize(&self, stylesheet: StyleSheet) -> Result<String, OptimizationError> {
-        let mut css = stylesheet.source;
-
-        if self.config.minify {
-            css = self.minify_css(&css)?;
+        // If the stylesheet already has optimized CSS from parsing, use it
+        if !stylesheet.optimized.is_empty() && self.config.minify {
+            return Ok(stylesheet.optimized);
         }
 
-        if self.config.optimize_properties {
-            css = self.optimize_properties(&css)?;
-        }
-
-        Ok(css)
+        // Otherwise, optimize the source CSS
+        self.optimize_string(&stylesheet.source)
     }
 
-    /// Optimize CSS string directly
+    /// Optimize CSS string directly using lightningcss
     pub fn optimize_string(&self, css: &str) -> Result<String, OptimizationError> {
-        let mut optimized = css.to_string();
+        use lightningcss::stylesheet::ParserOptions;
 
-        if self.config.minify {
-            optimized = self.minify_css(&optimized)?;
-        }
+        // Parse CSS with lightningcss
+        let stylesheet =
+            LightningStyleSheet::parse(css, ParserOptions::default()).map_err(|e| {
+                OptimizationError::OptimizationFailed(format!("Failed to parse CSS: {:?}", e))
+            })?;
 
-        if self.config.optimize_properties {
-            optimized = self.optimize_properties(&optimized)?;
-        }
+        // Create printer options based on config
+        let printer_options = PrinterOptions {
+            minify: self.config.minify,
+            targets: self.config.targets.clone().unwrap_or_default().into(),
+            ..Default::default()
+        };
 
-        Ok(optimized)
-    }
+        // Generate optimized CSS
+        let result = stylesheet.to_css(printer_options).map_err(|e| {
+            OptimizationError::OptimizationFailed(format!("Failed to optimize CSS: {:?}", e))
+        })?;
 
-    /// Minify CSS by removing unnecessary whitespace and comments
-    fn minify_css(&self, css: &str) -> Result<String, OptimizationError> {
-        let mut result = String::new();
-        let mut chars = css.chars().peekable();
-        let mut in_string = false;
-        let mut string_char = '\0';
-        let mut in_comment = false;
-        let mut prev_char = '\0';
-
-        while let Some(ch) = chars.next() {
-            match ch {
-                // Handle string literals
-                '"' | '\'' if !in_comment => {
-                    if !in_string {
-                        in_string = true;
-                        string_char = ch;
-                        result.push(ch);
-                    } else if ch == string_char && prev_char != '\\' {
-                        in_string = false;
-                        result.push(ch);
-                    } else {
-                        result.push(ch);
-                    }
-                }
-                // Handle comments
-                '/' if !in_string && chars.peek() == Some(&'*') => {
-                    chars.next(); // consume '*'
-                    in_comment = true;
-                }
-                '*' if in_comment && chars.peek() == Some(&'/') => {
-                    chars.next(); // consume '/'
-                    in_comment = false;
-                }
-                // Handle whitespace
-                ' ' | '\t' | '\n' | '\r' if !in_string && !in_comment => {
-                    // Only add space if the previous character wasn't whitespace
-                    // and we're not at the beginning
-                    if !result.is_empty()
-                        && !matches!(
-                            result.chars().last(),
-                            Some(' ' | '{' | '}' | ';' | ':' | ',' | '(' | ')')
-                        )
-                    {
-                        // Look ahead to see if we need a space
-                        if let Some(&next_ch) = chars.peek() {
-                            if !matches!(
-                                next_ch,
-                                ' ' | '\t' | '\n' | '\r' | '{' | '}' | ';' | ':' | ',' | '(' | ')'
-                            ) {
-                                result.push(' ');
-                            }
-                        }
-                    }
-                }
-                // Regular characters
-                _ if !in_comment => {
-                    result.push(ch);
-                }
-                _ => {} // Skip characters in comments
-            }
-            prev_char = ch;
-        }
-
-        // Remove trailing whitespace
-        Ok(result.trim().to_string())
-    }
-
-    /// Optimize CSS property values
-    fn optimize_properties(&self, css: &str) -> Result<String, OptimizationError> {
-        let mut result = css.to_string();
-
-        // Simple optimizations
-        let optimizations = vec![
-            // Optimize zero values
-            (r"0px", "0"),
-            (r"0em", "0"),
-            (r"0rem", "0"),
-            (r"0%", "0"),
-            // Optimize colors
-            (r"#000000", "#000"),
-            (r"#ffffff", "#fff"),
-            // Remove unnecessary quotes
-            ("font-family: \"Arial\"", "font-family: Arial"),
-        ];
-
-        for (pattern, replacement) in optimizations {
-            result = result.replace(pattern, replacement);
-        }
-
-        Ok(result)
+        Ok(result.code)
     }
 }
 
@@ -199,35 +127,45 @@ impl Default for CssOptimizer {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_minify_css() {
-        let optimizer = CssOptimizer::new();
-        let css = ".button {\n  color: red;\n  font-size: 16px;\n}";
-        let result = optimizer.minify_css(css).unwrap();
-        assert!(!result.contains('\n'));
-        assert!(result.len() < css.len());
-    }
-
-    #[test]
-    fn test_optimize_properties() {
-        let optimizer = CssOptimizer::new();
-        let css = ".button { margin: 0px; color: #000000; }";
-        let result = optimizer.optimize_properties(css).unwrap();
-        assert!(result.contains("margin: 0"));
-        assert!(result.contains("color: #000"));
-    }
+    use crate::core::parser::{StyleSheet, StyleSheetMetadata};
 
     #[test]
     fn test_optimize_string() {
         let optimizer = CssOptimizer::new();
-        let css = ".button {\n  margin: 0px;\n  color: #000000;\n}";
+        let css = ".button {\n  color: red;\n  font-size: 16px;\n}";
         let result = optimizer.optimize_string(css).unwrap();
-        println!("Original CSS: {:?}", css);
-        println!("Optimized CSS: {:?}", result);
-        // 修改断言以匹配实际的优化行为
+
+        // With lightningcss minification, the result should be smaller
+        assert!(result.len() <= css.len());
         assert!(result.contains(".button"));
+        assert!(result.contains("color:red") || result.contains("color: red"));
+    }
+
+    #[test]
+    fn test_optimize_stylesheet() {
+        let optimizer = CssOptimizer::new();
+        let stylesheet = StyleSheet {
+            source: ".test { margin: 0px; }".to_string(),
+            optimized: String::new(),
+            metadata: StyleSheetMetadata::default(),
+        };
+
+        let result = optimizer.optimize(stylesheet).unwrap();
+        assert!(result.contains(".test"));
         assert!(result.contains("margin"));
-        assert!(result.contains("color"));
+    }
+
+    #[test]
+    fn test_optimize_with_preoptimized() {
+        let optimizer = CssOptimizer::new();
+        let stylesheet = StyleSheet {
+            source: ".test { margin: 0px; }".to_string(),
+            optimized: ".test{margin:0}".to_string(),
+            metadata: StyleSheetMetadata::default(),
+        };
+
+        let result = optimizer.optimize(stylesheet).unwrap();
+        // Should use the pre-optimized version
+        assert_eq!(result, ".test{margin:0}");
     }
 }

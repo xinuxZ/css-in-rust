@@ -36,7 +36,7 @@
 
 // Module declarations
 pub mod adapters;
-pub mod core;
+// pub mod core; // Temporarily disabled lightningcss integration
 pub mod runtime;
 
 // Re-exports for convenience

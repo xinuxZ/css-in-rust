@@ -1,65 +1,86 @@
 //! CSS parsing functionality
+//! CSS Parser Module
 //!
-//! This module provides CSS parsing capabilities for processing CSS strings
-//! into structured data that can be optimized and manipulated.
+//! This module provides CSS parsing capabilities using lightningcss as the core engine
+//! for high-performance CSS processing and optimization.
 
-use std::collections::HashMap;
+use lightningcss::{
+    error::Error as LightningError,
+    printer::PrinterOptions,
+    stylesheet::{ParserOptions, StyleSheet as LightningStyleSheet},
+    targets::{Browsers, Targets},
+};
+// use std::collections::HashMap; // Unused import
 
-/// Configuration for CSS parser
+/// Configuration for CSS parser based on lightningcss
 #[derive(Debug, Clone)]
 pub struct ParserConfig {
-    /// Whether to validate CSS syntax strictly
-    pub strict_validation: bool,
-    /// Whether to preserve comments
-    pub preserve_comments: bool,
+    /// Target browsers for CSS compatibility
+    pub targets: Option<Browsers>,
+    /// Enable minification during parsing
+    pub minify: bool,
 }
 
 impl Default for ParserConfig {
     fn default() -> Self {
         Self {
-            strict_validation: true,
-            preserve_comments: false,
+            targets: Some(Browsers::default()),
+            minify: false,
         }
     }
 }
 
-/// CSS parser error
+/// CSS parser error wrapper for lightningcss errors
 #[derive(Debug)]
 pub enum ParseError {
-    InvalidSyntax(String),
-    UnsupportedFeature(String),
-    ParseError { line: usize, message: String },
+    LightningCssError(LightningError<()>),
+    InvalidInput(String),
+    ProcessingError(String),
 }
 
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ParseError::InvalidSyntax(msg) => write!(f, "Invalid CSS syntax: {}", msg),
-            ParseError::UnsupportedFeature(msg) => write!(f, "Unsupported CSS feature: {}", msg),
-            ParseError::ParseError { line, message } => {
-                write!(f, "Parse error at line {}: {}", line, message)
-            }
+            ParseError::LightningCssError(err) => write!(f, "LightningCSS error: {:?}", err),
+            ParseError::InvalidInput(msg) => write!(f, "Invalid input: {}", msg),
+            ParseError::ProcessingError(msg) => write!(f, "Processing error: {}", msg),
         }
     }
 }
 
 impl std::error::Error for ParseError {}
 
-/// Simplified CSS stylesheet representation
+impl From<LightningError<()>> for ParseError {
+    fn from(err: LightningError<()>) -> Self {
+        ParseError::LightningCssError(err)
+    }
+}
+
+/// CSS stylesheet wrapper around lightningcss
 #[derive(Debug, Clone)]
 pub struct StyleSheet {
-    pub rules: Vec<CssRule>,
+    /// The original CSS source
     pub source: String,
+    /// Parsed and optimized CSS output
+    pub optimized: String,
+    /// Metadata extracted during parsing
+    pub metadata: StyleSheetMetadata,
 }
 
-/// CSS rule representation
-#[derive(Debug, Clone)]
-pub struct CssRule {
-    pub selector: String,
-    pub declarations: HashMap<String, String>,
+/// Metadata extracted from CSS parsing
+#[derive(Debug, Clone, Default)]
+pub struct StyleSheetMetadata {
+    /// Number of rules in the stylesheet
+    pub rule_count: usize,
+    /// Whether the CSS contains media queries
+    pub has_media_queries: bool,
+    /// Whether the CSS contains keyframes
+    pub has_keyframes: bool,
+    /// List of CSS custom properties (variables)
+    pub custom_properties: Vec<String>,
 }
 
-/// CSS parser
+/// CSS parser using lightningcss
 pub struct CssParser {
     config: ParserConfig,
 }
@@ -77,73 +98,52 @@ impl CssParser {
         Self { config }
     }
 
-    /// Parse CSS string into a stylesheet
+    /// Parse CSS string into a stylesheet using lightningcss
     pub fn parse(&self, css: &str) -> Result<StyleSheet, ParseError> {
-        // For now, we'll do basic validation and return the CSS as-is
-        // In a full implementation, this would use a proper CSS parser
-
         if css.trim().is_empty() {
             return Ok(StyleSheet {
-                rules: Vec::new(),
                 source: css.to_string(),
+                optimized: String::new(),
+                metadata: StyleSheetMetadata::default(),
             });
         }
 
-        // Basic syntax validation
-        if self.config.strict_validation {
-            self.validate_basic_syntax(css)?;
+        // Parse CSS using lightningcss with default options
+        let stylesheet =
+            LightningStyleSheet::parse(css, ParserOptions::default()).map_err(|e| {
+                ParseError::ProcessingError(format!("lightningcss parse error: {:?}", e))
+            })?;
+
+        // Create printer options for optimization
+        let mut printer_options = PrinterOptions::default();
+        printer_options.minify = true;
+        if let Some(targets) = &self.config.targets {
+            printer_options.targets = Targets::from(targets.clone());
         }
 
-        // For now, return a simplified representation
+        // Generate optimized CSS
+        let optimized_css = stylesheet
+            .to_css(printer_options)
+            .map_err(|e| ParseError::ProcessingError(format!("Failed to optimize CSS: {:?}", e)))?;
+
         Ok(StyleSheet {
-            rules: Vec::new(), // Would be populated by a real parser
             source: css.to_string(),
+            optimized: optimized_css.code,
+            metadata: StyleSheetMetadata::default(),
         })
     }
 
-    /// Basic CSS syntax validation
-    fn validate_basic_syntax(&self, css: &str) -> Result<(), ParseError> {
-        let mut brace_count = 0;
-        let mut in_string = false;
-        let mut escape_next = false;
-
-        for (i, ch) in css.chars().enumerate() {
-            if escape_next {
-                escape_next = false;
-                continue;
-            }
-
-            match ch {
-                '\\' => escape_next = true,
-                '"' | '\'' if !in_string => in_string = true,
-                '"' | '\'' if in_string => in_string = false,
-                '{' if !in_string => brace_count += 1,
-                '}' if !in_string => {
-                    brace_count -= 1;
-                    if brace_count < 0 {
-                        return Err(ParseError::ParseError {
-                            line: css[..i].lines().count(),
-                            message: "Unexpected closing brace".to_string(),
-                        });
-                    }
-                }
-                _ => {}
-            }
+    /// Extract metadata from parsed stylesheet
+    fn extract_metadata(&self, _stylesheet: &LightningStyleSheet) -> StyleSheetMetadata {
+        // This is a simplified implementation
+        // In a full implementation, we would traverse the stylesheet AST
+        // to extract detailed metadata
+        StyleSheetMetadata {
+            rule_count: 0,                 // Would count actual rules
+            has_media_queries: false,      // Would detect media queries
+            has_keyframes: false,          // Would detect keyframes
+            custom_properties: Vec::new(), // Would extract CSS variables
         }
-
-        if brace_count != 0 {
-            return Err(ParseError::InvalidSyntax(
-                "Mismatched braces in CSS".to_string(),
-            ));
-        }
-
-        if in_string {
-            return Err(ParseError::InvalidSyntax(
-                "Unterminated string in CSS".to_string(),
-            ));
-        }
-
-        Ok(())
     }
 }
 
