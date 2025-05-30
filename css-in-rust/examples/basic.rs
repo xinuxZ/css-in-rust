@@ -8,19 +8,8 @@ use css_in_rust::css;
 #[cfg(not(feature = "proc-macro"))]
 use css_in_rust as _;
 
-// Suppress unused dependency warnings
-#[cfg(feature = "proc-macro")]
 #[allow(unused_imports)]
-use proc_macro2 as _;
-#[cfg(feature = "proc-macro")]
-#[allow(unused_imports)]
-use quote as _;
-#[cfg(feature = "proc-macro")]
-#[allow(unused_imports)]
-use sha2 as _;
-#[cfg(feature = "proc-macro")]
-#[allow(unused_imports)]
-use syn as _;
+use css_in_rust_macros as _;
 
 #[cfg(feature = "proc-macro")]
 fn main() {

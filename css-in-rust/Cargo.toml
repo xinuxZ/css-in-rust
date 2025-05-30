@@ -1,0 +1,41 @@
+[package]
+name = "css-in-rust"
+version = "0.1.0"
+edition = "2021"
+authors = ["AI Architect <ai@example.com>"]
+description = "High-performance CSS-in-Rust solution based on stylers + lightningcss"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/your-username/css-in-rust"
+keywords = ["css", "rust", "styling", "web", "dioxus"]
+categories = ["web-programming", "development-tools"]
+readme = "../README.md"
+
+[dependencies]
+css-in-rust-macros = { path = "../css-in-rust-macros", optional = true }
+
+# Web platform dependencies
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = { version = "0.3", features = [
+  "console",
+  "Document",
+  "Element",
+  "HtmlElement",
+  "HtmlStyleElement",
+  "Node",
+  "Window",
+] }
+wasm-bindgen = "0.2"
+
+[dev-dependencies]
+
+[features]
+default = ["proc-macro"]
+proc-macro = ["css-in-rust-macros"]
+dioxus = []
+
+[lib]
+name = "css_in_rust"
+
+[[example]]
+name = "basic"
+required-features = []

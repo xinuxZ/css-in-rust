@@ -1,0 +1,16 @@
+[package]
+name = "css-in-rust-macros"
+version = "0.1.0"
+edition = "2021"
+authors = ["AI Architect <ai@example.com>"]
+description = "Procedural macros for css-in-rust"
+license = "MIT OR Apache-2.0"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = { workspace = true }
+quote = { workspace = true }
+syn = { workspace = true }
+sha2 = { workspace = true }
