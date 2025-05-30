@@ -1,1 +1,0 @@
-{"rustc":14543593652859195944,"features":"","declared_features":"","target":0,"profile":0,"path":0,"deps":[[7858942147296547339,"build_script_build",false,8302927863452474341]],"local":[{"RerunIfChanged":{"output":"debug/build/rustversion-293b0954820d219b/output","paths":["build/build.rs"]}}],"rustflags":["-Dunused_crate_dependencies"],"config":0,"compile_kind":0}
