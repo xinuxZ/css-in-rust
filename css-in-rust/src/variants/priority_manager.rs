@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 
 /// 优先级类型
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PriorityType {
     /// 基础样式（最低优先级）
     Base = 0,
@@ -382,7 +382,7 @@ impl PriorityManager {
         StyleResolutionResult {
             final_styles,
             applied_rules,
-            conflicts,
+            conflicts: conflicts.clone(),
             resolution_stats: ResolutionStats {
                 total_rules,
                 conflicts_count: conflicts.len(),
@@ -393,7 +393,7 @@ impl PriorityManager {
     }
 
     /// 解析属性冲突
-    fn resolve_property_conflict(&self, rules: &[StyleRule]) -> Option<&StyleRule> {
+    fn resolve_property_conflict<'a>(&self, rules: &'a [StyleRule]) -> Option<&'a StyleRule> {
         if rules.is_empty() {
             return None;
         }
@@ -415,28 +415,28 @@ impl PriorityManager {
     }
 
     /// 按优先级解析
-    fn resolve_by_priority(&self, rules: &[StyleRule]) -> Option<&StyleRule> {
+    fn resolve_by_priority<'a>(&self, rules: &'a [StyleRule]) -> Option<&'a StyleRule> {
         rules
             .iter()
-            .max_by_key(|rule| rule.calculate_final_priority(&self.priority_config))
+            .max_by_key(move |rule| rule.calculate_final_priority(&self.priority_config))
     }
 
     /// 按时间戳解析
-    fn resolve_by_timestamp(&self, rules: &[StyleRule]) -> Option<&StyleRule> {
-        rules.iter().max_by_key(|rule| rule.timestamp)
+    fn resolve_by_timestamp<'a>(&self, rules: &'a [StyleRule]) -> Option<&'a StyleRule> {
+        rules.iter().max_by_key(move |rule| rule.timestamp)
     }
 
     /// 按特异性解析
-    fn resolve_by_specificity(&self, rules: &[StyleRule]) -> Option<&StyleRule> {
-        rules.iter().max_by_key(|rule| &rule.specificity)
+    fn resolve_by_specificity<'a>(&self, rules: &'a [StyleRule]) -> Option<&'a StyleRule> {
+        rules.iter().max_by_key(move |rule| &rule.specificity)
     }
 
     /// 按重要性解析
-    fn resolve_by_importance(&self, rules: &[StyleRule]) -> Option<&StyleRule> {
+    fn resolve_by_importance<'a>(&self, rules: &'a [StyleRule]) -> Option<&'a StyleRule> {
         // 首先按重要性排序，然后按优先级
         rules
             .iter()
-            .max_by(|a, b| match (a.important, b.important) {
+            .max_by(move |a, b| match (a.important, b.important) {
                 (true, false) => std::cmp::Ordering::Greater,
                 (false, true) => std::cmp::Ordering::Less,
                 _ => a

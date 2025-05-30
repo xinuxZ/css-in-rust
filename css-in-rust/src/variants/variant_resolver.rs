@@ -6,13 +6,11 @@ use super::{
     conditional_styles::{
         ConditionEvaluationResult, ConditionValue, ConditionalStyleManager, DynamicStyleResult,
     },
-    priority_manager::{
-        PriorityManager, PriorityType, StyleResolutionResult, StyleRule, StyleSource,
-    },
+    priority_manager::{PriorityManager, StyleResolutionResult},
     responsive::{ResponsiveManager, ResponsiveStyleResult},
     state_variants::{StateType, StateVariantManager, StateVariantResult},
     variant_types::{VariantCombination, VariantValue},
-    VariantConfig, VariantManager, VariantResult, VariantStyle,
+    VariantManager, VariantResult,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -402,6 +400,7 @@ impl VariantResolver {
     ) -> Result<VariantResult, String> {
         // 构建变体组合
         let mut variant_combination = VariantCombination {
+            name: Some("base".to_string()),
             variants: HashMap::new(),
             priority: 10,
         };
@@ -419,7 +418,7 @@ impl VariantResolver {
     /// 解析响应式变体
     fn resolve_responsive_variants(
         &self,
-        variants: &HashMap<String, String>,
+        _variants: &HashMap<String, String>,
     ) -> Result<Option<ResponsiveStyleResult>, String> {
         // 这里需要根据实际的变体配置来解析响应式变体
         // 简化实现，返回空结果
@@ -429,7 +428,7 @@ impl VariantResolver {
     /// 解析状态变体
     fn resolve_state_variants(
         &self,
-        variants: &HashMap<String, String>,
+        _variants: &HashMap<String, String>,
     ) -> Result<Option<StateVariantResult>, String> {
         // 这里需要根据实际的变体配置来解析状态变体
         // 简化实现，返回空结果
@@ -470,10 +469,10 @@ impl VariantResolver {
     /// 生成源映射
     fn generate_source_maps(
         &self,
-        variants: &HashMap<String, String>,
+        _variants: &HashMap<String, String>,
         applied_variants: &[String],
     ) -> SourceMap {
-        let mut style_to_variant = HashMap::new();
+        let style_to_variant = HashMap::new();
         let mut variant_to_source = HashMap::new();
         let css_line_mappings = Vec::new();
 

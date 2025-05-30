@@ -187,23 +187,17 @@ impl ResponsiveManager {
 
         // 处理响应式变体
         for (variant_key, variant_value) in variants {
-            if let Some(responsive_variant) = config.responsive.get(variant_key) {
-                // 应用默认样式
-                if let Some(default_style) = &responsive_variant.default {
-                    for (prop, value) in &default_style.properties {
-                        responsive_styles.insert(prop.clone(), value.clone());
-                    }
+            if let Some(variant_style) = config.responsive.get(variant_key) {
+                // 应用响应式样式
+                for (prop, value) in &variant_style.properties {
+                    responsive_styles.insert(prop.clone(), value.clone());
                 }
 
-                // 应用断点特定样式
-                for breakpoint_name in &self.active_breakpoints {
-                    if let Some(breakpoint_style) =
-                        responsive_variant.breakpoints.get(breakpoint_name)
-                    {
-                        for (prop, value) in &breakpoint_style.properties {
-                            responsive_styles
-                                .insert(format!("{}@{}", prop, breakpoint_name), value.clone());
-                        }
+                // 应用伪类样式
+                for (pseudo_class, pseudo_styles) in &variant_style.pseudo_classes {
+                    for (prop, value) in pseudo_styles {
+                        responsive_styles
+                            .insert(format!("{}:{}", prop, pseudo_class), value.clone());
                     }
                 }
             }

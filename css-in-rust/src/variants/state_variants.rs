@@ -261,11 +261,8 @@ impl StateVariantManager {
         for (variant_key, _variant_value) in props {
             if let Some(state_variant) = config.state.get(variant_key) {
                 // 应用状态样式
-                for (prop, value) in &state_variant.style.properties {
-                    state_styles.insert(
-                        format!("{}:{}", prop, state_variant.state_type.to_css_selector()),
-                        value.clone(),
-                    );
+                for (prop, value) in &state_variant.properties {
+                    state_styles.insert(format!("{}:{}", prop, variant_key), value.clone());
                 }
             }
         }
