@@ -67,6 +67,7 @@ fn demo_basic_variants() {
 
     // 创建变体组合
     let mut variant_combination = VariantCombination {
+        name: Some("button".to_string()),
         variants: HashMap::new(),
         priority: 10,
     };

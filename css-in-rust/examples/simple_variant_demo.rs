@@ -49,11 +49,11 @@ fn demo_basic_variant_types() {
 
     // 尺寸变体
     let size_variants = vec![
-        SizeVariant::XSmall,
-        SizeVariant::Small,
-        SizeVariant::Medium,
-        SizeVariant::Large,
-        SizeVariant::XLarge,
+        SizeVariant::XS,
+        SizeVariant::SM,
+        SizeVariant::MD,
+        SizeVariant::LG,
+        SizeVariant::XL,
     ];
 
     println!("可用的尺寸变体:");
@@ -67,7 +67,7 @@ fn demo_basic_variant_types() {
         ColorVariant::Secondary,
         ColorVariant::Success,
         ColorVariant::Warning,
-        ColorVariant::Error,
+        ColorVariant::Danger,
         ColorVariant::Info,
     ];
 
@@ -92,7 +92,7 @@ fn demo_basic_variant_types() {
 
     // 变体值包装
     let variant_values = vec![
-        VariantValue::Size(SizeVariant::Large),
+        VariantValue::Size(SizeVariant::LG),
         VariantValue::Color(ColorVariant::Primary),
         VariantValue::State(StateVariant::Hover),
         VariantValue::String("custom-variant".to_string()),
@@ -104,7 +104,7 @@ fn demo_basic_variant_types() {
     }
 
     // 测试变体兼容性
-    let size_value = VariantValue::Size(SizeVariant::Medium);
+    let size_value = VariantValue::Size(SizeVariant::MD);
     let color_value = VariantValue::Color(ColorVariant::Success);
 
     println!("\n变体兼容性测试:");
@@ -198,8 +198,6 @@ fn demo_state_types() {
         StateType::Visited,
         StateType::Disabled,
         StateType::Checked,
-        StateType::Invalid,
-        StateType::Required,
     ];
 
     println!("标准伪类状态:");
