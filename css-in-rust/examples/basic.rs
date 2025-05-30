@@ -10,6 +10,10 @@ use css_in_rust as _;
 
 #[allow(unused_imports)]
 use css_in_rust_macros as _;
+#[allow(unused_imports)]
+use serde as _;
+#[allow(unused_imports)]
+use serde_json as _;
 
 #[cfg(feature = "proc-macro")]
 fn main() {
