@@ -314,6 +314,32 @@ impl VariantValue {
             }
         }
     }
+
+    /// 检查两个变体值是否兼容
+    ///
+    /// 兼容性规则：
+    /// - 相同类型的变体总是兼容的
+    /// - 不同类型的变体通常不兼容，除非有特殊规则
+    pub fn is_compatible(&self, other: &VariantValue) -> bool {
+        match (self, other) {
+            // 相同类型的变体总是兼容
+            (VariantValue::Size(_), VariantValue::Size(_)) => true,
+            (VariantValue::Color(_), VariantValue::Color(_)) => true,
+            (VariantValue::State(_), VariantValue::State(_)) => true,
+            (VariantValue::Shape(_), VariantValue::Shape(_)) => true,
+            (VariantValue::Layout(_), VariantValue::Layout(_)) => true,
+            (VariantValue::String(_), VariantValue::String(_)) => true,
+            (VariantValue::Boolean(_), VariantValue::Boolean(_)) => true,
+            (VariantValue::Number(_), VariantValue::Number(_)) => true,
+
+            // 特殊兼容性规则
+            // 字符串可以与任何类型兼容（作为通用值）
+            (VariantValue::String(_), _) | (_, VariantValue::String(_)) => true,
+
+            // 其他情况不兼容
+            _ => false,
+        }
+    }
 }
 
 impl VariantCombination {

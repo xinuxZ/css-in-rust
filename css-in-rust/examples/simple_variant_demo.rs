@@ -11,13 +11,19 @@ use css_in_rust::variants::{
 use std::collections::HashMap;
 
 #[allow(unused_imports)]
+use chrono as _;
+#[allow(unused_imports)]
 use css_in_rust_macros as _;
+#[allow(unused_imports)]
+use lazy_static as _;
 #[allow(unused_imports)]
 use lightningcss as _;
 #[allow(unused_imports)]
 use proc_macro2 as _;
 #[allow(unused_imports)]
 use quote as _;
+#[allow(unused_imports)]
+use regex as _;
 #[allow(unused_imports)]
 use serde as _;
 #[allow(unused_imports)]
@@ -26,6 +32,8 @@ use serde_json as _;
 use sha2 as _;
 #[allow(unused_imports)]
 use syn as _;
+#[allow(unused_imports)]
+use tempfile as _;
 
 fn main() {
     println!("=== CSS-in-Rust 变体系统简化演示 ===");

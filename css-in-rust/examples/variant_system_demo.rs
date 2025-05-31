@@ -13,23 +13,30 @@ use css_in_rust::{
         conditional_styles::{ConditionType, ConditionValue, ConditionalStyleManager},
         priority_manager::{PriorityManager, PriorityType, StyleSource},
         responsive::{responsive_variant, Breakpoint, ResponsiveManager},
-        state_variants::{StateType, StateVariantManager},
+        state_variants::{StateCombination, StateType, StateVariantManager},
         variant_types::{
             ColorVariant, SizeVariant, StateVariant, VariantCombination, VariantValue,
         },
-        VariantResolutionContext, VariantResolutionOptions, VariantResolver,
+        VariantConfig, VariantResolutionContext, VariantResolutionOptions, VariantResolver,
+        VariantStyle,
     },
 };
 use std::collections::HashMap;
 
 #[allow(unused_imports)]
+use chrono as _;
+#[allow(unused_imports)]
 use css_in_rust_macros as _;
+#[allow(unused_imports)]
+use lazy_static as _;
 #[allow(unused_imports)]
 use lightningcss as _;
 #[allow(unused_imports)]
 use proc_macro2 as _;
 #[allow(unused_imports)]
 use quote as _;
+#[allow(unused_imports)]
+use regex as _;
 #[allow(unused_imports)]
 use serde as _;
 #[allow(unused_imports)]
@@ -38,6 +45,8 @@ use serde_json as _;
 use sha2 as _;
 #[allow(unused_imports)]
 use syn as _;
+#[allow(unused_imports)]
+use tempfile as _;
 
 fn main() {
     println!("=== CSS-in-Rust 变体系统演示 ===");
@@ -179,33 +188,62 @@ fn demo_state_variants() {
     let mut state_manager = StateVariantManager::new();
 
     // 注册状态变体
-    let hover_styles = HashMap::from([
-        ("background-color".to_string(), "#007bff".to_string()),
-        ("transform".to_string(), "scale(1.05)".to_string()),
-    ]);
+    let hover_variant = StateVariant {
+        state_type: StateType::Hover,
+        style: VariantStyle {
+            properties: HashMap::from([
+                ("background-color".to_string(), "#007bff".to_string()),
+                ("transform".to_string(), "scale(1.05)".to_string()),
+            ]),
+            config: VariantConfig::default(),
+        },
+        combinable: true,
+        priority: 10,
+    };
 
-    state_manager.register_state_variant("button".to_string(), StateType::Hover, hover_styles);
+    state_manager.register_variant(hover_variant);
 
-    let focus_styles = HashMap::from([
-        ("outline".to_string(), "2px solid #007bff".to_string()),
-        (
-            "box-shadow".to_string(),
-            "0 0 0 3px rgba(0, 123, 255, 0.25)".to_string(),
-        ),
-    ]);
+    let focus_variant = StateVariant {
+        state_type: StateType::Focus,
+        style: VariantStyle {
+            properties: HashMap::from([
+                ("outline".to_string(), "2px solid #007bff".to_string()),
+                (
+                    "box-shadow".to_string(),
+                    "0 0 0 3px rgba(0, 123, 255, 0.25)".to_string(),
+                ),
+            ]),
+            config: VariantConfig::default(),
+        },
+        combinable: true,
+        priority: 15,
+    };
 
-    state_manager.register_state_variant("button".to_string(), StateType::Focus, focus_styles);
+    state_manager.register_variant(focus_variant);
 
     // 设置活动状态
     state_manager.set_active_states(vec![StateType::Hover, StateType::Focus]);
 
     // 生成状态样式
-    let state_result = state_manager.generate_state_styles("button");
+    let config = VariantConfig::default();
+    let props = HashMap::new();
+    let state_result = state_manager.apply_state_variants(&config, &props);
     println!("生成的状态样式: {:?}", state_result);
 
     // 检查状态组合
-    let combination =
-        state_manager.create_state_combination(vec![StateType::Hover, StateType::Active]);
+    let combination = StateCombination {
+        states: vec![StateType::Hover, StateType::Active],
+        style: VariantStyle {
+            properties: HashMap::from([
+                ("background-color".to_string(), "#0056b3".to_string()),
+                ("transform".to_string(), "scale(0.98)".to_string()),
+            ]),
+            config: VariantConfig::default(),
+        },
+        priority: 20,
+    };
+
+    state_manager.register_combination(combination.clone());
     println!("状态组合: {:?}", combination);
 }
 
@@ -232,35 +270,62 @@ fn demo_conditional_styles() {
     conditional_manager.set_props(props);
 
     // 添加条件样式规则
-    conditional_manager.add_conditional_style(
-        "button-primary".to_string(),
-        ConditionType::Equals,
-        "variant".to_string(),
-        ConditionValue::String("primary".to_string()),
-        HashMap::from([
-            ("background-color".to_string(), "#007bff".to_string()),
-            ("color".to_string(), "white".to_string()),
-        ]),
-    );
+    let button_primary_condition = ConditionCombination::Single(ConditionRule {
+        property: "variant".to_string(),
+        condition_type: ConditionType::Equals,
+        expected_value: ConditionValue::String("primary".to_string()),
+        negate: false,
+    });
 
-    conditional_manager.add_conditional_style(
-        "button-large".to_string(),
-        ConditionType::Equals,
-        "size".to_string(),
-        ConditionValue::String("large".to_string()),
-        HashMap::from([
-            ("padding".to_string(), "12px 24px".to_string()),
-            ("font-size".to_string(), "18px".to_string()),
-        ]),
-    );
+    let button_primary_style = ConditionalStyle {
+        condition: button_primary_condition,
+        style: VariantStyle {
+            properties: HashMap::from([
+                ("background-color".to_string(), "#007bff".to_string()),
+                ("color".to_string(), "white".to_string()),
+            ]),
+            config: VariantConfig::default(),
+        },
+        priority: 100,
+        enabled: true,
+    };
+
+    conditional_manager.register_conditional_style("button-primary", button_primary_style);
+
+    let button_large_condition = ConditionCombination::Single(ConditionRule {
+        property: "size".to_string(),
+        condition_type: ConditionType::Equals,
+        expected_value: ConditionValue::String("large".to_string()),
+        negate: false,
+    });
+
+    let button_large_style = ConditionalStyle {
+        condition: button_large_condition,
+        style: VariantStyle {
+            properties: HashMap::from([
+                ("padding".to_string(), "12px 24px".to_string()),
+                ("font-size".to_string(), "18px".to_string()),
+            ]),
+            config: VariantConfig::default(),
+        },
+        priority: 100,
+        enabled: true,
+    };
+
+    conditional_manager.register_conditional_style("button-large", button_large_style);
 
     // 添加动态样式规则
-    conditional_manager.add_dynamic_style_rule(
-        "dynamic-width".to_string(),
-        "width".to_string(),
-        "width".to_string(),
-        "px".to_string(),
-    );
+    let dynamic_width_rule = DynamicStyleRule {
+        name: "dynamic-width".to_string(),
+        input_props: vec!["width".to_string()],
+        calculator: StyleCalculator::NumericCalculation {
+            formula: "width".to_string(),
+            unit: Some("px".to_string()),
+        },
+        cache_strategy: CacheStrategy::InputBased,
+    };
+
+    conditional_manager.register_dynamic_rule(dynamic_width_rule);
 
     // 评估条件样式
     let conditional_result = conditional_manager.evaluate_conditional_styles();
@@ -278,37 +343,33 @@ fn demo_priority_management() {
     let mut priority_manager = PriorityManager::new();
 
     // 添加不同优先级的样式规则
-    priority_manager.add_style_rule(
+    priority_manager.add_rule(StyleRule::new(
         "background-color".to_string(),
         "blue".to_string(),
         PriorityType::Base,
-        StyleSource::Theme,
-        None,
-    );
+        StyleSource::Theme("default".to_string()),
+    ));
 
-    priority_manager.add_style_rule(
+    priority_manager.add_rule(StyleRule::new(
         "background-color".to_string(),
         "red".to_string(),
         PriorityType::Variant,
-        StyleSource::Variant,
-        None,
-    );
+        StyleSource::Variant("primary".to_string()),
+    ));
 
-    priority_manager.add_style_rule(
+    priority_manager.add_rule(StyleRule::new(
         "background-color".to_string(),
         "green".to_string(),
         PriorityType::State,
-        StyleSource::State,
-        None,
-    );
+        StyleSource::State("hover".to_string()),
+    ));
 
-    priority_manager.add_style_rule(
+    priority_manager.add_rule(StyleRule::new(
         "color".to_string(),
         "white".to_string(),
         PriorityType::Base,
-        StyleSource::Theme,
-        None,
-    );
+        StyleSource::Theme("default".to_string()),
+    ));
 
     // 解析样式优先级
     let resolution_result = priority_manager.resolve_styles();
@@ -457,21 +518,19 @@ mod tests {
     fn test_priority_management() {
         let mut manager = PriorityManager::new();
 
-        manager.add_style_rule(
+        manager.add_rule(StyleRule::new(
             "color".to_string(),
             "red".to_string(),
             PriorityType::Base,
-            StyleSource::Theme,
-            None,
-        );
+            StyleSource::Theme("default".to_string()),
+        ));
 
-        manager.add_style_rule(
+        manager.add_rule(StyleRule::new(
             "color".to_string(),
             "blue".to_string(),
             PriorityType::Variant,
-            StyleSource::Variant,
-            None,
-        );
+            StyleSource::Variant("primary".to_string()),
+        ));
 
         let result = manager.resolve_styles();
         assert_eq!(result.final_styles.get("color"), Some(&"blue".to_string()));
