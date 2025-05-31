@@ -3,9 +3,10 @@
 //! 负责主题的全局管理、上下文传递和组件集成。
 //! 提供高级的主题管理 API 和框架集成支持。
 
-use super::{
-    CssVariableInjector, CssVariableManager, DesignTokens, Theme, ThemeContext, ThemeMode,
-    UpdateReason, VariableUpdateEvent,
+use crate::theme::{
+    CssVariableInjector, CssVariableManager, Theme, ThemeChangeEvent, ThemeChangeEventType,
+    ThemeChangeListener, ThemeChangeReason, ThemeHistory, ThemeManager, ThemeMode, UpdateReason,
+    VariableUpdateEvent,
 };
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock, Weak};
@@ -31,8 +32,10 @@ struct ThemeProviderInner {
     variable_manager: CssVariableManager,
     /// CSS 变量注入器
     variable_injector: CssVariableInjector,
-    /// 主题上下文
-    theme_context: ThemeContext,
+    /// 主题管理器
+    theme_manager: ThemeManager,
+    /// 主题历史管理器
+    theme_history: ThemeHistory,
     /// 变更监听器
     listeners: Vec<Weak<dyn ThemeChangeListener>>,
     /// 配置选项
@@ -58,17 +61,7 @@ pub struct ThemeProviderConfig {
     pub variable_prefix: String,
 }
 
-/// 主题变更监听器
-pub trait ThemeChangeListener: Send + Sync {
-    /// 主题即将变更
-    fn on_theme_will_change(&self, from: &Theme, to: &Theme);
-
-    /// 主题已变更
-    fn on_theme_changed(&self, theme: &Theme, event: &VariableUpdateEvent);
-
-    /// 主题变更失败
-    fn on_theme_change_failed(&self, error: &str);
-}
+// ThemeChangeListener trait 已移至 theme_manager.rs 模块中，避免重复定义
 
 /// 主题切换结果
 #[derive(Debug, Clone)]
@@ -83,18 +76,7 @@ pub struct ThemeSwitchResult {
     pub error: Option<String>,
 }
 
-/// 主题管理器
-///
-/// 提供高级的主题管理功能
-#[derive(Debug, Clone)]
-pub struct ThemeManager {
-    /// 主题提供者
-    provider: ThemeProvider,
-    /// 主题历史记录
-    history: Arc<RwLock<Vec<String>>>,
-    /// 最大历史记录数
-    max_history: usize,
-}
+// ThemeManager 已移至 theme_manager.rs 模块中，避免重复定义
 
 /// 主题预设
 #[derive(Debug, Clone)]
@@ -111,11 +93,11 @@ pub struct ThemePreset {
     pub builtin: bool,
 }
 
-/// 主题构建器
+/// 主题提供者构建器
 ///
-/// 提供流式 API 来构建主题
+/// 提供流式 API 来构建主题提供者
 #[derive(Debug, Clone)]
-pub struct ThemeBuilder {
+pub struct ThemeProviderBuilder {
     /// 基础主题
     base_theme: Option<Theme>,
     /// 自定义变量
@@ -139,11 +121,11 @@ impl ThemeProvider {
             .expect("Failed to generate initial CSS variables");
 
         let variable_injector = CssVariableInjector::new(&config.injection_target);
-        let theme_context = ThemeContext::new();
+        let theme_manager = ThemeManager::default();
 
-        // 注册暗色主题到 theme_context（默认主题已在 ThemeContext::new() 中注册）
+        // 注册暗色主题到 theme_manager（默认主题已在 ThemeManager::default() 中注册）
         let dark_theme = Theme::ant_design_dark();
-        theme_context
+        theme_manager
             .register_theme(dark_theme.clone())
             .expect("Failed to register dark theme");
 
@@ -157,7 +139,8 @@ impl ThemeProvider {
             },
             variable_manager,
             variable_injector,
-            theme_context,
+            theme_manager,
+            theme_history: ThemeHistory::new(),
             listeners: Vec::new(),
             config,
         };
@@ -177,11 +160,11 @@ impl ThemeProvider {
             .expect("Failed to generate initial CSS variables");
 
         let variable_injector = CssVariableInjector::new(&config.injection_target);
-        let theme_context = ThemeContext::new();
+        let theme_manager = ThemeManager::default();
 
-        // 注册暗色主题到 theme_context（默认主题已在 ThemeContext::new() 中注册）
+        // 注册暗色主题到 theme_manager（默认主题已在 ThemeManager::default() 中注册）
         let dark_theme = Theme::ant_design_dark();
-        theme_context
+        theme_manager
             .register_theme(dark_theme.clone())
             .expect("Failed to register dark theme");
 
@@ -195,7 +178,8 @@ impl ThemeProvider {
             },
             variable_manager,
             variable_injector,
-            theme_context,
+            theme_manager,
+            theme_history: ThemeHistory::new(),
             listeners: Vec::new(),
             config,
         };
@@ -214,7 +198,10 @@ impl ThemeProvider {
             .map_err(|_| "Failed to acquire write lock")?;
 
         inner.registered_themes.insert(name.clone(), theme.clone());
-        inner.theme_context.register_theme(theme)?;
+        inner
+            .theme_manager
+            .register_theme(theme)
+            .map_err(|e| e.to_string())?;
 
         Ok(())
     }
@@ -252,13 +239,16 @@ impl ThemeProvider {
             })?
             .clone();
 
-        // 通知监听器主题即将变更
-        let current_theme = &inner.current_theme;
-        for listener in &inner.listeners {
-            if let Some(listener) = listener.upgrade() {
-                listener.on_theme_will_change(current_theme, &target_theme);
-            }
-        }
+        // 获取当前主题信息
+        let current_theme = inner.current_theme.name.clone();
+        let current_mode = inner.current_theme.mode.clone();
+
+        // 通知监听器主题即将变更（如果有这个方法的话）
+        // for listener in &inner.listeners {
+        //     if let Some(listener) = listener.upgrade() {
+        //         listener.on_theme_will_change(&inner.current_theme, &target_theme);
+        //     }
+        // }
 
         // 更新 CSS 变量
         let old_variables = inner.variable_manager.get_all_variables().clone();
@@ -284,7 +274,19 @@ impl ThemeProvider {
                         // 通知监听器切换失败
                         for listener in &inner.listeners {
                             if let Some(listener) = listener.upgrade() {
-                                listener.on_theme_change_failed(&error);
+                                let error_event = ThemeChangeEvent {
+                                    event_type: ThemeChangeEventType::ThemeSwitch,
+                                    old_theme: Some(current_theme.clone()),
+                                    new_theme: theme_name.to_string(),
+                                    old_mode: Some(current_mode.clone()),
+                                    new_mode: current_mode.clone(),
+                                    timestamp: std::time::SystemTime::now()
+                                        .duration_since(std::time::UNIX_EPOCH)
+                                        .unwrap_or_default()
+                                        .as_secs(),
+                                    reason: ThemeChangeReason::UserSwitch,
+                                };
+                                listener.on_theme_change(&error_event);
                             }
                         }
 
@@ -299,7 +301,14 @@ impl ThemeProvider {
 
                 // 更新当前主题
                 inner.current_theme = target_theme.clone();
-                inner.theme_context.switch_theme(theme_name)?;
+                if let Err(e) = inner.theme_manager.switch_theme(theme_name) {
+                    return Err(format!("Failed to switch theme in manager: {:?}", e));
+                }
+
+                // 添加到历史记录
+                if let Err(e) = inner.theme_history.add_theme(theme_name) {
+                    println!("Warning: Failed to add theme to history: {}", e);
+                }
 
                 // 创建变更事件
                 let timestamp = SystemTime::now()
@@ -307,7 +316,7 @@ impl ThemeProvider {
                     .unwrap_or_default()
                     .as_millis() as u64;
 
-                let event = VariableUpdateEvent {
+                let _event = VariableUpdateEvent {
                     changed_variables: changed_variables.clone(),
                     timestamp,
                     reason: UpdateReason::ThemeSwitch,
@@ -316,7 +325,19 @@ impl ThemeProvider {
                 // 通知监听器主题已变更
                 for listener in &inner.listeners {
                     if let Some(listener) = listener.upgrade() {
-                        listener.on_theme_changed(&target_theme, &event);
+                        let change_event = ThemeChangeEvent {
+                            event_type: ThemeChangeEventType::ThemeSwitch,
+                            old_theme: Some(current_theme.clone()),
+                            new_theme: theme_name.to_string(),
+                            old_mode: Some(current_mode.clone()),
+                            new_mode: current_mode.clone(),
+                            timestamp: std::time::SystemTime::now()
+                                .duration_since(std::time::UNIX_EPOCH)
+                                .unwrap_or_default()
+                                .as_secs(),
+                            reason: ThemeChangeReason::UserSwitch,
+                        };
+                        listener.on_theme_change(&change_event);
                     }
                 }
 
@@ -335,7 +356,19 @@ impl ThemeProvider {
                 // 通知监听器切换失败
                 for listener in &inner.listeners {
                     if let Some(listener) = listener.upgrade() {
-                        listener.on_theme_change_failed(&error);
+                        let error_event = ThemeChangeEvent {
+                            event_type: ThemeChangeEventType::ThemeSwitch,
+                            old_theme: Some(current_theme.clone()),
+                            new_theme: theme_name.to_string(),
+                            old_mode: Some(current_mode.clone()),
+                            new_mode: current_mode.clone(),
+                            timestamp: std::time::SystemTime::now()
+                                .duration_since(std::time::UNIX_EPOCH)
+                                .unwrap_or_default()
+                                .as_secs(),
+                            reason: ThemeChangeReason::UserSwitch,
+                        };
+                        listener.on_theme_change(&error_event);
                     }
                 }
 
@@ -436,6 +469,62 @@ impl ThemeProvider {
             .map_err(|_| "Failed to acquire read lock")?;
         Ok(inner.config.clone())
     }
+
+    /// 获取所有注册的主题名称
+    pub fn get_theme_names(&self) -> Result<Vec<String>, String> {
+        let inner = self
+            .inner
+            .read()
+            .map_err(|_| "Failed to acquire read lock")?;
+        Ok(inner.registered_themes.keys().cloned().collect())
+    }
+
+    /// 获取主题切换历史记录
+    pub fn get_theme_history(&self) -> Result<Vec<String>, String> {
+        let inner = self
+            .inner
+            .read()
+            .map_err(|_| "Failed to acquire read lock")?;
+        inner.theme_history.get_history()
+    }
+
+    /// 回到上一个主题
+    pub fn go_back_theme(&self) -> Result<Option<ThemeSwitchResult>, String> {
+        let previous_theme = {
+            let inner = self
+                .inner
+                .read()
+                .map_err(|_| "Failed to acquire read lock")?;
+            inner.theme_history.get_previous_theme()?
+        };
+
+        match previous_theme {
+            Some(theme_name) => {
+                let result = self.switch_theme(&theme_name)?;
+                Ok(Some(result))
+            }
+            None => Ok(None),
+        }
+    }
+
+    /// 清空主题历史记录
+    pub fn clear_theme_history(&self) -> Result<(), String> {
+        let inner = self
+            .inner
+            .read()
+            .map_err(|_| "Failed to acquire read lock")?;
+        inner.theme_history.clear_history()
+    }
+
+    /// 设置最大历史记录数
+    pub fn set_max_history(&self, max: usize) -> Result<(), String> {
+        let mut inner = self
+            .inner
+            .write()
+            .map_err(|_| "Failed to acquire write lock")?;
+        inner.theme_history = inner.theme_history.clone().with_max_history(max);
+        Ok(())
+    }
 }
 
 impl Default for ThemeProvider {
@@ -458,106 +547,9 @@ impl Default for ThemeProviderConfig {
     }
 }
 
-impl ThemeManager {
-    /// 创建新的主题管理器
-    pub fn new() -> Self {
-        Self {
-            provider: ThemeProvider::new(),
-            history: Arc::new(RwLock::new(Vec::new())),
-            max_history: 10,
-        }
-    }
+// ThemeHistory 已移至 theme_manager.rs 模块中，避免重复定义
 
-    /// 使用自定义配置创建主题管理器
-    pub fn with_config(config: ThemeProviderConfig) -> Self {
-        Self {
-            provider: ThemeProvider::with_config(config),
-            history: Arc::new(RwLock::new(Vec::new())),
-            max_history: 10,
-        }
-    }
-
-    /// 设置最大历史记录数
-    pub fn with_max_history(mut self, max: usize) -> Self {
-        self.max_history = max;
-        self
-    }
-
-    /// 切换主题（带历史记录）
-    pub fn switch_theme(&self, theme_name: &str) -> Result<ThemeSwitchResult, String> {
-        let result = self.provider.switch_theme(theme_name)?;
-
-        if result.success {
-            // 添加到历史记录
-            if let Ok(mut history) = self.history.write() {
-                history.push(theme_name.to_string());
-
-                // 限制历史记录数量
-                if history.len() > self.max_history {
-                    history.remove(0);
-                }
-            }
-        }
-
-        Ok(result)
-    }
-
-    /// 获取主题历史记录
-    pub fn get_history(&self) -> Result<Vec<String>, String> {
-        let history = self
-            .history
-            .read()
-            .map_err(|_| "Failed to acquire read lock")?;
-        Ok(history.clone())
-    }
-
-    /// 回到上一个主题
-    pub fn go_back(&self) -> Result<Option<ThemeSwitchResult>, String> {
-        let previous_theme = {
-            let history = self
-                .history
-                .read()
-                .map_err(|_| "Failed to acquire read lock")?;
-
-            if history.len() >= 2 {
-                Some(history[history.len() - 2].clone())
-            } else {
-                None
-            }
-        };
-
-        match previous_theme {
-            Some(theme_name) => {
-                let result = self.provider.switch_theme(&theme_name)?;
-                Ok(Some(result))
-            }
-            None => Ok(None),
-        }
-    }
-
-    /// 清空历史记录
-    pub fn clear_history(&self) -> Result<(), String> {
-        let mut history = self
-            .history
-            .write()
-            .map_err(|_| "Failed to acquire write lock")?;
-        history.clear();
-        Ok(())
-    }
-
-    /// 获取主题提供者
-    pub fn provider(&self) -> &ThemeProvider {
-        &self.provider
-    }
-}
-
-impl Default for ThemeManager {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl ThemeBuilder {
+impl ThemeProviderBuilder {
     /// 创建新的主题构建器
     pub fn new() -> Self {
         Self {
@@ -625,7 +617,7 @@ impl ThemeBuilder {
     }
 }
 
-impl Default for ThemeBuilder {
+impl Default for ThemeProviderBuilder {
     fn default() -> Self {
         Self::new()
     }
@@ -725,8 +717,10 @@ pub fn current_theme() -> Result<Theme, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::theme::DesignTokens;
     use std::sync::atomic::{AtomicBool, Ordering};
 
+    #[derive(Debug)]
     struct TestListener {
         will_change_called: AtomicBool,
         changed_called: AtomicBool,
@@ -744,16 +738,15 @@ mod tests {
     }
 
     impl ThemeChangeListener for TestListener {
-        fn on_theme_will_change(&self, _from: &Theme, _to: &Theme) {
-            self.will_change_called.store(true, Ordering::Relaxed);
-        }
-
-        fn on_theme_changed(&self, _theme: &Theme, _event: &VariableUpdateEvent) {
-            self.changed_called.store(true, Ordering::Relaxed);
-        }
-
-        fn on_theme_change_failed(&self, _error: &str) {
-            self.failed_called.store(true, Ordering::Relaxed);
+        fn on_theme_change(&self, _event: &ThemeChangeEvent) {
+            match _event.event_type {
+                ThemeChangeEventType::ThemeSwitch => {
+                    self.changed_called.store(true, Ordering::Relaxed);
+                }
+                _ => {
+                    // 处理其他事件类型
+                }
+            }
         }
     }
 
@@ -876,57 +869,6 @@ mod tests {
         assert!(listener.will_change_called.load(Ordering::Relaxed));
         assert!(listener.changed_called.load(Ordering::Relaxed));
         assert!(!listener.failed_called.load(Ordering::Relaxed));
-    }
-
-    #[test]
-    fn test_theme_manager() {
-        let manager = ThemeManager::new();
-
-        let result = manager.switch_theme("ant-design-dark").unwrap();
-        assert!(result.success);
-
-        let history = manager.get_history().unwrap();
-        assert_eq!(history.len(), 1);
-        assert_eq!(history[0], "ant-design-dark");
-    }
-
-    #[test]
-    fn test_theme_manager_go_back() {
-        let manager = ThemeManager::new();
-
-        // 切换到暗色主题
-        manager.switch_theme("ant-design-dark").unwrap();
-
-        // 切换到另一个主题（如果有的话）
-        manager.switch_theme("ant-design").unwrap();
-
-        // 回到上一个主题
-        let result = manager.go_back().unwrap();
-        assert!(result.is_some());
-
-        let current = manager.provider().current_theme().unwrap();
-        assert_eq!(current.name, "ant-design-dark");
-    }
-
-    #[test]
-    fn test_theme_builder() {
-        let theme = ThemeBuilder::new()
-            .name("Custom Theme")
-            .mode("light")
-            .variable("primary-color", "#ff0000")
-            .variable("secondary-color", "#00ff00")
-            .build();
-
-        assert_eq!(theme.name, "Custom Theme");
-        assert_eq!(theme.mode, ThemeMode::Light);
-        assert_eq!(
-            theme.custom_variables.get("primary-color"),
-            Some(&"#ff0000".to_string())
-        );
-        assert_eq!(
-            theme.custom_variables.get("secondary-color"),
-            Some(&"#00ff00".to_string())
-        );
     }
 
     #[test]

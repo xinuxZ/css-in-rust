@@ -281,6 +281,16 @@ impl CacheManager {
         &self.stats
     }
 
+    /// 获取缓存条目数量
+    pub fn len(&self) -> usize {
+        self.cache.len()
+    }
+
+    /// 获取缓存容量
+    pub fn capacity(&self) -> usize {
+        self.config.max_size
+    }
+
     /// 清空缓存
     pub fn clear(&mut self) {
         self.cache.clear();

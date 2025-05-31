@@ -1,8 +1,7 @@
-//! 开发体验提升模块
+//! 开发体验模块
 //!
-//! 提供更好的开发体验，包括错误提示、语法高亮、IDE集成等功能
+//! 提供开发时的各种便利功能和工具
 
-use std::collections::HashMap;
 use std::fmt;
 use std::path::PathBuf;
 

@@ -318,7 +318,7 @@ impl CliApp {
                     )
                 })?;
 
-                let optimizer = CssOptimizer::with_config(config.clone());
+                let mut optimizer = CssOptimizer::with_config(config.clone());
                 let optimized_content = optimizer.optimize(stylesheet)?;
                 let optimized_size = optimized_content.len();
 

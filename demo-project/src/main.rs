@@ -115,11 +115,7 @@ fn test_nested_styles() {
     println!("导航项悬停样式: {}", nav_item_hover_style);
 
     let nav_html = format!(
-        r#"<nav class="{}">
-  <a href="#" class="{}">首页</a>
-  <a href="#" class="{}">关于</a>
-  <a href="#" class="{}">联系</a>
-</nav>"#,
+        r#"<nav class="{}"> <a href="" class="{}">首页</a> <a href="" class="{}">关于</a> <a href="" class="{}">联系</a> </nav>"#,
         navigation_style, nav_item_style, nav_item_style, nav_item_style
     );
     println!("导航HTML:\n{}", nav_html);

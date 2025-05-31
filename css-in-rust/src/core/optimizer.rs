@@ -157,7 +157,7 @@ impl CssOptimizer {
     }
 
     /// Optimize a CSS stylesheet using lightningcss
-    pub fn optimize(&self, stylesheet: StyleSheet) -> Result<String, OptimizationError> {
+    pub fn optimize(&mut self, stylesheet: StyleSheet) -> Result<String, OptimizationError> {
         let mut css_content = if !stylesheet.optimized.is_empty() && self.config.minify {
             stylesheet.optimized
         } else {
@@ -218,7 +218,7 @@ impl CssOptimizer {
     }
 
     /// Eliminate dead code from CSS
-    pub fn eliminate_dead_code(&self, css: &str) -> Result<String, OptimizationError> {
+    pub fn eliminate_dead_code(&mut self, css: &str) -> Result<String, OptimizationError> {
         if !self.config.enable_dead_code_elimination {
             return Ok(css.to_string());
         }
@@ -234,12 +234,14 @@ impl CssOptimizer {
     }
 
     /// Perform static analysis on source files
-    fn perform_static_analysis(&self) -> Result<(), OptimizationError> {
+    fn perform_static_analysis(&mut self) -> Result<(), OptimizationError> {
         if !self.config.analyze_dependencies {
             return Ok(());
         }
 
-        for source_path in &self.config.source_paths {
+        // Clone the paths to avoid borrowing conflicts
+        let source_paths = self.config.source_paths.clone();
+        for source_path in &source_paths {
             self.analyze_source_file(source_path)?;
         }
 
@@ -247,7 +249,10 @@ impl CssOptimizer {
     }
 
     /// Analyze a source file for CSS usage
-    fn analyze_source_file(&self, file_path: &std::path::Path) -> Result<(), OptimizationError> {
+    fn analyze_source_file(
+        &mut self,
+        file_path: &std::path::Path,
+    ) -> Result<(), OptimizationError> {
         let content = std::fs::read_to_string(file_path)?;
 
         // Look for css! macro usage
@@ -260,7 +265,7 @@ impl CssOptimizer {
     }
 
     /// Extract CSS usage from Rust code (css! macros)
-    fn extract_css_usage_from_rust(&self, content: &str) {
+    fn extract_css_usage_from_rust(&mut self, content: &str) {
         // Find css! macro calls
         if let Ok(css_macro_regex) = Regex::new(r#"css!\s*\(\s*["']([^"']*)["']\s*\)"#) {
             for captures in css_macro_regex.captures_iter(content) {
@@ -272,14 +277,22 @@ impl CssOptimizer {
     }
 
     /// Extract CSS usage from template content
-    fn extract_css_usage_from_templates(&self, content: &str) {
+    fn extract_css_usage_from_templates(&mut self, content: &str) {
         // Find class attributes
         if let Ok(class_regex) = Regex::new(r#"class\s*=\s*["']([^"']*)["']"#) {
             for captures in class_regex.captures_iter(content) {
                 if let Some(classes) = captures.get(1) {
                     for class in classes.as_str().split_whitespace() {
-                        // Note: In a real implementation, we would need mutable access to usage_tracker
-                        // This is a simplified version for demonstration
+                        if !class.is_empty() {
+                            self.usage_tracker.used_classes.insert(class.to_string());
+                            // 增加使用计数
+                            let count = self
+                                .usage_tracker
+                                .rule_usage_count
+                                .entry(format!(".{}", class))
+                                .or_insert(0);
+                            *count += 1;
+                        }
                     }
                 }
             }
@@ -289,19 +302,39 @@ impl CssOptimizer {
         if let Ok(id_regex) = Regex::new(r#"id\s*=\s*["']([^"']*)["']"#) {
             for captures in id_regex.captures_iter(content) {
                 if let Some(id) = captures.get(1) {
-                    // Note: In a real implementation, we would need mutable access to usage_tracker
+                    let id_str = id.as_str().trim();
+                    if !id_str.is_empty() {
+                        self.usage_tracker.used_ids.insert(id_str.to_string());
+                        // 增加使用计数
+                        let count = self
+                            .usage_tracker
+                            .rule_usage_count
+                            .entry(format!("#{}", id_str))
+                            .or_insert(0);
+                        *count += 1;
+                    }
                 }
             }
         }
     }
 
     /// Parse CSS content to extract selectors
-    fn parse_css_for_usage(&self, css_content: &str) {
+    fn parse_css_for_usage(&mut self, css_content: &str) {
         // Simple CSS parsing to extract class and id selectors
         if let Ok(class_regex) = Regex::new(r"\.([a-zA-Z][a-zA-Z0-9_-]*)") {
             for captures in class_regex.captures_iter(css_content) {
                 if let Some(class) = captures.get(1) {
-                    // Note: In a real implementation, we would need mutable access to usage_tracker
+                    let class_name = class.as_str();
+                    self.usage_tracker
+                        .used_classes
+                        .insert(class_name.to_string());
+                    // 增加使用计数
+                    let count = self
+                        .usage_tracker
+                        .rule_usage_count
+                        .entry(format!(".{}", class_name))
+                        .or_insert(0);
+                    *count += 1;
                 }
             }
         }
@@ -309,7 +342,15 @@ impl CssOptimizer {
         if let Ok(id_regex) = Regex::new(r"#([a-zA-Z][a-zA-Z0-9_-]*)") {
             for captures in id_regex.captures_iter(css_content) {
                 if let Some(id) = captures.get(1) {
-                    // Note: In a real implementation, we would need mutable access to usage_tracker
+                    let id_name = id.as_str();
+                    self.usage_tracker.used_ids.insert(id_name.to_string());
+                    // 增加使用计数
+                    let count = self
+                        .usage_tracker
+                        .rule_usage_count
+                        .entry(format!("#{}", id_name))
+                        .or_insert(0);
+                    *count += 1;
                 }
             }
         }
@@ -594,7 +635,7 @@ mod tests {
             enable_dead_code_elimination: false,
             ..Default::default()
         };
-        let optimizer = CssOptimizer::with_config(config);
+        let mut optimizer = CssOptimizer::with_config(config);
         let stylesheet = StyleSheet {
             source: ".test { margin: 0px; }".to_string(),
             optimized: String::new(),
@@ -612,7 +653,7 @@ mod tests {
             enable_dead_code_elimination: false,
             ..Default::default()
         };
-        let optimizer = CssOptimizer::with_config(config);
+        let mut optimizer = CssOptimizer::with_config(config);
         let stylesheet = StyleSheet {
             source: ".test { margin: 0px; }".to_string(),
             optimized: ".test{margin:0}".to_string(),
@@ -630,7 +671,7 @@ mod tests {
             enable_dead_code_elimination: false,
             ..Default::default()
         };
-        let optimizer = CssOptimizer::with_config(config);
+        let mut optimizer = CssOptimizer::with_config(config);
 
         let css = ".unused { color: red; }";
         let result = optimizer.eliminate_dead_code(css).unwrap();

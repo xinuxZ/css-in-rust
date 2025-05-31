@@ -36,6 +36,7 @@
 
 // Module declarations
 pub mod adapters;
+pub mod animation;
 pub mod build_tools;
 pub mod core;
 pub mod dev_experience;
@@ -48,6 +49,7 @@ pub mod variants;
 
 // Re-exports for convenience
 pub use adapters::*;
+pub use animation::*;
 pub use build_tools::*;
 pub use core::*;
 pub use hot_reload::*;

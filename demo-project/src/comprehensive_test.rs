@@ -2,8 +2,10 @@
 //! 测试README.md中声称的所有功能点
 
 use css_in_rust::{
-    css, ConditionalStyleManager, PriorityManager, ResponsiveManager, StateVariantManager,
-    ThemeManager, VariantConfig, VariantResolver, VariantStyle,
+    css,
+    theme::{ThemeManager, ThemeManagerConfig},
+    ConditionalStyleManager, PriorityManager, ResponsiveManager, StateVariantManager,
+    VariantConfig, VariantResolver, VariantStyle,
 };
 use std::collections::HashMap;
 
@@ -97,7 +99,7 @@ pub fn test_theming() {
     println!("✅ 主题化卡片类名: {}", themed_class);
 
     // 测试主题管理器
-    let _theme_manager = ThemeManager::new();
+    let _theme_manager = ThemeManager::new(ThemeManagerConfig::default());
 
     println!("✅ 主题变量配置完成");
 }
