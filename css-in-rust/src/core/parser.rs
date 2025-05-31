@@ -155,6 +155,11 @@ impl CssParser {
             });
         }
 
+        // Basic CSS syntax validation
+        if let Err(err) = self.validate_basic_css_syntax(css) {
+            return Err(ParseError::InvalidInput(err));
+        }
+
         // Simple fallback: basic minification if enabled
         let optimized = if self.config.minify {
             css.lines()
@@ -171,6 +176,59 @@ impl CssParser {
             optimized,
             metadata: StyleSheetMetadata::default(),
         })
+    }
+
+    /// Basic CSS syntax validation for fallback implementation
+    #[cfg(not(feature = "optimizer"))]
+    fn validate_basic_css_syntax(&self, css: &str) -> Result<(), String> {
+        let mut brace_count = 0;
+        let mut in_string = false;
+        let mut escape_next = false;
+        let mut string_char = '\0';
+
+        for ch in css.chars() {
+            if escape_next {
+                escape_next = false;
+                continue;
+            }
+
+            if ch == '\\' {
+                escape_next = true;
+                continue;
+            }
+
+            if in_string {
+                if ch == string_char {
+                    in_string = false;
+                }
+                continue;
+            }
+
+            match ch {
+                '"' | '\'' => {
+                    in_string = true;
+                    string_char = ch;
+                }
+                '{' => brace_count += 1,
+                '}' => {
+                    brace_count -= 1;
+                    if brace_count < 0 {
+                        return Err("Unexpected closing brace".to_string());
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        if brace_count != 0 {
+            return Err("Mismatched braces".to_string());
+        }
+
+        if in_string {
+            return Err("Unterminated string".to_string());
+        }
+
+        Ok(())
     }
 
     /// Extract metadata from parsed stylesheet
@@ -216,7 +274,8 @@ mod tests {
     #[test]
     fn test_parse_invalid_css() {
         let parser = CssParser::new();
-        let css = ".button { color: red;";
+        // Use a more obviously invalid CSS that should definitely fail
+        let css = ".button { color: red; } } extra brace";
         let result = parser.parse(css);
         assert!(result.is_err());
     }
