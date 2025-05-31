@@ -10,7 +10,6 @@
 
 use css_in_rust::variants::{
     Breakpoint,
-    ColorVariant,
     ConditionRule,
     ConditionType,
     ConditionValue,
@@ -23,30 +22,20 @@ use css_in_rust::variants::{
     PriorityType,
     // 响应式
     ResponsiveManager,
-    ResponsiveStyleResult,
-    ShapeVariant,
-    SimpleVariant,
-    SimpleVariantManager,
-    SimpleVariantStyle,
     // 变体类型
-    SizeVariant,
     Specificity,
     StateCombination,
     StateType,
     // 状态变体
     StateVariant,
     StateVariantManager,
-    StateVariantResult,
     StyleCalculator,
     StyleRule,
     StyleSource,
     // 基础变体
     VariantConfig,
     VariantManager,
-    VariantResolutionContext,
-    VariantResolutionOptions,
     // 变体解析器
-    VariantResolver,
     VariantStyle,
 };
 use std::collections::HashMap;
@@ -210,7 +199,8 @@ fn demo_basic_variants() {
     variants.insert("size".to_string(), "lg".to_string());
     variants.insert("color".to_string(), "secondary".to_string());
 
-    match variant_manager.apply_variants("button", &variants) {
+    let props = HashMap::new();
+    match variant_manager.apply_variants("button", &variants, &props) {
         Ok(result) => {
             println!("生成的类名: {}", result.class_name);
             println!("CSS 规则: {}", result.css_rules);
@@ -636,7 +626,8 @@ fn demo_variant_resolver() {
     variants.insert("size".to_string(), "large".to_string());
     variants.insert("color".to_string(), "primary".to_string());
 
-    match variant_manager.apply_variants("button", &variants) {
+    let props = HashMap::new();
+    match variant_manager.apply_variants("button", &variants, &props) {
         Ok(result) => {
             println!("基础变体结果:");
             println!("  类名: {}", result.class_name);

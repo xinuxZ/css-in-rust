@@ -295,6 +295,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "css-in-rust-examples"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "chrono",
+ "css-in-rust",
+ "css-in-rust-macros",
+ "lazy_static",
+ "lightningcss",
+ "num_cpus",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "serde",
+ "serde_json",
+ "sha1",
+ "sha2",
+ "syn 2.0.101",
+ "tempfile",
+]
+
+[[package]]
 name = "css-in-rust-macros"
 version = "0.1.0"
 dependencies = [

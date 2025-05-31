@@ -1,0 +1,76 @@
+[package]
+name = "css-in-rust-examples"
+version = "0.1.0"
+edition = "2021"
+authors = ["AI Architect <ai@example.com>"]
+description = "Examples for CSS-in-Rust library"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+# 主要依赖 - 引用上级目录的 css-in-rust 库
+css-in-rust = { path = "../css-in-rust", features = [
+    "proc-macro",
+    "optimizer",
+] }
+css-in-rust-macros = { path = "../css-in-rust-macros" }
+
+# 示例中使用的依赖
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+regex = "1.0"
+lazy_static = "1.4"
+chrono = { version = "0.4", features = ["serde"] }
+tempfile = "3.0"
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = { version = "2.0", features = ["full", "extra-traits"] }
+lightningcss = "1.0.0-alpha.66"
+sha2 = "0.10"
+sha1 = "0.10.6"
+base64 = "0.22.1"
+num_cpus = "1.17.0"
+
+[features]
+default = ["proc-macro"]
+proc-macro = []
+
+# 定义示例二进制文件
+[[bin]]
+name = "basic"
+path = "src/basic.rs"
+
+[[bin]]
+name = "minimal_demo"
+path = "src/minimal_demo.rs"
+
+[[bin]]
+name = "complete_project_example"
+path = "src/complete_project_example.rs"
+
+[[bin]]
+name = "dead_code_elimination"
+path = "src/dead_code_elimination.rs"
+
+[[bin]]
+name = "simple_variant_demo"
+path = "src/simple_variant_demo.rs"
+
+[[bin]]
+name = "variant_system_comprehensive"
+path = "src/variant_system_comprehensive.rs"
+
+[[bin]]
+name = "variant_system_demo"
+path = "src/variant_system_demo.rs"
+
+[[bin]]
+name = "variant_system_fixed"
+path = "src/variant_system_fixed.rs"
+
+[[bin]]
+name = "variant_system_simple"
+path = "src/variant_system_simple.rs"
+
+[[bin]]
+name = "variant_system_working"
+path = "src/variant_system_working.rs"
