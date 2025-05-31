@@ -360,7 +360,7 @@ impl CssVariableManager {
     }
 
     /// 添加单个变量
-    fn add_variable(&mut self, name: &str, value: &str) {
+    pub fn add_variable(&mut self, name: &str, value: &str) {
         let var_name = self.format_variable_name(name);
         self.variables.insert(var_name, value.to_string());
     }

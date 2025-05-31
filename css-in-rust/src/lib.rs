@@ -50,6 +50,7 @@ pub mod variants;
 pub use adapters::*;
 pub use build_tools::*;
 pub use core::*;
+pub use hot_reload::*;
 pub use runtime::*;
 pub use theme::*;
 pub use variants::*;

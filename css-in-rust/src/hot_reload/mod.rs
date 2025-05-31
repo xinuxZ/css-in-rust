@@ -17,7 +17,9 @@ pub mod websocket_server;
 // 重新导出主要类型
 pub use change_detector::{ChangeDetector, ChangeType, FileChange};
 pub use file_watcher::{FileWatcher, FileWatcherConfig, WatchEvent, WatchEventType};
-pub use reload_manager::{BuildResult, BuildType, ReloadConfig, ReloadEvent, ReloadManager};
+pub use reload_manager::{
+    BuildResult as ReloadBuildResult, BuildType, ReloadConfig, ReloadEvent, ReloadManager,
+};
 pub use websocket_server::{
     BuildStatus, LogLevel, WebSocketConfig, WebSocketMessage, WebSocketServer,
 };
