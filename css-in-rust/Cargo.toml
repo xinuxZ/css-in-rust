@@ -59,7 +59,19 @@ name = "basic"
 required-features = []
 
 [[example]]
-name = "variant_system_demo"
+name = "variant_system_comprehensive"
+required-features = []
+
+[[example]]
+name = "variant_system_simple"
+required-features = []
+
+[[example]]
+name = "minimal_demo"
+required-features = []
+
+[[example]]
+name = "variant_system_working"
 required-features = []
 
 [[example]]

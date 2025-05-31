@@ -5,6 +5,7 @@
 //! for high-performance minification and optimization.
 
 use crate::core::parser::{ParseError, StyleSheet};
+use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
@@ -12,9 +13,6 @@ use std::path::PathBuf;
 use lightningcss::{
     printer::PrinterOptions, stylesheet::StyleSheet as LightningStyleSheet, targets::Browsers,
 };
-
-#[cfg(feature = "optimizer")]
-use regex::Regex;
 
 /// 用于跟踪CSS使用情况的结构体
 #[derive(Debug, Clone, Default)]
