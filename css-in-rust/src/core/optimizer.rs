@@ -592,7 +592,11 @@ mod tests {
 
     #[test]
     fn test_optimize_stylesheet() {
-        let optimizer = CssOptimizer::new();
+        let config = OptimizerConfig {
+            enable_dead_code_elimination: false,
+            ..Default::default()
+        };
+        let optimizer = CssOptimizer::with_config(config);
         let stylesheet = StyleSheet {
             source: ".test { margin: 0px; }".to_string(),
             optimized: String::new(),
@@ -606,7 +610,11 @@ mod tests {
 
     #[test]
     fn test_optimize_with_preoptimized() {
-        let optimizer = CssOptimizer::new();
+        let config = OptimizerConfig {
+            enable_dead_code_elimination: false,
+            ..Default::default()
+        };
+        let optimizer = CssOptimizer::with_config(config);
         let stylesheet = StyleSheet {
             source: ".test { margin: 0px; }".to_string(),
             optimized: ".test{margin:0}".to_string(),
