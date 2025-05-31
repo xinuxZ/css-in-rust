@@ -8,7 +8,7 @@
 //! - 动态主题切换
 
 use css_in_rust::{
-    css, CssVariableManager, Theme, ThemeManager, ThemeManagerConfig, ThemeMode, ThemeProvider,
+    css, CssVariableManager, Theme, ThemeContext, ThemeManager, ThemeMode, ThemeProvider,
 };
 
 use chrono as _;
@@ -626,7 +626,7 @@ fn test_theme_context() {
     println!("\n--- 测试主题上下文 ---");
 
     // 创建主题上下文
-    let context = ThemeManager::new(ThemeManagerConfig::default());
+    let context = ThemeContext::new();
 
     // 注册自定义主题
     let custom_theme = Theme::new("test-theme")
@@ -681,7 +681,7 @@ fn test_theme_manager() {
     println!("\n--- 测试主题管理器 ---");
 
     // 创建主题管理器
-    let manager = ThemeManager::new(ThemeManagerConfig::default());
+    let manager = ThemeManager::new();
 
     // 切换主题
     match manager.switch_theme("ant-design-dark") {
