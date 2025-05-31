@@ -36,6 +36,7 @@
 
 // Module declarations
 pub mod adapters;
+pub mod build_tools;
 pub mod core;
 pub mod macros;
 pub mod runtime;
@@ -44,6 +45,7 @@ pub mod variants;
 
 // Re-exports for convenience
 pub use adapters::*;
+pub use build_tools::*;
 pub use core::*;
 pub use runtime::*;
 pub use theme::*;
@@ -57,6 +59,11 @@ pub use css_in_rust_macros::{css, css_class, css_if};
 #[cfg(feature = "proc-macro")]
 #[allow(unused_imports)]
 use css_in_rust_macros as _;
+
+#[allow(unused_imports)]
+use lazy_static as _;
+#[allow(unused_imports)]
+use tempfile as _;
 
 // Provide fallback implementations when proc-macro feature is disabled
 #[cfg(not(feature = "proc-macro"))]

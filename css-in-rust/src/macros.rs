@@ -157,6 +157,9 @@ fn process_css_string(css_content: &str, _span: Span) -> syn::Result<TokenStream
     let css_id = format!("css-{}", &css_hash[..8]);
     let css_id_literal = css_id;
 
+    // Track CSS usage for dead code elimination
+    track_css_usage_at_compile_time(css_content, &css_id);
+
     Ok(quote! {
         {
             // Use a static to ensure the CSS is only processed once
@@ -334,6 +337,95 @@ fn validate_css_syntax(css: &str) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+/// Track CSS usage at compile time for dead code elimination
+#[cfg(feature = "proc-macro")]
+fn track_css_usage_at_compile_time(css_content: &str, css_id: &str) {
+    // In a real implementation, this would write usage information to a file
+    // or communicate with the build system to track CSS usage
+
+    // For now, we'll use environment variables or a build-time registry
+    // This is a simplified implementation for demonstration
+
+    // Extract classes and IDs from CSS content
+    let mut used_classes = Vec::new();
+    let mut used_ids = Vec::new();
+
+    // Simple regex-based extraction (in a real implementation, use a proper CSS parser)
+    extract_selectors_from_css(css_content, &mut used_classes, &mut used_ids);
+
+    // In a production implementation, this would:
+    // 1. Write to a build-time registry file
+    // 2. Communicate with the build system
+    // 3. Store in a global static for later collection
+
+    // For demonstration, we'll use a simple approach
+    #[cfg(feature = "build-time-tracking")]
+    {
+        use std::collections::HashSet;
+        use std::sync::Mutex;
+
+        lazy_static::lazy_static! {
+            static ref COMPILE_TIME_USAGE: Mutex<(HashSet<String>, HashSet<String>)> =
+                Mutex::new((HashSet::new(), HashSet::new()));
+        }
+
+        if let Ok(mut usage) = COMPILE_TIME_USAGE.lock() {
+            for class in used_classes {
+                usage.0.insert(class);
+            }
+            for id in used_ids {
+                usage.1.insert(id);
+            }
+        }
+    }
+}
+
+/// Extract CSS selectors from CSS content
+#[cfg(feature = "proc-macro")]
+fn extract_selectors_from_css(css_content: &str, classes: &mut Vec<String>, ids: &mut Vec<String>) {
+    // Simple extraction using string matching
+    // In a production implementation, use a proper CSS parser
+
+    let mut chars = css_content.chars().peekable();
+    let mut current_token = String::new();
+
+    while let Some(ch) = chars.next() {
+        match ch {
+            '.' => {
+                // Class selector
+                current_token.clear();
+                while let Some(&next_ch) = chars.peek() {
+                    if next_ch.is_alphanumeric() || next_ch == '-' || next_ch == '_' {
+                        current_token.push(chars.next().unwrap());
+                    } else {
+                        break;
+                    }
+                }
+                if !current_token.is_empty() {
+                    classes.push(current_token.clone());
+                }
+            }
+            '#' => {
+                // ID selector
+                current_token.clear();
+                while let Some(&next_ch) = chars.peek() {
+                    if next_ch.is_alphanumeric() || next_ch == '-' || next_ch == '_' {
+                        current_token.push(chars.next().unwrap());
+                    } else {
+                        break;
+                    }
+                }
+                if !current_token.is_empty() {
+                    ids.push(current_token.clone());
+                }
+            }
+            _ => {
+                // Skip other characters
+            }
+        }
+    }
 }
 
 #[cfg(all(test, feature = "proc-macro"))]
