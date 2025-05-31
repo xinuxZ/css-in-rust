@@ -13,9 +13,9 @@ use css_in_rust::{
         conditional_styles::{ConditionType, ConditionValue, ConditionalStyleManager},
         priority_manager::{PriorityManager, PriorityType, StyleSource},
         responsive::{responsive_variant, Breakpoint, ResponsiveManager},
-        state_variants::{StateCombination, StateType, StateVariantManager},
+        state_variants::{StateCombination, StateType, StateVariant, StateVariantManager},
         variant_types::{
-            ColorVariant, SizeVariant, StateVariant, VariantCombination, VariantValue,
+            ColorVariant, SizeVariant, StateVariantState, VariantCombination, VariantValue,
         },
         VariantConfig, VariantResolutionContext, VariantResolutionOptions, VariantResolver,
         VariantStyle,
@@ -23,29 +23,28 @@ use css_in_rust::{
 };
 use std::collections::HashMap;
 
-#[allow(unused_imports)]
+use base64 as _;
 use chrono as _;
 #[allow(unused_imports)]
 use css_in_rust_macros as _;
-#[allow(unused_imports)]
 use lazy_static as _;
 #[allow(unused_imports)]
 use lightningcss as _;
+use num_cpus as _;
 #[allow(unused_imports)]
 use proc_macro2 as _;
 #[allow(unused_imports)]
 use quote as _;
-#[allow(unused_imports)]
 use regex as _;
 #[allow(unused_imports)]
 use serde as _;
 #[allow(unused_imports)]
 use serde_json as _;
+use sha1 as _;
 #[allow(unused_imports)]
 use sha2 as _;
 #[allow(unused_imports)]
 use syn as _;
-#[allow(unused_imports)]
 use tempfile as _;
 
 fn main() {
@@ -84,20 +83,20 @@ fn demo_basic_variants() {
     // 添加不同类型的变体
     variant_combination
         .variants
-        .insert("size".to_string(), VariantValue::Size(SizeVariant::Large));
+        .insert("size".to_string(), VariantValue::Size(SizeVariant::LG));
     variant_combination.variants.insert(
         "color".to_string(),
         VariantValue::Color(ColorVariant::Primary),
     );
     variant_combination.variants.insert(
         "state".to_string(),
-        VariantValue::State(StateVariant::Hover),
+        VariantValue::State(StateVariantState::Hover),
     );
 
     println!("创建的变体组合: {:?}", variant_combination);
 
     // 检查变体兼容性
-    let size_variant = VariantValue::Size(SizeVariant::Small);
+    let size_variant = VariantValue::Size(SizeVariant::SM);
     let color_variant = VariantValue::Color(ColorVariant::Secondary);
 
     println!(
@@ -284,7 +283,8 @@ fn demo_conditional_styles() {
                 ("background-color".to_string(), "#007bff".to_string()),
                 ("color".to_string(), "white".to_string()),
             ]),
-            config: VariantConfig::default(),
+            priority: 100,
+            pseudo_classes: HashMap::new(),
         },
         priority: 100,
         enabled: true,

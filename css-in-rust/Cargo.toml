@@ -48,6 +48,7 @@ proc-macro = ["css-in-rust-macros", "proc-macro2", "quote", "syn"]
 optimizer = ["lightningcss", "sha2"]
 dioxus = []
 build-time-tracking = []
+build-tools = []
 
 [lib]
 name = "css_in_rust"

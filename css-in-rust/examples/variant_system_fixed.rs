@@ -12,22 +12,29 @@ extern crate serde;
 extern crate serde_json;
 use std::collections::HashMap;
 
+use base64 as _;
+use chrono as _;
 #[allow(unused_imports)]
 use css_in_rust_macros as _;
+use lazy_static as _;
 #[allow(unused_imports)]
 use lightningcss as _;
+use num_cpus as _;
 #[allow(unused_imports)]
 use proc_macro2 as _;
 #[allow(unused_imports)]
 use quote as _;
+use regex as _;
 #[allow(unused_imports)]
 use serde as _;
 #[allow(unused_imports)]
 use serde_json as _;
+use sha1 as _;
 #[allow(unused_imports)]
 use sha2 as _;
 #[allow(unused_imports)]
 use syn as _;
+use tempfile as _;
 
 fn main() {
     println!("=== CSS in Rust 变体系统演示 ===");

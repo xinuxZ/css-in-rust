@@ -34,7 +34,7 @@ use css_in_rust::variants::{
     StateCombination,
     StateType,
     // 状态变体
-    StateVariant,
+    // StateVariant,
     StateVariantManager,
     StateVariantResult,
     StyleCalculator,
@@ -50,6 +50,30 @@ use css_in_rust::variants::{
     VariantStyle,
 };
 use std::collections::HashMap;
+
+use base64 as _;
+use chrono as _;
+#[allow(unused_imports)]
+use css_in_rust_macros as _;
+use lazy_static as _;
+#[allow(unused_imports)]
+use lightningcss as _;
+use num_cpus as _;
+#[allow(unused_imports)]
+use proc_macro2 as _;
+#[allow(unused_imports)]
+use quote as _;
+use regex as _;
+#[allow(unused_imports)]
+use serde as _;
+#[allow(unused_imports)]
+use serde_json as _;
+use sha1 as _;
+#[allow(unused_imports)]
+use sha2 as _;
+#[allow(unused_imports)]
+use syn as _;
+use tempfile as _;
 
 fn main() {
     println!("=== CSS-in-Rust 变体系统综合示例 ===");
@@ -209,18 +233,21 @@ fn demo_responsive_variants() {
             min_width: Some(0),
             max_width: Some(767),
             media_query: "(max-width: 767px)".to_string(),
+            priority: 10,
         },
         Breakpoint {
             name: "tablet".to_string(),
             min_width: Some(768),
             max_width: Some(1023),
             media_query: "(min-width: 768px) and (max-width: 1023px)".to_string(),
+            priority: 10,
         },
         Breakpoint {
             name: "desktop".to_string(),
             min_width: Some(1024),
             max_width: None,
             media_query: "(min-width: 1024px)".to_string(),
+            priority: 10,
         },
     ];
 

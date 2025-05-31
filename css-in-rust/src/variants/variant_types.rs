@@ -49,7 +49,7 @@ pub enum ColorVariant {
 
 /// 状态变体
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
-pub enum StateVariant {
+pub enum StateVariantState {
     /// 正常状态
     Normal,
     /// 悬停状态
@@ -118,7 +118,7 @@ pub enum VariantValue {
     /// 颜色变体
     Color(ColorVariant),
     /// 状态变体
-    State(StateVariant),
+    State(StateVariantState),
     /// 形状变体
     Shape(ShapeVariant),
     /// 布局变体
@@ -204,44 +204,44 @@ impl ColorVariant {
     }
 }
 
-impl StateVariant {
+impl StateVariantState {
     /// 转换为字符串
     pub fn to_string(&self) -> String {
         match self {
-            StateVariant::Normal => "normal".to_string(),
-            StateVariant::Hover => "hover".to_string(),
-            StateVariant::Active => "active".to_string(),
-            StateVariant::Focus => "focus".to_string(),
-            StateVariant::Disabled => "disabled".to_string(),
-            StateVariant::Loading => "loading".to_string(),
-            StateVariant::Selected => "selected".to_string(),
-            StateVariant::Error => "error".to_string(),
-            StateVariant::Custom(s) => s.clone(),
+            StateVariantState::Normal => "normal".to_string(),
+            StateVariantState::Hover => "hover".to_string(),
+            StateVariantState::Active => "active".to_string(),
+            StateVariantState::Focus => "focus".to_string(),
+            StateVariantState::Disabled => "disabled".to_string(),
+            StateVariantState::Loading => "loading".to_string(),
+            StateVariantState::Selected => "selected".to_string(),
+            StateVariantState::Error => "error".to_string(),
+            StateVariantState::Custom(s) => s.clone(),
         }
     }
 
     /// 从字符串解析
     pub fn from_string(s: &str) -> Result<Self, String> {
         match s.to_lowercase().as_str() {
-            "normal" => Ok(StateVariant::Normal),
-            "hover" => Ok(StateVariant::Hover),
-            "active" => Ok(StateVariant::Active),
-            "focus" => Ok(StateVariant::Focus),
-            "disabled" => Ok(StateVariant::Disabled),
-            "loading" => Ok(StateVariant::Loading),
-            "selected" => Ok(StateVariant::Selected),
-            "error" => Ok(StateVariant::Error),
-            _ => Ok(StateVariant::Custom(s.to_string())),
+            "normal" => Ok(StateVariantState::Normal),
+            "hover" => Ok(StateVariantState::Hover),
+            "active" => Ok(StateVariantState::Active),
+            "focus" => Ok(StateVariantState::Focus),
+            "disabled" => Ok(StateVariantState::Disabled),
+            "loading" => Ok(StateVariantState::Loading),
+            "selected" => Ok(StateVariantState::Selected),
+            "error" => Ok(StateVariantState::Error),
+            _ => Ok(StateVariantState::Custom(s.to_string())),
         }
     }
 
     /// 获取对应的 CSS 伪类
     pub fn to_pseudo_class(&self) -> Option<String> {
         match self {
-            StateVariant::Hover => Some(":hover".to_string()),
-            StateVariant::Active => Some(":active".to_string()),
-            StateVariant::Focus => Some(":focus".to_string()),
-            StateVariant::Disabled => Some(":disabled".to_string()),
+            StateVariantState::Hover => Some(":hover".to_string()),
+            StateVariantState::Active => Some(":active".to_string()),
+            StateVariantState::Focus => Some(":focus".to_string()),
+            StateVariantState::Disabled => Some(":disabled".to_string()),
             _ => None,
         }
     }
@@ -283,7 +283,7 @@ impl VariantValue {
         match variant_type {
             "size" => Ok(VariantValue::Size(SizeVariant::from_string(value)?)),
             "color" => Ok(VariantValue::Color(ColorVariant::from_string(value)?)),
-            "state" => Ok(VariantValue::State(StateVariant::from_string(value)?)),
+            "state" => Ok(VariantValue::State(StateVariantState::from_string(value)?)),
             "shape" => Ok(VariantValue::Shape(match value {
                 "default" => ShapeVariant::Default,
                 "round" => ShapeVariant::Round,
@@ -421,10 +421,10 @@ mod tests {
 
     #[test]
     fn test_state_variant_pseudo_class() {
-        let hover = StateVariant::Hover;
+        let hover = StateVariantState::Hover;
         assert_eq!(hover.to_pseudo_class(), Some(":hover".to_string()));
 
-        let normal = StateVariant::Normal;
+        let normal = StateVariantState::Normal;
         assert_eq!(normal.to_pseudo_class(), None);
     }
 

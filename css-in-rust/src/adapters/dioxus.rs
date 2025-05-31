@@ -57,7 +57,7 @@ impl FrameworkAdapter for DioxusAdapter {
     type Component = DioxusComponent;
 
     fn apply_class(component: &mut Self::Component, class_name: &str) {
-        component.add_class(class_name);
+        component.add_class(&class_name);
     }
 
     fn get_classes(component: &Self::Component) -> Vec<String> {
@@ -73,7 +73,7 @@ macro_rules! dioxus_css {
     ($tag:expr, $css:expr) => {{
         let class_name = $crate::css!($css);
         let mut component = $crate::adapters::dioxus::DioxusComponent::new($tag);
-        component.add_class(class_name);
+        component.add_class(&class_name);
         component
     }};
 }
@@ -86,7 +86,7 @@ pub mod utils {
     pub fn styled_component(tag: &str, css: &str) -> DioxusComponent {
         let class_name = crate::runtime::inject_style(css, &format!("dioxus-{}", tag));
         let mut component = DioxusComponent::new(tag);
-        component.add_class(class_name);
+        component.add_class(&class_name);
         component
     }
 

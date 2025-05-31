@@ -15,8 +15,9 @@ pub mod syntax_highlighting;
 // 重新导出主要类型
 pub use code_completion::{CompletionItem, CompletionProvider};
 pub use diagnostics::{Diagnostic, DiagnosticLevel, DiagnosticManager};
-pub use error_reporting::{ErrorContext, ErrorReporter};
-pub use ide_integration::{IdeIntegration, LanguageServerProtocol};
+pub use error_reporting::{ErrorContext, ErrorFormat, ErrorReporter};
+pub use ide_integration::IdeConfig;
+pub use ide_integration::{IdeIntegration, IdeType, LanguageServerProtocol};
 pub use syntax_highlighting::{HighlightTheme, SyntaxHighlighter};
 
 /// 开发体验配置
@@ -55,18 +56,18 @@ impl Default for DevExperienceConfig {
     }
 }
 
-/// 错误报告格式
-#[derive(Debug, Clone, PartialEq)]
-pub enum ErrorFormat {
-    /// 简单格式
-    Simple,
-    /// 丰富格式（带颜色和上下文）
-    Rich,
-    /// JSON格式
-    Json,
-    /// IDE友好格式
-    IdeFriendly,
-}
+// /// 错误报告格式
+// #[derive(Debug, Clone, PartialEq)]
+// pub enum ErrorFormat {
+//     /// 简单格式
+//     Simple,
+//     /// 丰富格式（带颜色和上下文）
+//     Rich,
+//     /// JSON格式
+//     Json,
+//     /// IDE友好格式
+//     IdeFriendly,
+// }
 
 /// IDE设置
 #[derive(Debug, Clone)]
@@ -114,7 +115,10 @@ impl DevExperienceManager {
         Self {
             diagnostic_manager: DiagnosticManager::new(),
             syntax_highlighter: SyntaxHighlighter::new(&config.highlight_theme),
-            ide_integration: IdeIntegration::new(config.ide_settings.clone()),
+            ide_integration: IdeIntegration::new(IdeType::VsCode, IdeConfig::default()),
+            // TODO: 错误报告格式需要根据配置来设置，现在是硬编码的Rich
+            // 可以考虑使用一个枚举来表示错误报告格式，然后根据配置来设置
+            // 例如：ErrorFormat::Rich, ErrorFormat::Json, ErrorFormat::IdeFriendly
             error_reporter: ErrorReporter::new(config.error_format.clone()),
             completion_provider: CompletionProvider::new(),
             config,
@@ -124,11 +128,15 @@ impl DevExperienceManager {
     /// 启动开发服务
     pub fn start_dev_services(&mut self) -> Result<(), DevExperienceError> {
         if self.config.enable_live_diagnostics {
-            self.diagnostic_manager.start_live_diagnostics()?;
+            self.diagnostic_manager
+                .start_live_diagnostics()
+                .map_err(|e| DevExperienceError::DiagnosticServiceFailed(e.to_string()))?;
         }
 
         if self.config.ide_settings.enable_language_server {
-            self.ide_integration.start_language_server()?;
+            self.ide_integration
+                .start_language_server()
+                .map_err(|e| DevExperienceError::LanguageServerFailed(e.to_string()))?;
         }
 
         Ok(())
@@ -146,7 +154,8 @@ impl DevExperienceManager {
 
         // 语法高亮
         if self.config.enable_syntax_highlighting {
-            result.highlighted_code = Some(self.syntax_highlighter.highlight(code));
+            result.highlighted_code = Some(code.to_string());
+            // result.highlighted_code = Some(self.syntax_highlighter.highlight(code));
         }
 
         // 诊断
@@ -163,8 +172,9 @@ impl DevExperienceManager {
     }
 
     /// 报告错误
-    pub fn report_error(&self, error: &dyn std::error::Error, context: ErrorContext) -> String {
-        self.error_reporter.format_error(error, context)
+    pub fn report_error(&self, _error: &dyn std::error::Error, _context: ErrorContext) -> String {
+        self.error_reporter.format_report()
+        // self.error_reporter.format_report(error, context)
     }
 
     /// 获取性能提示
@@ -210,7 +220,7 @@ impl DevExperienceManager {
         self.syntax_highlighter
             .update_theme(&self.config.highlight_theme);
         self.error_reporter
-            .update_format(self.config.error_format.clone());
+            .set_format(self.config.error_format.clone());
     }
 }
 

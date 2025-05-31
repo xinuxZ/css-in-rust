@@ -296,8 +296,19 @@ pub enum LspServerState {
     Error(String),
 }
 
+/// 语言服务器协议
+#[derive(Debug, Clone)]
+pub struct LanguageServerProtocol {
+    /// 协议版本
+    pub version: String,
+    /// 支持的方法
+    pub supported_methods: Vec<String>,
+    /// 服务器能力
+    pub capabilities: LspCapabilities,
+}
+
 /// 客户端连接
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ClientConnection {
     /// 客户端ID
     pub id: String,

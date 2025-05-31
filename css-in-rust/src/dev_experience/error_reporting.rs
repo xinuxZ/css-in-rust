@@ -150,6 +150,17 @@ pub enum ErrorTag {
     Deprecated,
 }
 
+/// 错误上下文
+#[derive(Debug, Clone)]
+pub struct ErrorContext {
+    /// 文件路径
+    pub file_path: Option<PathBuf>,
+    /// 源代码
+    pub source: Option<String>,
+    /// 上下文信息
+    pub context_info: HashMap<String, String>,
+}
+
 /// 错误报告器
 pub struct ErrorReporter {
     /// 错误格式

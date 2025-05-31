@@ -10,15 +10,18 @@ use std::path::PathBuf;
 use std::process;
 
 // Suppress unused crate warnings
+use base64 as _;
 use chrono as _;
 use css_in_rust_macros as _;
 use lazy_static as _;
 use lightningcss as _;
+use num_cpus as _;
 use proc_macro2 as _;
 use quote as _;
 use regex as _;
 use serde as _;
 use serde_json as _;
+use sha1 as _;
 use sha2 as _;
 use syn as _;
 use tempfile as _;
