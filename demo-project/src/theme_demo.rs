@@ -8,7 +8,7 @@
 //! - 动态主题切换
 
 use css_in_rust::{
-    css, CssVariableManager, Theme, ThemeContext, ThemeManager, ThemeMode, ThemeProvider,
+    css, CssVariableManager, Theme, ThemeManager, ThemeManagerConfig, ThemeMode, ThemeProvider,
 };
 
 use chrono as _;
@@ -38,6 +38,13 @@ fn main() {
 
     // 演示动态主题切换
     demo_dynamic_theme_switching();
+
+    test_basic_theme();
+    test_ant_design_theme();
+    test_theme_switching();
+    test_css_variables();
+    test_theme_context();
+    test_theme_manager();
 
     println!("✅ 主题系统演示完成！");
     println!();
@@ -626,7 +633,7 @@ fn test_theme_context() {
     println!("\n--- 测试主题上下文 ---");
 
     // 创建主题上下文
-    let context = ThemeContext::new();
+    let context = ThemeManager::new(ThemeManagerConfig::default());
 
     // 注册自定义主题
     let custom_theme = Theme::new("test-theme")
@@ -643,14 +650,8 @@ fn test_theme_context() {
     }
 
     // 获取可用主题
-    match context.available_themes() {
-        Ok(themes) => {
-            println!("上下文中的可用主题: {:?}", themes);
-        }
-        Err(e) => {
-            println!("获取主题列表失败: {}", e);
-        }
-    }
+    let able_themes = context.get_theme_names();
+    println!("上下文中的可用主题: {:?}", able_themes);
 
     // 切换主题
     match context.switch_theme("test-theme") {
@@ -663,12 +664,9 @@ fn test_theme_context() {
     }
 
     // 获取主题令牌
-    match context.get_token("test-color") {
-        Ok(Some(value)) => {
+    match context.get_token_value("test-color") {
+        Ok(value) => {
             println!("获取主题令牌 'test-color': {}", value);
-        }
-        Ok(None) => {
-            println!("主题令牌 'test-color' 不存在");
         }
         Err(e) => {
             println!("获取主题令牌失败: {}", e);
@@ -681,12 +679,12 @@ fn test_theme_manager() {
     println!("\n--- 测试主题管理器 ---");
 
     // 创建主题管理器
-    let manager = ThemeManager::new();
+    let manager = ThemeManager::new(ThemeManagerConfig::default());
 
     // 切换主题
     match manager.switch_theme("ant-design-dark") {
-        Ok(result) => {
-            println!("管理器切换主题成功: {:?}", result.success);
+        Ok(_result) => {
+            println!("管理器切换主题成功");
         }
         Err(e) => {
             println!("管理器切换主题失败: {}", e);
@@ -704,9 +702,9 @@ fn test_theme_manager() {
     }
 
     // 测试回退功能
-    match manager.go_back() {
-        Ok(Some(result)) => {
-            println!("回退到上一个主题成功: {:?}", result.success);
+    match manager.go_back_theme() {
+        Ok(Some(_result)) => {
+            println!("回退到上一个主题成功");
         }
         Ok(None) => {
             println!("没有可回退的主题");
@@ -717,12 +715,6 @@ fn test_theme_manager() {
     }
 
     // 获取当前主题
-    match manager.provider().current_theme() {
-        Ok(theme) => {
-            println!("管理器当前主题: {}", theme.name);
-        }
-        Err(e) => {
-            println!("获取管理器当前主题失败: {}", e);
-        }
-    }
+    let curr_theme = manager.current_theme();
+    println!("管理器当前主题: {}", curr_theme.name);
 }
