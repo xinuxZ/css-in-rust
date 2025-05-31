@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS-in-Rust 功能演示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .demo-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border: 1px solid #e8e8e8;
+        }
+
+        .demo-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .demo-card h2 {
+            color: #1890ff;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .demo-card .icon {
+            font-size: 1.8rem;
+        }
+
+        .demo-section {
+            margin-bottom: 25px;
+        }
+
+        .demo-section h3 {
+            color: #595959;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            border-left: 3px solid #1890ff;
+            padding-left: 10px;
+        }
+
+        .button-demo {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: #1890ff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #40a9ff;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #595959;
+            border: 1px solid #d9d9d9;
+        }
+
+        .btn-secondary:hover {
+            background: #e6f7ff;
+            border-color: #1890ff;
+            color: #1890ff;
+        }
+
+        .btn-success {
+            background: #52c41a;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #ff4d4f;
+            color: white;
+        }
+
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+
+        .btn-large {
+            padding: 12px 24px;
+            font-size: 16px;
+        }
+
+        .theme-demo {
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .theme-light {
+            background: #ffffff;
+            color: #333333;
+            border: 1px solid #e8e8e8;
+        }
+
+        .theme-dark {
+            background: #1f1f1f;
+            color: #ffffff;
+            border: 1px solid #434343;
+        }
+
+        .theme-blue {
+            background: #e6f7ff;
+            color: #0050b3;
+            border: 1px solid #91d5ff;
+        }
+
+        .responsive-demo {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .responsive-item {
+            background: #f0f0f0;
+            padding: 20px;
+            text-align: center;
+            border-radius: 6px;
+            border: 2px solid #d9d9d9;
+        }
+
+        @media (max-width: 1200px) {
+            .responsive-demo {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .responsive-demo {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .responsive-demo {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .performance-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .metric {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #e8e8e8;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1890ff;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: #8c8c8c;
+        }
+
+        .code-block {
+            background: #f6f8fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            padding: 16px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 14px;
+            line-height: 1.45;
+            overflow-x: auto;
+            margin-bottom: 15px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-success {
+            background: #52c41a;
+        }
+
+        .status-warning {
+            background: #faad14;
+        }
+
+        .status-error {
+            background: #ff4d4f;
+        }
+
+        .feature-list {
+            list-style: none;
+        }
+
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+        }
+
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+
+        .feature-list li::before {
+            content: "✓";
+            color: #52c41a;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-top: 40px;
+        }
+
+        .footer p {
+            color: #8c8c8c;
+            margin-bottom: 10px;
+        }
+
+        .footer a {
+            color: #1890ff;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🎨 CSS-in-Rust 功能演示</h1>
+            <p>现代化的 Rust CSS-in-JS 解决方案 - 类型安全、高性能、开发友好</p>
+        </header>
+
+        <div class="demo-grid">
+            <!-- 基础CSS功能 -->
+            <div class="demo-card">
+                <h2><span class="icon">🎯</span>基础 CSS 功能</h2>
+
+                <div class="demo-section">
+                    <h3>CSS 宏演示</h3>
+                    <div class="code-block">
+let style = css!("color: blue; font-size: 16px;");
+let conditional = css_if!(is_active, "background: red;");
+let class_name = css_class!("button", "primary");
+                    </div>
+                </div>
+
+                <div class="demo-section">
+                    <h3>样式应用</h3>
+                    <div class="button-demo">
+                        <button class="btn btn-primary">主要按钮</button>
+                        <button class="btn btn-secondary">次要按钮</button>
+                        <button class="btn btn-success">成功按钮</button>
+                        <button class="btn btn-danger">危险按钮</button>
+                    </div>
+                </div>
+
+                <div class="demo-section">
+                    <h3>功能特性</h3>
+                    <ul class="feature-list">
+                        <li>编译时 CSS 处理</li>
+                        <li>运行时样式注入</li>
+                        <li>类型安全保证</li>
+                        <li>自动类名生成</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 主题系统 -->
+            <div class="demo-card">
+                <h2><span class="icon">🎨</span>主题系统</h2>
+
+                <div class="demo-section">
+                    <h3>主题切换演示</h3>
+                    <div class="theme-demo theme-light">
+                        <strong>浅色主题</strong><br>
+                        这是浅色主题的演示内容
+                    </div>
+                    <div class="theme-demo theme-dark">
+                        <strong>深色主题</strong><br>
+                        这是深色主题的演示内容
+                    </div>
+                    <div class="theme-demo theme-blue">
+                        <strong>蓝色主题</strong><br>
+                        这是蓝色主题的演示内容
+                    </div>
+                </div>
+
+                <div class="demo-section">
+                    <h3>主题功能</h3>
+                    <ul class="feature-list">
+                        <li>设计令牌管理</li>
+                        <li>动态主题切换</li>
+                        <li>CSS 变量支持</li>
+                        <li>Ant Design 兼容</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 变体系统 -->
+            <div class="demo-card">
+                <h2><span class="icon">🔄</span>变体系统</h2>
+
+                <div class="demo-section">
+                    <h3>尺寸变体</h3>
+                    <div class="button-demo">
+                        <button class="btn btn-primary btn-small">小按钮</button>
+                        <button class="btn btn-primary">中按钮</button>
+                        <button class="btn btn-primary btn-large">大按钮</button>
+                    </div>
+                </div>
+
+                <div class="demo-section">
+                    <h3>响应式演示</h3>
+                    <div class="responsive-demo">
+                        <div class="responsive-item">项目 1</div>
+                        <div class="responsive-item">项目 2</div>
+                        <div class="responsive-item">项目 3</div>
+                        <div class="responsive-item">项目 4</div>
+                    </div>
+                    <p style="font-size: 0.9rem; color: #8c8c8c;">调整浏览器窗口大小查看响应式效果</p>
+                </div>
+
+                <div class="demo-section">
+                    <h3>变体功能</h3>
+                    <ul class="feature-list">
+                        <li>尺寸变体管理</li>
+                        <li>颜色变体支持</li>
+                        <li>状态变体处理</li>
+                        <li>响应式断点</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 热更新 -->
+            <div class="demo-card">
+                <h2><span class="icon">🔥</span>热更新</h2>
+
+                <div class="demo-section">
+                    <h3>服务状态</h3>
+                    <p><span class="status-indicator status-success"></span>WebSocket 服务器: 运行中</p>
+                    <p><span class="status-indicator status-success"></span>文件监控: 活跃</p>
+                    <p><span class="status-indicator status-warning"></span>CSS 注入: 待命</p>
+                    <p><span class="status-indicator status-success"></span>自动刷新: 启用</p>
+                </div>
+
+                <div class="demo-section">
+                    <h3>配置信息</h3>
+                    <div class="code-block">
+WebSocket 端口: 3001
+监控目录: src/, styles/
+防抖延迟: 300ms
+支持文件: .rs, .css, .scss
+                    </div>
+                </div>
+
+                <div class="demo-section">
+                    <h3>热更新功能</h3>
+                    <ul class="feature-list">
+                        <li>实时文件监控</li>
+                        <li>自动重新编译</li>
+                        <li>WebSocket 通信</li>
+                        <li>浏览器自动刷新</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 性能监控 -->
+            <div class="demo-card">
+                <h2><span class="icon">📊</span>性能监控</h2>
+
+                <div class="demo-section">
+                    <h3>性能指标</h3>
+                    <div class="performance-metrics">
+                        <div class="metric">
+                            <div class="metric-value">142ms</div>
+                            <div class="metric-label">编译时间</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">25ms</div>
+                            <div class="metric-label">注入时间</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">85.2%</div>
+                            <div class="metric-label">缓存命中率</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">2.1MB</div>
+                            <div class="metric-label">内存使用</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="demo-section">
+                    <h3>优化建议</h3>
+                    <ul class="feature-list">
+                        <li>启用编译缓存</li>
+                        <li>使用 CSS 压缩</li>
+                        <li>死代码消除</li>
+                        <li>内存使用优化</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 构建工具 -->
+            <div class="demo-card">
+                <h2><span class="icon">🔧</span>构建工具</h2>
+
+                <div class="demo-section">
+                    <h3>构建配置</h3>
+                    <div class="code-block">
+[build]
+enable_dead_code_elimination = true
+enable_compression = true
+enable_source_maps = true
+enable_caching = true
+output_dir = "dist/"
+                    </div>
+                </div>
+
+                <div class="demo-section">
+                    <h3>构建统计</h3>
+                    <p>📁 处理文件: 23 个</p>
+                    <p>📝 生成规则: 156 条</p>
+                    <p>🗑️ 消除死代码: 12 条</p>
+                    <p>📦 压缩率: 68.5%</p>
+                </div>
+
+                <div class="demo-section">
+                    <h3>构建功能</h3>
+                    <ul class="feature-list">
+                        <li>静态分析</li>
+                        <li>代码分割</li>
+                        <li>资源优化</li>
+                        <li>缓存管理</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p>🚀 CSS-in-Rust 演示项目</p>
+            <p>展示了所有核心功能和特性</p>
+            <p><a href="#">查看源代码</a> | <a href="#">文档</a> | <a href="#">GitHub</a></p>
+        </footer>
+    </div>
+
+    <script>
+        // 模拟热更新 WebSocket 连接
+        console.log('🔥 CSS-in-Rust 热更新已启用');
+        console.log('📡 WebSocket 连接状态: 已连接');
+        console.log('👀 文件监控状态: 活跃');
+
+        // 模拟性能监控
+        console.log('📊 性能监控已启动');
+        console.log('⏱️ 页面加载时间:', performance.now().toFixed(2) + 'ms');
+
+        // 主题切换演示
+        function switchTheme(theme) {
+            console.log('🎨 切换主题:', theme);
+        }
+
+        // 响应式演示
+        function updateResponsiveInfo() {
+            const width = window.innerWidth;
+            let breakpoint = 'xl';
+
+            if (width < 480) breakpoint = 'xs';
+            else if (width < 768) breakpoint = 'sm';
+            else if (width < 1200) breakpoint = 'md';
+            else if (width < 1600) breakpoint = 'lg';
+
+            console.log('📱 当前断点:', breakpoint, '宽度:', width + 'px');
+        }
+
+        window.addEventListener('resize', updateResponsiveInfo);
+        updateResponsiveInfo();
+
+        // 模拟实时性能数据更新
+        setInterval(() => {
+            const metrics = document.querySelectorAll('.metric-value');
+            if (metrics.length > 0) {
+                // 模拟编译时间变化
+                const compileTime = 120 + Math.floor(Math.random() * 40);
+                metrics[0].textContent = compileTime + 'ms';
+
+                // 模拟注入时间变化
+                const injectTime = 20 + Math.floor(Math.random() * 10);
+                metrics[1].textContent = injectTime + 'ms';
+
+                // 模拟缓存命中率变化
+                const cacheRate = 80 + Math.random() * 15;
+                metrics[2].textContent = cacheRate.toFixed(1) + '%';
+
+                // 模拟内存使用变化
+                const memoryUsage = 1.8 + Math.random() * 0.6;
+                metrics[3].textContent = memoryUsage.toFixed(1) + 'MB';
+            }
+        }, 3000);
+    </script>
+</body>
+</html>

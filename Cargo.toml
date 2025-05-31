@@ -1,5 +1,5 @@
 [workspace]
-members = ["css-in-rust", "css-in-rust-macros"]
+members = ["css-in-rust", "css-in-rust-macros", "demo-project"]
 resolver = "2"
 
 [workspace.dependencies]

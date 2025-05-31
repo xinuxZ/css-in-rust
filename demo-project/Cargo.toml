@@ -1,0 +1,49 @@
+[package]
+name = "demo-project"
+version = "0.1.0"
+edition = "2021"
+
+# 多个演示二进制文件
+[[bin]]
+name = "demo"
+path = "src/main.rs"
+
+[[bin]]
+name = "theme_demo"
+path = "src/theme_demo.rs"
+
+[[bin]]
+name = "variant_demo"
+path = "src/variant_demo.rs"
+
+[[bin]]
+name = "hot_reload_demo"
+path = "src/hot_reload_demo.rs"
+
+[[bin]]
+name = "performance_demo"
+path = "src/performance_demo.rs"
+
+[dependencies]
+# 主要依赖
+css-in-rust = { path = "../css-in-rust", features = [
+    "proc-macro",          # 启用过程宏
+    "optimizer",           # 启用CSS优化
+    "dioxus",              # Dioxus框架支持
+    "build-time-tracking", # 构建时间跟踪
+] }
+css-in-rust-macros = { path = "../css-in-rust-macros" }
+
+# 序列化支持
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# 异步运行时
+tokio = { version = "1.0", features = ["full"] }
+
+# 其他工具
+chrono = { version = "0.4", features = ["serde"] }
+regex = "1.0"
+
+[build-dependencies]
+css-in-rust = { path = "../css-in-rust", features = ["build-tools"] }
