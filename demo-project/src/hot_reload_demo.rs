@@ -7,47 +7,58 @@
 //! - 样式缓存管理
 //! - 开发服务器集成
 
-use css_in_rust::css;
-use std::collections::HashMap;
-use std::time::{Duration, Instant};
+use css_in_rust::{
+    css,
+    hot_reload::{
+        ChangeDetector, FileWatcher, HotReloadConfig, HotReloadManager, LogLevel, WebSocketConfig,
+        WebSocketMessage, WebSocketServer,
+    },
+    theme::CssVariableInjector,
+};
+use std::path::PathBuf;
+use std::time::{Duration, SystemTime};
 
 use chrono as _;
 use css_in_rust_macros as _;
 use regex as _;
-use serde_json as _;
 use serde as _;
+use serde_json as _;
 use tokio as _;
 
 /// 热更新演示主函数
-pub fn run_hot_reload_demo() {
+pub async fn run_hot_reload_demo() {
     println!("🔥 热更新系统演示");
     println!("==================");
     println!();
 
-    // 演示基础热更新
-    demo_basic_hot_reload();
+    // 测试热更新配置
+    test_hot_reload_config().await;
 
-    // 演示文件监控
-    demo_file_watching();
+    // 测试文件监控
+    test_file_watcher().await;
 
-    // 演示增量更新
-    demo_incremental_updates();
+    // 测试变化检测
+    test_change_detector().await;
 
-    // 演示样式缓存
-    demo_style_caching();
+    // 测试WebSocket服务器
+    test_websocket_server().await;
 
-    // 演示开发服务器集成
-    demo_dev_server_integration();
+    // 测试CSS注入
+    test_css_injector().await;
 
-    // 演示性能监控
-    demo_performance_monitoring();
+    // 测试完整热更新流程
+    test_complete_hot_reload().await;
+
+    // 测试开发体验
+    test_dev_experience().await;
 
     println!("✅ 热更新系统演示完成！");
     println!();
 }
 
-fn main() {
-    run_hot_reload_demo();
+#[tokio::main]
+async fn main() {
+    run_hot_reload_demo().await;
 }
 
 /// 测试热更新配置
@@ -58,51 +69,50 @@ async fn test_hot_reload_config() {
     let default_config = HotReloadConfig::default();
     println!("默认配置:");
     println!("  启用状态: {}", default_config.enabled);
-    println!("  监控目录: {:?}", default_config.watch_dirs);
-    println!("  文件扩展名: {:?}", default_config.file_extensions);
+    println!("  监控目录: {:?}", default_config.watch_directories);
+    println!("  文件扩展名: {:?}", default_config.watch_extensions);
     println!("  忽略模式: {:?}", default_config.ignore_patterns);
-    println!("  防抖延迟: {:?}", default_config.debounce_delay);
+    println!("  防抖延迟: {}ms", default_config.debounce_delay_ms);
     println!("  WebSocket端口: {}", default_config.websocket_port);
-    println!("  自动刷新: {}", default_config.auto_refresh);
-    println!("  CSS注入: {}", default_config.css_injection);
+    println!("  自动刷新: {}", default_config.auto_refresh_browser);
+    println!("  CSS注入: {}", default_config.enable_css_injection);
 
     // 创建自定义配置
     let custom_config = HotReloadConfig {
         enabled: true,
-        watch_dirs: vec![
+        watch_directories: vec![
             PathBuf::from("src"),
             PathBuf::from("styles"),
             PathBuf::from("components"),
         ],
-        file_extensions: {
-            let mut exts = HashSet::new();
-            exts.insert("rs".to_string());
-            exts.insert("css".to_string());
-            exts.insert("scss".to_string());
-            exts.insert("html".to_string());
-            exts
-        },
+        watch_extensions: vec![
+            "rs".to_string(),
+            "css".to_string(),
+            "scss".to_string(),
+            "html".to_string(),
+        ],
         ignore_patterns: vec![
             "target/**".to_string(),
             "node_modules/**".to_string(),
             "*.tmp".to_string(),
             ".git/**".to_string(),
         ],
-        debounce_delay: Duration::from_millis(300),
+        debounce_delay_ms: 500,
         websocket_port: 3001,
-        auto_refresh: true,
-        css_injection: true,
+        auto_refresh_browser: true,
+        enable_css_injection: true,
+        max_retries: 3,
+        retry_interval_ms: 1000,
     };
 
     println!("\n自定义配置:");
-    println!("  监控目录数量: {}", custom_config.watch_dirs.len());
-    println!("  支持的文件类型: {:?}", custom_config.file_extensions);
+    println!("  监控目录数量: {}", custom_config.watch_directories.len());
+    println!("  支持的文件类型: {:?}", custom_config.watch_extensions);
     println!("  忽略模式数量: {}", custom_config.ignore_patterns.len());
-    println!("  防抖延迟: {}ms", custom_config.debounce_delay.as_millis());
+    println!("  防抖延迟: {}ms", custom_config.debounce_delay_ms);
 
-    // 验证配置
-    let is_valid = custom_config.validate();
-    println!("  配置验证结果: {}", if is_valid { "有效" } else { "无效" });
+    // 配置信息展示
+    println!("  配置状态: 已创建");
 }
 
 /// 测试文件监控
@@ -111,13 +121,13 @@ async fn test_file_watcher() {
 
     // 创建文件监控器
     let config = HotReloadConfig::default();
-    let mut watcher = FileWatcher::new(config.clone());
+    let mut watcher = FileWatcher::new();
 
     println!("创建文件监控器成功");
-    println!("监控目录: {:?}", config.watch_dirs);
+    println!("监控目录: {:?}", config.watch_directories);
 
     // 模拟启动监控
-    match watcher.start().await {
+    match watcher.start() {
         Ok(_) => {
             println!("文件监控启动成功");
 
@@ -131,11 +141,11 @@ async fn test_file_watcher() {
 
             for event in test_events {
                 println!("检测到文件变化: {}", event);
-                sleep(Duration::from_millis(100)).await;
+                tokio::time::sleep(Duration::from_millis(100)).await;
             }
 
             // 停止监控
-            watcher.stop().await;
+            watcher.stop();
             println!("文件监控已停止");
         }
         Err(e) => {
@@ -158,41 +168,20 @@ async fn test_change_detector() {
     println!("旧CSS类名: {}", old_css);
     println!("新CSS类名: {}", new_css);
 
-    // 检测变化
-    let changes = detector.detect_css_changes(&old_css, &new_css);
-    println!("\n检测到的CSS变化:");
-    for change in changes {
-        println!("  - {}", change);
-    }
+    // 演示智能变更检测
+    let temp_file = std::env::temp_dir().join("test.css");
+    std::fs::write(&temp_file, new_css).unwrap();
 
-    // 模拟文件内容变化
-    let old_content = r#"
-        fn render_button() {
-            let style = css!("background: red; padding: 8px;");
-            format!("<button class=\"{}\">Click me</button>", style)
-        }
-    "#;
+    let change_result = detector.analyze_change(&temp_file);
+    println!("检测到的变更: {:?}", change_result);
 
-    let new_content = r#"
-        fn render_button() {
-            let style = css!("background: blue; padding: 12px; border-radius: 4px;");
-            format!("<button class=\"{}\">Click me</button>", style)
-        }
-    "#;
+    // 演示批量文件变更检测
+    let paths = vec![temp_file.clone()];
+    let file_changes = detector.analyze_changes(&paths);
+    println!("文件变更: {:?}", file_changes);
 
-    let file_changes = detector.detect_file_changes(old_content, new_content);
-    println!("\n检测到的文件变化:");
-    for change in file_changes {
-        println!("  - {}", change);
-    }
-
-    // 分析变化影响
-    let impact = detector.analyze_change_impact(&changes);
-    println!("\n变化影响分析:");
-    println!("  需要重新编译: {}", impact.needs_recompile);
-    println!("  需要刷新页面: {}", impact.needs_page_refresh);
-    println!("  可以热注入: {}", impact.can_hot_inject);
-    println!("  影响的组件: {:?}", impact.affected_components);
+    // 清理临时文件
+    let _ = std::fs::remove_file(&temp_file);
 }
 
 /// 测试WebSocket服务器
@@ -201,35 +190,44 @@ async fn test_websocket_server() {
 
     // 创建WebSocket服务器
     let config = HotReloadConfig::default();
-    let mut server = WebSocketServer::new(config.websocket_port);
+    let mut server = WebSocketServer::new(WebSocketConfig::default());
 
     println!("创建WebSocket服务器，端口: {}", config.websocket_port);
 
     // 模拟启动服务器
-    match server.start().await {
+    match server.start() {
         Ok(_) => {
             println!("WebSocket服务器启动成功");
             println!("等待客户端连接...");
 
             // 模拟客户端连接
-            sleep(Duration::from_millis(500)).await;
+            tokio::time::sleep(Duration::from_millis(500)).await;
             println!("模拟客户端连接成功");
 
             // 模拟发送热更新消息
             let messages = vec![
-                r#"{"type": "css_update", "data": {"selector": ".button", "styles": "color: blue;"}}",
-                r#"{"type": "page_refresh", "data": {}}",
-                r#"{"type": "component_update", "data": {"component": "Button", "html": "<button>New</button>"}}",
+                r#"{"type": "css_update", "data": {"selector": ".button", "styles": "color: blue;"}}"#,
+                r#"{"type": "page_refresh", "data": {}}"#,
+                r#"{"type": "component_update", "data": {"component": "Button", "html": "<button>New</button>"}}"#,
             ];
 
             for message in messages {
-                server.broadcast(message).await;
-                println!("发送消息: {}", message);
-                sleep(Duration::from_millis(200)).await;
+                let msg = WebSocketMessage::Log {
+                    level: LogLevel::Info,
+                    message: message.to_string(),
+                    timestamp: SystemTime::now()
+                        .duration_since(SystemTime::UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs(),
+                };
+
+                server.broadcast(msg);
+                println!("发送消息: {:?}", message);
+                tokio::time::sleep(Duration::from_millis(200)).await;
             }
 
             // 停止服务器
-            server.stop().await;
+            server.stop();
             println!("WebSocket服务器已停止");
         }
         Err(e) => {
@@ -242,11 +240,13 @@ async fn test_websocket_server() {
 async fn test_css_injector() {
     println!("\n--- 测试CSS注入 ---");
 
-    // 创建CSS注入器
-    let injector = CssInjector::new();
+    // 创建CSS变量注入器
+    let mut injector = CssVariableInjector::new("body");
 
     // 生成一些测试样式
-    let button_style = css!("background: #007bff; color: white; padding: 8px 16px; border: none; border-radius: 4px;");
+    let button_style = css!(
+        "background: #007bff; color: white; padding: 8px 16px; border: none; border-radius: 4px;"
+    );
     let card_style = css!("background: white; border: 1px solid #dee2e6; border-radius: 8px; padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);");
     let input_style = css!("border: 1px solid #ced4da; border-radius: 4px; padding: 8px 12px; font-size: 14px; width: 100%;");
 
@@ -256,13 +256,18 @@ async fn test_css_injector() {
     println!("  输入框样式: {}", input_style);
 
     // 模拟CSS注入过程
-    let injection_script = injector.generate_injection_script(&[
-        (&button_style, "background: #28a745; color: white; padding: 8px 16px; border: none; border-radius: 4px;"),
-        (&card_style, "background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.15);"),
-    ]);
+    let test_css = format!(
+        ".{} {{ background: #28a745; color: white; padding: 8px 16px; border: none; border-radius: 4px; }}\n.{} {{ background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.15); }}",
+        button_style, card_style
+    );
 
-    println!("\n生成的注入脚本:");
-    println!("{}", injection_script);
+    match injector.inject(&test_css) {
+        Ok(_) => println!("\nCSS注入成功"),
+        Err(e) => println!("\nCSS注入失败: {}", e),
+    }
+
+    println!("\n生成的CSS:");
+    println!("{}", test_css);
 
     // 模拟注入过程
     println!("\n模拟CSS注入过程:");
@@ -296,7 +301,7 @@ async fn test_complete_hot_reload() {
     println!("创建热更新管理器成功");
 
     // 启动热更新服务
-    match manager.start().await {
+    match manager.start() {
         Ok(_) => {
             println!("热更新服务启动成功");
 
@@ -307,40 +312,40 @@ async fn test_complete_hot_reload() {
             let initial_style = css!("color: black; font-size: 14px;");
             println!("1. 初始样式: {}", initial_style);
 
-            sleep(Duration::from_millis(1000)).await;
+            tokio::time::sleep(Duration::from_millis(1000)).await;
 
             // 2. 修改样式
             println!("2. 开发者修改CSS...");
             let updated_style = css!("color: blue; font-size: 16px; font-weight: bold;");
 
-            sleep(Duration::from_millis(500)).await;
+            tokio::time::sleep(Duration::from_millis(500)).await;
 
             // 3. 检测变化
             println!("3. 检测到文件变化");
 
-            sleep(Duration::from_millis(300)).await;
+            tokio::time::sleep(Duration::from_millis(300)).await;
 
             // 4. 重新编译
             println!("4. 重新编译CSS");
             println!("   新样式: {}", updated_style);
 
-            sleep(Duration::from_millis(800)).await;
+            tokio::time::sleep(Duration::from_millis(800)).await;
 
             // 5. 推送更新
             println!("5. 通过WebSocket推送更新到浏览器");
 
-            sleep(Duration::from_millis(200)).await;
+            tokio::time::sleep(Duration::from_millis(200)).await;
 
             // 6. 浏览器更新
             println!("6. 浏览器接收更新并应用新样式");
 
-            sleep(Duration::from_millis(500)).await;
+            tokio::time::sleep(Duration::from_millis(500)).await;
 
             // 7. 完成
             println!("7. 热更新完成，页面样式已更新");
 
             // 停止服务
-            manager.stop().await;
+            manager.stop();
             println!("\n热更新服务已停止");
         }
         Err(e) => {

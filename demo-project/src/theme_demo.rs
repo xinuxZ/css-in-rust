@@ -10,7 +10,6 @@
 use css_in_rust::{
     css, CssVariableManager, Theme, ThemeContext, ThemeManager, ThemeMode, ThemeProvider,
 };
-use std::collections::HashMap;
 
 use chrono as _;
 use css_in_rust_macros as _;
@@ -472,7 +471,7 @@ fn test_basic_theme() {
     println!("\n--- 测试基础主题功能 ---");
 
     // 创建自定义主题
-    let mut custom_theme = Theme::new("custom-theme")
+    let custom_theme = Theme::new("custom-theme")
         .with_mode(ThemeMode::Light)
         .with_custom_variable("primary-color", "#ff6b6b")
         .with_custom_variable("secondary-color", "#4ecdc4")
@@ -503,7 +502,7 @@ fn test_ant_design_theme() {
     println!("主题模式: {:?}", ant_theme.mode);
 
     // 获取设计令牌
-    if let Ok(primary_color) = ant_theme.get_token("colors.primary") {
+    if let Some(primary_color) = ant_theme.get_token("colors.primary") {
         println!("Ant Design主色调: {}", primary_color);
     }
 
@@ -530,6 +529,20 @@ fn test_theme_switching() {
     // 创建主题提供者
     let provider = ThemeProvider::new();
 
+    // 注册主题
+    let light_theme = Theme::ant_design();
+    let dark_theme = Theme::ant_design_dark();
+
+    if let Err(e) = provider.register_theme("ant-design", light_theme) {
+        println!("注册亮色主题失败: {}", e);
+        return;
+    }
+
+    if let Err(e) = provider.register_theme("ant-design-dark", dark_theme) {
+        println!("注册暗色主题失败: {}", e);
+        return;
+    }
+
     // 获取当前主题
     match provider.current_theme() {
         Ok(current) => {
@@ -553,9 +566,9 @@ fn test_theme_switching() {
     // 尝试切换到暗色主题
     match provider.switch_theme("ant-design-dark") {
         Ok(result) => {
-            println!("主题切换成功: {:?}", result.success);
-            if let Some(msg) = result.message {
-                println!("切换消息: {}", msg);
+            println!("主题切换成功: {}", result.success);
+            if let Some(error) = result.error {
+                println!("切换错误: {}", error);
             }
         }
         Err(e) => {
@@ -593,12 +606,12 @@ fn test_css_variables() {
     }
 
     // 添加自定义变量
-    manager.add_variable("custom-spacing", "16px");
-    manager.add_variable("custom-font-size", "14px");
-    manager.add_variable("custom-border-radius", "6px");
+    manager.update_variable("custom-spacing", "16px");
+    manager.update_variable("custom-font-size", "14px");
+    manager.update_variable("custom-border-radius", "6px");
 
     // 生成最终CSS
-    let css_output = manager.generate_css();
+    let css_output = manager.to_css();
     println!("\n生成的CSS变量 (前300字符):");
     println!("{}", &css_output[..css_output.len().min(300)]);
 
@@ -651,8 +664,11 @@ fn test_theme_context() {
 
     // 获取主题令牌
     match context.get_token("test-color") {
-        Ok(value) => {
+        Ok(Some(value)) => {
             println!("获取主题令牌 'test-color': {}", value);
+        }
+        Ok(None) => {
+            println!("主题令牌 'test-color' 不存在");
         }
         Err(e) => {
             println!("获取主题令牌失败: {}", e);
