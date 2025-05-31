@@ -34,7 +34,7 @@ use css_in_rust::variants::{
     StateCombination,
     StateType,
     // 状态变体
-    // StateVariant,
+    StateVariant,
     StateVariantManager,
     StateVariantResult,
     StyleCalculator,

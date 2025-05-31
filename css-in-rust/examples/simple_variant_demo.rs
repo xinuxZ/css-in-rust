@@ -6,7 +6,7 @@ use css_in_rust::variants::{
     conditional_styles::ConditionValue,
     responsive::Breakpoint,
     state_variants::StateType,
-    variant_types::{ColorVariant, SizeVariant, StateVariant, VariantValue},
+    variant_types::{ColorVariant, SizeVariant, StateVariantState, VariantValue},
 };
 use std::collections::HashMap;
 
@@ -85,11 +85,11 @@ fn demo_basic_variant_types() {
 
     // 状态变体
     let state_variants = vec![
-        StateVariant::Hover,
-        StateVariant::Focus,
-        StateVariant::Active,
-        StateVariant::Disabled,
-        StateVariant::Loading,
+        StateVariantState::Hover,
+        StateVariantState::Focus,
+        StateVariantState::Active,
+        StateVariantState::Disabled,
+        StateVariantState::Loading,
     ];
 
     println!("\n可用的状态变体:");
@@ -101,7 +101,7 @@ fn demo_basic_variant_types() {
     let variant_values = vec![
         VariantValue::Size(SizeVariant::LG),
         VariantValue::Color(ColorVariant::Primary),
-        VariantValue::State(StateVariant::Hover),
+        VariantValue::State(StateVariantState::Hover),
         VariantValue::String("custom-variant".to_string()),
     ];
 
@@ -120,8 +120,8 @@ fn demo_basic_variant_types() {
         size_value.is_compatible(&color_value)
     );
 
-    let state1 = VariantValue::State(StateVariant::Hover);
-    let state2 = VariantValue::State(StateVariant::Focus);
+    let state1 = VariantValue::State(StateVariantState::Hover);
+    let state2 = VariantValue::State(StateVariantState::Focus);
     println!(
         "  悬停状态与焦点状态兼容: {}",
         state1.is_compatible(&state2)

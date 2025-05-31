@@ -10,8 +10,11 @@
 use css_in_rust::{
     theme::Theme,
     variants::{
-        conditional_styles::{ConditionType, ConditionValue, ConditionalStyleManager},
-        priority_manager::{PriorityManager, PriorityType, StyleSource},
+        conditional_styles::{
+            CacheStrategy, ConditionCombination, ConditionRule, ConditionType, ConditionValue,
+            ConditionalStyle, ConditionalStyleManager, DynamicStyleRule, StyleCalculator,
+        },
+        priority_manager::{PriorityManager, PriorityType, StyleRule, StyleSource},
         responsive::{responsive_variant, Breakpoint, ResponsiveManager},
         state_variants::{StateCombination, StateType, StateVariant, StateVariantManager},
         variant_types::{
@@ -194,7 +197,6 @@ fn demo_state_variants() {
                 ("background-color".to_string(), "#007bff".to_string()),
                 ("transform".to_string(), "scale(1.05)".to_string()),
             ]),
-            config: VariantConfig::default(),
         },
         combinable: true,
         priority: 10,
@@ -212,7 +214,6 @@ fn demo_state_variants() {
                     "0 0 0 3px rgba(0, 123, 255, 0.25)".to_string(),
                 ),
             ]),
-            config: VariantConfig::default(),
         },
         combinable: true,
         priority: 15,
@@ -237,7 +238,7 @@ fn demo_state_variants() {
                 ("background-color".to_string(), "#0056b3".to_string()),
                 ("transform".to_string(), "scale(0.98)".to_string()),
             ]),
-            config: VariantConfig::default(),
+            // config: VariantConfig::default(),
         },
         priority: 20,
     };
