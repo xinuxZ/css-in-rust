@@ -38,7 +38,10 @@
 pub mod adapters;
 pub mod build_tools;
 pub mod core;
+pub mod dev_experience;
+pub mod hot_reload;
 pub mod macros;
+pub mod performance;
 pub mod runtime;
 pub mod theme;
 pub mod variants;
