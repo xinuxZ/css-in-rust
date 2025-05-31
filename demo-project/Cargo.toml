@@ -17,6 +17,10 @@ name = "variant_demo"
 path = "src/variant_demo.rs"
 
 [[bin]]
+name = "comprehensive_test"
+path = "src/comprehensive_test.rs"
+
+[[bin]]
 name = "hot_reload_demo"
 path = "src/hot_reload_demo.rs"
 
