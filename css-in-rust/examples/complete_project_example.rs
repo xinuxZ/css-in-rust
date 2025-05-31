@@ -3,6 +3,20 @@
 //! This example demonstrates how to use the CSS-in-Rust library with dead code elimination
 //! in a complete project setup, including build-time optimization and runtime usage.
 
+// Suppress unused crate warnings
+use chrono as _;
+use css_in_rust_macros as _;
+use lazy_static as _;
+use lightningcss as _;
+use proc_macro2 as _;
+use quote as _;
+use regex as _;
+use serde as _;
+use serde_json as _;
+use sha2 as _;
+use syn as _;
+use tempfile as _;
+
 use css_in_rust::{
     build_tools::{BuildConfig, CssBuildProcessor, StaticAnalyzer},
     core::optimizer::{CssOptimizer, OptimizerConfig},
@@ -429,28 +443,33 @@ fn demonstrate_runtime_optimization() -> Result<(), Box<dyn std::error::Error>> 
 
     // Create optimizer with dead code elimination
     let config = OptimizerConfig {
-        minify: true,
-        remove_unused: true,
-        merge_rules: true,
-        optimize_colors: true,
-        optimize_fonts: true,
+        minify: true, // 包含了颜色、字体等优化功能
         analyze_dependencies: true,
-        enable_dead_code_elimination: true,
+        vendor_prefix: true,
+        enable_dead_code_elimination: true, // 替代了 remove_unused 功能
         source_paths: vec![std::env::current_dir()?],
         aggressive_elimination: false,
         usage_threshold: 0.0,
+        #[cfg(feature = "optimizer")]
+        targets: Some(lightningcss::targets::Browsers::default()),
+        #[cfg(not(feature = "optimizer"))]
+        targets: None,
     };
 
     let mut optimizer = CssOptimizer::with_config(config);
 
     // Track some CSS usage (simulating what would be found during analysis)
-    optimizer.track_css_usage(".btn", None);
-    optimizer.track_css_usage(".btn-primary", None);
-    optimizer.track_css_usage(".card", None);
-    optimizer.track_css_usage(".card-title", None);
-    optimizer.track_css_usage("#main-header", None);
+    optimizer.track_css_usage(vec!["btn".to_string()], vec![], None);
+    optimizer.track_css_usage(vec!["btn-primary".to_string()], vec![], None);
+    optimizer.track_css_usage(vec!["card".to_string()], vec![], None);
+    optimizer.track_css_usage(vec!["card-title".to_string()], vec![], None);
+    optimizer.track_css_usage(vec![], vec!["main-header".to_string()], None);
 
-    match optimizer.optimize(sample_css) {
+    // Parse CSS string into StyleSheet
+    let parser = css_in_rust::core::parser::CssParser::new();
+    let stylesheet = parser.parse(sample_css)?;
+
+    match optimizer.optimize(stylesheet) {
         Ok(optimized) => {
             println!("\n✅ Optimization completed!");
             println!("Optimized CSS ({} bytes):", optimized.len());

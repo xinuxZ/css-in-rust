@@ -68,14 +68,12 @@ use css_in_rust::core::optimizer::OptimizerConfig;
 
 let config = OptimizerConfig {
     // 基础优化选项
-    minify: true,                    // 启用 CSS 压缩
-    remove_unused: true,             // 移除未使用的规则
-    merge_rules: true,               // 合并相似的规则
-    optimize_colors: true,           // 优化颜色值
-    optimize_fonts: true,            // 优化字体声明
+    minify: true,                    // 启用 CSS 压缩（包含颜色、字体等优化）
+    vendor_prefix: true,             // 启用厂商前缀处理
+    analyze_dependencies: true,      // 分析依赖关系
 
     // 死代码消除选项
-    enable_dead_code_elimination: true,  // 启用死代码消除
+    enable_dead_code_elimination: true,  // 启用死代码消除（替代 remove_unused）
     source_paths: vec![              // 源代码路径
         PathBuf::from("src"),
         PathBuf::from("examples"),

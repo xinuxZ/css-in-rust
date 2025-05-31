@@ -419,13 +419,9 @@ mod tests {
     #[test]
     fn test_css_macro_extraction() {
         let analyzer = StaticAnalyzer::new(PathBuf::from("."));
-        let line = r#"let style = css!("color: red; .btn { background: blue; }");");
+        let line = r#"let style = css!("color: red; .btn { background: blue; }");"#;
 
-        let result = analyzer.extract_css_macro_call(
-            &PathBuf::from("test.rs"),
-            1,
-            line
-        );
+        let result = analyzer.extract_css_macro_call(&PathBuf::from("test.rs"), 1, line);
 
         assert!(result.is_some());
         let css_call = result.unwrap();
