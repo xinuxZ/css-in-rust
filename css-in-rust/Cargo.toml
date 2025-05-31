@@ -44,9 +44,15 @@ default = ["proc-macro", "optimizer"]
 proc-macro = ["css-in-rust-macros", "proc-macro2", "quote", "syn"]
 optimizer = ["lightningcss", "sha2"]
 dioxus = []
+build-time-tracking = []
 
 [lib]
 name = "css_in_rust"
+
+[[bin]]
+name = "css-optimizer"
+path = "src/bin/css-optimizer.rs"
+required-features = ["optimizer"]
 
 [[example]]
 name = "basic"

@@ -207,7 +207,7 @@ impl VariantResolver {
 
         let base_result = self.resolve_base_variants(variants)?;
         // 从CSS规则中解析样式属性
-        let css_rules = &base_result.css_rules;
+        let _css_rules = &base_result.css_rules;
         // 这里需要解析CSS规则来提取样式，暂时跳过
         // for (prop, value) in &base_result.styles {
         //     final_styles.insert(prop.clone(), value.clone());

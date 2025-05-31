@@ -4,9 +4,24 @@
 
 use css_in_rust::build_tools::{BuildConfig, CssBuildProcessor};
 use css_in_rust::core::optimizer::{CssOptimizer, OptimizerConfig};
+use css_in_rust::core::parser::CssParser;
 use std::env;
 use std::path::PathBuf;
 use std::process;
+
+// Suppress unused crate warnings
+use chrono as _;
+use css_in_rust_macros as _;
+use lazy_static as _;
+use lightningcss as _;
+use proc_macro2 as _;
+use quote as _;
+use regex as _;
+use serde as _;
+use serde_json as _;
+use sha2 as _;
+use syn as _;
+use tempfile as _;
 
 /// CLI application for CSS optimization
 struct CliApp {
@@ -154,19 +169,21 @@ impl CliApp {
                     i += 1;
                 }
                 "--no-remove-unused" => {
-                    config.remove_unused = false;
+                    // Note: remove_unused field not available in current OptimizerConfig
+                    // Use enable_dead_code_elimination instead
+                    config.enable_dead_code_elimination = false;
                     i += 1;
                 }
                 "--no-merge-rules" => {
-                    config.merge_rules = false;
+                    // Note: merge_rules field not available in current OptimizerConfig
                     i += 1;
                 }
                 "--no-optimize-colors" => {
-                    config.optimize_colors = false;
+                    // Note: optimize_colors field not available in current OptimizerConfig
                     i += 1;
                 }
                 "--no-optimize-fonts" => {
-                    config.optimize_fonts = false;
+                    // Note: optimize_fonts field not available in current OptimizerConfig
                     i += 1;
                 }
                 "--enable-dead-code-elimination" => {
@@ -290,8 +307,16 @@ impl CliApp {
                 let css_content = std::fs::read_to_string(input_file)?;
                 let original_size = css_content.len();
 
+                let parser = CssParser::new();
+                let stylesheet = parser.parse(&css_content).map_err(|e| {
+                    std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        format!("Parse error: {}", e),
+                    )
+                })?;
+
                 let optimizer = CssOptimizer::with_config(config.clone());
-                let optimized_content = optimizer.optimize(&css_content)?;
+                let optimized_content = optimizer.optimize(stylesheet)?;
                 let optimized_size = optimized_content.len();
 
                 let output_path = output_file.as_ref().unwrap_or(input_file);

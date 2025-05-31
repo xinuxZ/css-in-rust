@@ -73,15 +73,16 @@ impl CssBuildProcessor {
 
         let optimizer_config = OptimizerConfig {
             minify: true,
-            remove_unused: true,
-            merge_rules: true,
-            optimize_colors: true,
-            optimize_fonts: true,
-            analyze_dependencies: true,
             enable_dead_code_elimination: config.enable_dead_code_elimination,
             source_paths: vec![config.project_root.clone()],
             aggressive_elimination: config.aggressive_elimination,
             usage_threshold: config.usage_threshold,
+            analyze_dependencies: true,
+            vendor_prefix: true,
+            #[cfg(feature = "optimizer")]
+            targets: Some(lightningcss::targets::Browsers::default()),
+            #[cfg(not(feature = "optimizer"))]
+            targets: None,
         };
 
         let optimizer = CssOptimizer::with_config(optimizer_config);
@@ -213,15 +214,24 @@ impl CssBuildProcessor {
         // Track CSS usage from the usage report
         let mut optimizer = self.optimizer.clone();
         for class in &usage_report.used_classes {
-            optimizer.track_css_usage(class, None);
+            optimizer.track_css_usage(vec![class.clone()], vec![], None);
         }
         for id in &usage_report.used_ids {
-            optimizer.track_css_usage(&format!("#{}", id), None);
+            optimizer.track_css_usage(vec![], vec![id.clone()], None);
         }
+
+        // Parse CSS into StyleSheet
+        let parser = crate::core::parser::CssParser::new();
+        let stylesheet = parser.parse(&original_content).map_err(|e| {
+            BuildError::IoError(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("Failed to parse CSS: {:?}", e),
+            ))
+        })?;
 
         // Optimize the CSS
         let optimized_content = optimizer
-            .optimize(&original_content)
+            .optimize(stylesheet)
             .map_err(BuildError::OptimizationError)?;
         let optimized_size = optimized_content.len();
 
@@ -425,7 +435,7 @@ fn print_help() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::TempDir;
+    // use tempfile::TempDir;
 
     #[test]
     fn test_build_config_default() {

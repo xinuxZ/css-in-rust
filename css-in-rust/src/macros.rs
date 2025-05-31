@@ -155,7 +155,7 @@ fn process_css_string(css_content: &str, _span: Span) -> syn::Result<TokenStream
     // Generate a unique identifier for this CSS block
     let css_hash = calculate_css_hash(css_content);
     let css_id = format!("css-{}", &css_hash[..8]);
-    let css_id_literal = css_id;
+    let css_id_literal = css_id.clone();
 
     // Track CSS usage for dead code elimination
     track_css_usage_at_compile_time(css_content, &css_id);
@@ -341,7 +341,7 @@ fn validate_css_syntax(css: &str) -> Result<(), String> {
 
 /// Track CSS usage at compile time for dead code elimination
 #[cfg(feature = "proc-macro")]
-fn track_css_usage_at_compile_time(css_content: &str, css_id: &str) {
+fn track_css_usage_at_compile_time(css_content: &str, _css_id: &str) {
     // In a real implementation, this would write usage information to a file
     // or communicate with the build system to track CSS usage
 

@@ -4,9 +4,9 @@
 //! to detect CSS usage patterns and support dead code elimination.
 
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::fs;
-use std::io::{self, Write};
+use std::io;
 use std::path::{Path, PathBuf};
 
 /// CSS usage information collected during static analysis
@@ -48,7 +48,7 @@ pub struct CssSelectors {
 }
 
 /// Analysis metadata
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AnalysisMetadata {
     /// Timestamp of analysis
     pub timestamp: String,

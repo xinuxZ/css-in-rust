@@ -135,6 +135,7 @@ impl From<std::io::Error> for OptimizationError {
 }
 
 /// CSS optimizer using lightningcss
+#[derive(Clone)]
 pub struct CssOptimizer {
     config: OptimizerConfig,
     usage_tracker: CssUsageTracker,
