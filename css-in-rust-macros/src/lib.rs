@@ -941,7 +941,8 @@ fn process_css_string(css: &str, span: Span) -> syn::Result<TokenStream2> {
     let processed_css = process_css_with_variants_and_themes(css)?;
 
     // Validate and optimize CSS using lightningcss
-    let optimized_css = optimize_css_with_lightningcss(&processed_css.css);
+    let optimized_css = optimize_css_with_lightningcss(&processed_css.css)
+        .unwrap_or_else(|_| processed_css.css.clone());
 
     // Generate a unique identifier for this CSS block
     let css_hash = calculate_css_hash(css);
@@ -1328,7 +1329,8 @@ fn css_multi_if_impl_internal(input: TokenStream2) -> syn::Result<TokenStream2> 
     let pseudo_css = process_pseudo_selectors(&_pseudo_selectors);
 
     // 优化 CSS
-    let optimized_css = optimize_css_with_lightningcss(&css_literal);
+    let optimized_css =
+        optimize_css_with_lightningcss(&css_literal).unwrap_or_else(|_| css_literal.clone());
 
     let tokens = quote! {
         {
@@ -1445,7 +1447,8 @@ fn process_css_with_cache(css_content: &str, css_id: &str) -> syn::Result<TokenS
 
     // Process CSS if not cached
     let processed_css = process_css_with_variants_and_themes(css_content)?;
-    let optimized_css = optimize_css_with_lightningcss(&processed_css.css);
+    let optimized_css = optimize_css_with_lightningcss(&processed_css.css)
+        .unwrap_or_else(|_| processed_css.css.clone());
 
     // 处理媒体查询和伪选择器
     let media_css = process_media_queries(&processed_css.media_queries);

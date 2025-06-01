@@ -599,7 +599,7 @@ impl Default for ButtonProps {
             class: None,
             style: None,
             onclick: None,
-            children: None,
+            children: VNode::empty(),
         }
     }
 }
