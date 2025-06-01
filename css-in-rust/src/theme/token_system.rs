@@ -19,7 +19,7 @@ use super::{
         TokenValue, TypographyValue,
     },
     token_resolver::TokenResolver,
-    token_values::{AntDesignTokenValues, TokenValueStore},
+    token_values::{AntDesignTokenValues, DesignTokens},
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
@@ -672,6 +672,12 @@ impl DesignTokenSystem {
         Self::with_config(TokenSystemConfig::default())
     }
 
+    /// 创建使用Ant Design默认令牌的系统
+    pub fn ant_design_default() -> Self {
+        let store = DesignTokens::ant_design_default();
+        Self::with_store(store, TokenSystemConfig::default())
+    }
+
     /// 使用配置创建设计令牌系统
     pub fn with_config(config: TokenSystemConfig) -> Self {
         let store = AntDesignTokenValues::create_default_store();
@@ -693,7 +699,7 @@ impl DesignTokenSystem {
     }
 
     /// 使用自定义存储创建设计令牌系统
-    pub fn with_store(store: TokenValueStore, config: TokenSystemConfig) -> Self {
+    pub fn with_store(store: DesignTokens, config: TokenSystemConfig) -> Self {
         let resolver = TokenResolver::new(store);
         let css_generator = CssGenerator::new(resolver)
             .with_prefix(config.css_prefix.clone())
@@ -903,7 +909,7 @@ impl DesignTokenSystem {
         // 重新配置CSS生成器
         let store = std::mem::replace(
             self.css_generator.get_resolver_mut().get_store_mut(),
-            TokenValueStore::new(),
+            DesignTokens::default(),
         );
         let resolver = TokenResolver::new(store);
         self.css_generator = CssGenerator::new(resolver)
@@ -972,7 +978,7 @@ impl DesignTokenSystem {
     // 私有辅助方法
 
     /// 创建令牌值存储
-    fn create_token_value_store(&self) -> TokenValueStore {
+    fn create_token_value_store(&self) -> DesignTokens {
         // 这里需要将分层令牌转换为扁平的令牌值存储
         // 实际实现需要根据TokenValueStore的具体结构来调整
         AntDesignTokenValues::create_default_store()

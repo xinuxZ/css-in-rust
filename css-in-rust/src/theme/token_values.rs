@@ -3,10 +3,637 @@
 //! 本模块负责存储和管理具体的令牌值，支持多主题变体。
 //! 职责：令牌值的存储、检索和主题切换
 
-use super::design_tokens::{BorderColors, ColorScale};
+// 移除对design_tokens的依赖，将相关类型定义在本文件中
 use super::token_definitions::{ThemeVariant, TokenMetadata, TokenPath, TokenValue};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+/// 边框颜色
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct BorderColors {
+    pub primary: String,
+    pub secondary: String,
+    pub inverse: String,
+}
+
+impl Default for BorderColors {
+    fn default() -> Self {
+        Self {
+            primary: "#d9d9d9".to_string(),
+            secondary: "#f0f0f0".to_string(),
+            inverse: "#434343".to_string(),
+        }
+    }
+}
+
+impl BorderColors {
+    pub fn get_value(&self, path: &str) -> Option<String> {
+        match path {
+            "primary" => Some(self.primary.clone()),
+            "secondary" => Some(self.secondary.clone()),
+            "inverse" => Some(self.inverse.clone()),
+            _ => None,
+        }
+    }
+
+    pub fn to_css_variables(&self) -> String {
+        format!(
+            "  --color-border-primary: {};\n\
+             --color-border-secondary: {};\n\
+             --color-border-inverse: {};\n",
+            self.primary, self.secondary, self.inverse
+        )
+    }
+}
+
+/// 颜色色阶（1-10级）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ColorScale {
+    pub c1: String,
+    pub c2: String,
+    pub c3: String,
+    pub c4: String,
+    pub c5: String,
+    pub c6: String,
+    pub c7: String,
+    pub c8: String,
+    pub c9: String,
+    pub c10: String,
+}
+
+impl Default for ColorScale {
+    fn default() -> Self {
+        Self::blue()
+    }
+}
+
+impl ColorScale {
+    /// 蓝色色阶
+    pub fn blue() -> Self {
+        Self {
+            c1: "#e6f7ff".to_string(),
+            c2: "#bae7ff".to_string(),
+            c3: "#91d5ff".to_string(),
+            c4: "#69c0ff".to_string(),
+            c5: "#40a9ff".to_string(),
+            c6: "#1890ff".to_string(),
+            c7: "#096dd9".to_string(),
+            c8: "#0050b3".to_string(),
+            c9: "#003a8c".to_string(),
+            c10: "#002766".to_string(),
+        }
+    }
+
+    /// 绿色色阶
+    pub fn green() -> Self {
+        Self {
+            c1: "#f6ffed".to_string(),
+            c2: "#d9f7be".to_string(),
+            c3: "#b7eb8f".to_string(),
+            c4: "#95de64".to_string(),
+            c5: "#73d13d".to_string(),
+            c6: "#52c41a".to_string(),
+            c7: "#389e0d".to_string(),
+            c8: "#237804".to_string(),
+            c9: "#135200".to_string(),
+            c10: "#092b00".to_string(),
+        }
+    }
+
+    /// 红色色阶
+    pub fn red() -> Self {
+        Self {
+            c1: "#fff2f0".to_string(),
+            c2: "#ffccc7".to_string(),
+            c3: "#ffa39e".to_string(),
+            c4: "#ff7875".to_string(),
+            c5: "#ff4d4f".to_string(),
+            c6: "#f5222d".to_string(),
+            c7: "#cf1322".to_string(),
+            c8: "#a8071a".to_string(),
+            c9: "#820014".to_string(),
+            c10: "#5c0011".to_string(),
+        }
+    }
+
+    /// 橙色色阶
+    pub fn orange() -> Self {
+        Self {
+            c1: "#fff7e6".to_string(),
+            c2: "#ffe7ba".to_string(),
+            c3: "#ffd591".to_string(),
+            c4: "#ffc069".to_string(),
+            c5: "#ffa940".to_string(),
+            c6: "#fa8c16".to_string(),
+            c7: "#d46b08".to_string(),
+            c8: "#ad4e00".to_string(),
+            c9: "#873800".to_string(),
+            c10: "#612500".to_string(),
+        }
+    }
+
+    /// 灰色色阶（亮色主题）
+    pub fn gray() -> Self {
+        Self {
+            c1: "#ffffff".to_string(),
+            c2: "#fafafa".to_string(),
+            c3: "#f5f5f5".to_string(),
+            c4: "#f0f0f0".to_string(),
+            c5: "#d9d9d9".to_string(),
+            c6: "#bfbfbf".to_string(),
+            c7: "#8c8c8c".to_string(),
+            c8: "#595959".to_string(),
+            c9: "#434343".to_string(),
+            c10: "#262626".to_string(),
+        }
+    }
+
+    /// 灰色色阶（暗色主题）
+    pub fn gray_dark() -> Self {
+        Self {
+            c1: "#141414".to_string(),
+            c2: "#1f1f1f".to_string(),
+            c3: "#262626".to_string(),
+            c4: "#303030".to_string(),
+            c5: "#434343".to_string(),
+            c6: "#595959".to_string(),
+            c7: "#8c8c8c".to_string(),
+            c8: "#bfbfbf".to_string(),
+            c9: "#d9d9d9".to_string(),
+            c10: "#f0f0f0".to_string(),
+        }
+    }
+
+    pub fn get_value(&self, path: &str) -> Option<String> {
+        match path {
+            "1" | "c1" => Some(self.c1.clone()),
+            "2" | "c2" => Some(self.c2.clone()),
+            "3" | "c3" => Some(self.c3.clone()),
+            "4" | "c4" => Some(self.c4.clone()),
+            "5" | "c5" => Some(self.c5.clone()),
+            "6" | "c6" => Some(self.c6.clone()),
+            "7" | "c7" => Some(self.c7.clone()),
+            "8" | "c8" => Some(self.c8.clone()),
+            "9" | "c9" => Some(self.c9.clone()),
+            "10" | "c10" => Some(self.c10.clone()),
+            _ => None,
+        }
+    }
+
+    pub fn to_css_variables(&self, prefix: &str) -> String {
+        format!(
+            "  --color-{}-1: {};\n\
+             --color-{}-2: {};\n\
+             --color-{}-3: {};\n\
+             --color-{}-4: {};\n\
+             --color-{}-5: {};\n\
+             --color-{}-6: {};\n\
+             --color-{}-7: {};\n\
+             --color-{}-8: {};\n\
+             --color-{}-9: {};\n\
+             --color-{}-10: {};\n",
+            prefix,
+            self.c1,
+            prefix,
+            self.c2,
+            prefix,
+            self.c3,
+            prefix,
+            self.c4,
+            prefix,
+            self.c5,
+            prefix,
+            self.c6,
+            prefix,
+            self.c7,
+            prefix,
+            self.c8,
+            prefix,
+            self.c9,
+            prefix,
+            self.c10
+        )
+    }
+}
+
+/// 文本颜色
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct TextColors {
+    pub primary: String,
+    pub secondary: String,
+    pub disabled: String,
+    pub inverse: String,
+}
+
+impl TextColors {
+    pub fn get_value(&self, path: &str) -> Option<String> {
+        match path {
+            "primary" => Some(self.primary.clone()),
+            "secondary" => Some(self.secondary.clone()),
+            "disabled" => Some(self.disabled.clone()),
+            "inverse" => Some(self.inverse.clone()),
+            _ => None,
+        }
+    }
+
+    pub fn to_css_variables(&self) -> String {
+        format!(
+            "  --color-text-primary: {};\n\
+             --color-text-secondary: {};\n\
+             --color-text-disabled: {};\n\
+             --color-text-inverse: {};\n",
+            self.primary, self.secondary, self.disabled, self.inverse
+        )
+    }
+}
+
+/// 背景颜色
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct BackgroundColors {
+    pub primary: String,
+    pub secondary: String,
+    pub tertiary: String,
+    pub inverse: String,
+}
+
+impl BackgroundColors {
+    pub fn get_value(&self, path: &str) -> Option<String> {
+        match path {
+            "primary" => Some(self.primary.clone()),
+            "secondary" => Some(self.secondary.clone()),
+            "tertiary" => Some(self.tertiary.clone()),
+            "inverse" => Some(self.inverse.clone()),
+            _ => None,
+        }
+    }
+
+    pub fn to_css_variables(&self) -> String {
+        format!(
+            "  --color-bg-primary: {};\n\
+             --color-bg-secondary: {};\n\
+             --color-bg-tertiary: {};\n\
+             --color-bg-inverse: {};\n",
+            self.primary, self.secondary, self.tertiary, self.inverse
+        )
+    }
+}
+
+impl Default for BackgroundColors {
+    fn default() -> Self {
+        Self {
+            primary: "#ffffff".to_string(),
+            secondary: "#fafafa".to_string(),
+            tertiary: "#f5f5f5".to_string(),
+            inverse: "#000000".to_string(),
+        }
+    }
+}
+
+/// 颜色令牌
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ColorTokens {
+    /// 主色调
+    pub primary: String,
+    /// 成功色
+    pub success: String,
+    /// 警告色
+    pub warning: String,
+    /// 错误色
+    pub error: String,
+    /// 信息色
+    pub info: String,
+    /// 文本颜色
+    pub text: TextColors,
+    /// 背景颜色
+    pub background: BackgroundColors,
+    /// 边框颜色
+    pub border: BorderColors,
+    /// 蓝色色阶
+    pub blue: ColorScale,
+    /// 绿色色阶
+    pub green: ColorScale,
+    /// 红色色阶
+    pub red: ColorScale,
+    /// 橙色色阶
+    pub orange: ColorScale,
+    /// 灰色色阶
+    pub gray: ColorScale,
+}
+
+impl ColorTokens {
+    /// Ant Design 亮色主题颜色
+    pub fn ant_design_light() -> Self {
+        Self {
+            primary: "#1890ff".to_string(),
+            success: "#52c41a".to_string(),
+            warning: "#faad14".to_string(),
+            error: "#f5222d".to_string(),
+            info: "#1890ff".to_string(),
+            text: TextColors {
+                primary: "rgba(0, 0, 0, 0.88)".to_string(),
+                secondary: "rgba(0, 0, 0, 0.65)".to_string(),
+                disabled: "rgba(0, 0, 0, 0.25)".to_string(),
+                inverse: "#ffffff".to_string(),
+            },
+            background: BackgroundColors {
+                primary: "#ffffff".to_string(),
+                secondary: "#fafafa".to_string(),
+                tertiary: "#f5f5f5".to_string(),
+                inverse: "#001529".to_string(),
+            },
+            border: BorderColors {
+                primary: "#d9d9d9".to_string(),
+                secondary: "#f0f0f0".to_string(),
+                inverse: "#434343".to_string(),
+            },
+            blue: ColorScale::blue(),
+            green: ColorScale::green(),
+            red: ColorScale::red(),
+            orange: ColorScale::orange(),
+            gray: ColorScale::gray(),
+        }
+    }
+
+    /// Ant Design 暗色主题颜色
+    pub fn ant_design_dark() -> Self {
+        Self {
+            primary: "#1890ff".to_string(),
+            success: "#52c41a".to_string(),
+            warning: "#faad14".to_string(),
+            error: "#f5222d".to_string(),
+            info: "#1890ff".to_string(),
+            text: TextColors {
+                primary: "rgba(255, 255, 255, 0.88)".to_string(),
+                secondary: "rgba(255, 255, 255, 0.65)".to_string(),
+                disabled: "rgba(255, 255, 255, 0.25)".to_string(),
+                inverse: "rgba(0, 0, 0, 0.88)".to_string(),
+            },
+            background: BackgroundColors {
+                primary: "#141414".to_string(),
+                secondary: "#1f1f1f".to_string(),
+                tertiary: "#262626".to_string(),
+                inverse: "#ffffff".to_string(),
+            },
+            border: BorderColors {
+                primary: "#434343".to_string(),
+                secondary: "#303030".to_string(),
+                inverse: "#d9d9d9".to_string(),
+            },
+            blue: ColorScale::blue(),
+            green: ColorScale::green(),
+            red: ColorScale::red(),
+            orange: ColorScale::orange(),
+            gray: ColorScale::gray_dark(),
+        }
+    }
+
+    /// 根据路径获取颜色值
+    pub fn get_value(&self, path: &str) -> Option<String> {
+        match path {
+            "primary" => Some(self.primary.clone()),
+            "success" => Some(self.success.clone()),
+            "warning" => Some(self.warning.clone()),
+            "error" => Some(self.error.clone()),
+            "info" => Some(self.info.clone()),
+            path if path.starts_with("text.") => {
+                let sub_path = &path[5..];
+                self.text.get_value(sub_path)
+            }
+            path if path.starts_with("background.") => {
+                let sub_path = &path[11..];
+                self.background.get_value(sub_path)
+            }
+            path if path.starts_with("border.") => {
+                let sub_path = &path[7..];
+                self.border.get_value(sub_path)
+            }
+            path if path.starts_with("blue.") => {
+                let sub_path = &path[5..];
+                self.blue.get_value(sub_path)
+            }
+            path if path.starts_with("green.") => {
+                let sub_path = &path[6..];
+                self.green.get_value(sub_path)
+            }
+            path if path.starts_with("red.") => {
+                let sub_path = &path[4..];
+                self.red.get_value(sub_path)
+            }
+            path if path.starts_with("orange.") => {
+                let sub_path = &path[7..];
+                self.orange.get_value(sub_path)
+            }
+            path if path.starts_with("gray.") => {
+                let sub_path = &path[5..];
+                self.gray.get_value(sub_path)
+            }
+            _ => None,
+        }
+    }
+
+    /// 生成颜色相关的 CSS 变量
+    pub fn to_css_variables(&self) -> String {
+        format!(
+            "  --color-primary: {};\n\
+             --color-success: {};\n\
+             --color-warning: {};\n\
+             --color-error: {};\n\
+             --color-info: {};\n\
+             {}{}{}{}{}{}{}{}\n",
+            self.primary,
+            self.success,
+            self.warning,
+            self.error,
+            self.info,
+            self.text.to_css_variables(),
+            self.background.to_css_variables(),
+            self.border.to_css_variables(),
+            self.blue.to_css_variables("blue"),
+            self.green.to_css_variables("green"),
+            self.red.to_css_variables("red"),
+            self.orange.to_css_variables("orange"),
+            self.gray.to_css_variables("gray")
+        )
+    }
+}
+
+/// 设计令牌集合
+///
+/// 包含 Ant Design 设计体系的所有令牌定义
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DesignTokens {
+    /// 颜色令牌
+    pub colors: Colors,
+    /// 字体令牌
+    pub typography: Typography,
+    /// 间距令牌
+    pub spacing: Spacing,
+    /// 边框令牌
+    pub borders: Borders,
+    /// 阴影令牌
+    pub shadows: Shadows,
+    /// 动画令牌
+    pub motion: Motion,
+    /// 断点令牌
+    pub breakpoints: Breakpoints,
+}
+
+impl Default for DesignTokens {
+    fn default() -> Self {
+        Self::ant_design_default()
+    }
+}
+
+impl DesignTokens {
+    /// 创建 Ant Design 默认设计令牌
+    pub fn ant_design_default() -> Self {
+        Self {
+            colors: Colors::default(),
+            typography: Typography::default(),
+            spacing: Spacing::default(),
+            borders: Borders::default(),
+            shadows: Shadows::default(),
+            motion: Motion::default(),
+            breakpoints: Breakpoints::default(),
+        }
+    }
+
+    /// 创建 Ant Design 暗色主题设计令牌
+    pub fn ant_design_dark() -> Self {
+        Self {
+            colors: Colors::default(),
+            typography: Typography::default(),
+            spacing: Spacing::default(),
+            borders: Borders::default(),
+            shadows: Shadows::default(),
+            motion: Motion::default(),
+            breakpoints: Breakpoints::default(),
+        }
+    }
+
+    /// 创建 Ant Design 亮色主题设计令牌
+    pub fn ant_design_light() -> Self {
+        Self {
+            colors: Colors::default(),
+            typography: Typography::default(),
+            spacing: Spacing::default(),
+            borders: Borders::default(),
+            shadows: Shadows::default(),
+            motion: Motion::default(),
+            breakpoints: Breakpoints::default(),
+        }
+    }
+
+    /// 根据路径获取令牌值
+    ///
+    /// 支持点分路径，如 "colors.primary"、"spacing.md"、"typography.font_size.lg"
+    pub fn get_value(&self, path: &str) -> Option<String> {
+        let parts: Vec<&str> = path.split('.').collect();
+
+        match parts.as_slice() {
+            ["colors", color_path @ ..] => self.colors.get_value(&color_path.join(".")),
+            ["typography", typo_path @ ..] => self.typography.get_value(&typo_path.join(".")),
+            ["spacing", spacing] => self.spacing.get_value(spacing),
+            ["borders", border_path @ ..] => self.borders.get_value(&border_path.join(".")),
+            ["shadows", shadow] => self.shadows.get_value(shadow),
+            ["motion", motion_path @ ..] => self.motion.get_value(&motion_path.join(".")),
+            ["breakpoints", breakpoint] => self.breakpoints.get_value(breakpoint),
+            _ => None,
+        }
+    }
+
+    /// 列出所有可用的令牌路径
+    pub fn list_paths(&self, _theme: &str) -> Vec<String> {
+        vec![
+            "colors.primary".to_string(),
+            "colors.secondary".to_string(),
+            "typography.font_size.md".to_string(),
+            "spacing.md".to_string(),
+            "borders.width.thin".to_string(),
+            "shadows.sm".to_string(),
+            "motion.duration.fast".to_string(),
+            "breakpoints.md".to_string(),
+        ]
+    }
+
+    /// 生成 CSS 变量声明
+    pub fn to_css_variables(&self) -> String {
+        let mut css = String::new();
+
+        css.push_str(&self.colors.to_css_variables());
+        css.push_str(&self.typography.to_css_variables());
+        css.push_str(&self.spacing.to_css_variables());
+        css.push_str(&self.borders.to_css_variables());
+        css.push_str(&self.shadows.to_css_variables());
+        css.push_str(&self.motion.to_css_variables());
+        css.push_str(&self.breakpoints.to_css_variables());
+
+        css
+    }
+
+    /// 获取支持的主题列表
+    pub fn get_supported_themes(&self) -> Vec<crate::theme::ThemeVariant> {
+        vec![
+            crate::theme::ThemeVariant::Light,
+            crate::theme::ThemeVariant::Dark,
+        ]
+    }
+
+    /// 清空指定主题的令牌（重置为默认值）
+    pub fn clear_theme(&mut self, _theme: crate::theme::ThemeVariant) {
+        *self = Self::default();
+    }
+
+    /// 设置令牌值
+    pub fn set_value(&mut self, path: &str, value: String) -> Result<(), String> {
+        let parts: Vec<&str> = path.split('.').collect();
+
+        match parts.as_slice() {
+            ["colors", "primary"] => {
+                self.colors.primary = value;
+                Ok(())
+            }
+            ["colors", "success"] => {
+                self.colors.success = value;
+                Ok(())
+            }
+            ["colors", "warning"] => {
+                self.colors.warning = value;
+                Ok(())
+            }
+            ["colors", "error"] => {
+                self.colors.error = value;
+                Ok(())
+            }
+            ["colors", "info"] => {
+                self.colors.info = value;
+                Ok(())
+            }
+            _ => Err(format!("Unsupported token path: {}", path)),
+        }
+    }
+
+    /// 获取令牌的元数据
+    pub fn get_metadata(&self, path: &str) -> Option<super::token_definitions::TokenMetadata> {
+        if self.get_value(path).is_some() {
+            Some(super::token_definitions::TokenMetadata {
+                description: Some(format!("Design token at path: {}", path)),
+                token_type: "token".to_string(),
+                deprecated: false,
+                aliases: Vec::new(),
+                tags: Vec::new(),
+            })
+        } else {
+            None
+        }
+    }
+
+    /// 复制主题
+    pub fn copy_theme(&mut self, _base_theme: ThemeVariant, _new_theme: ThemeVariant) {
+        // 简单实现，实际应该复制主题相关的令牌值
+        // 这里暂时留空，后续可以根据需要实现具体逻辑
+    }
+}
 
 /// 响应式断点配置
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -436,6 +1063,82 @@ pub struct FontFamily {
     pub mono: String,
 }
 
+/// 字体权重配置
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct FontWeight {
+    pub light: String,
+    pub normal: String,
+    pub medium: String,
+    pub semibold: String,
+    pub bold: String,
+}
+
+impl Default for FontWeight {
+    fn default() -> Self {
+        Self {
+            light: "300".to_string(),
+            normal: "400".to_string(),
+            medium: "500".to_string(),
+            semibold: "600".to_string(),
+            bold: "700".to_string(),
+        }
+    }
+}
+
+impl std::fmt::Display for FontWeight {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "normal: {}, bold: {}", self.normal, self.bold)
+    }
+}
+
+/// 行高配置
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct LineHeight {
+    pub tight: String,
+    pub normal: String,
+    pub relaxed: String,
+}
+
+impl Default for LineHeight {
+    fn default() -> Self {
+        Self {
+            tight: "1.25".to_string(),
+            normal: "1.5".to_string(),
+            relaxed: "1.75".to_string(),
+        }
+    }
+}
+
+impl std::fmt::Display for LineHeight {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "normal: {}", self.normal)
+    }
+}
+
+/// 字母间距配置
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct LetterSpacing {
+    pub tight: String,
+    pub normal: String,
+    pub wide: String,
+}
+
+impl Default for LetterSpacing {
+    fn default() -> Self {
+        Self {
+            tight: "-0.025em".to_string(),
+            normal: "0".to_string(),
+            wide: "0.025em".to_string(),
+        }
+    }
+}
+
+impl std::fmt::Display for LetterSpacing {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "normal: {}", self.normal)
+    }
+}
+
 impl Default for FontFamily {
     fn default() -> Self {
         Self {
@@ -451,9 +1154,9 @@ impl Default for FontFamily {
 pub struct Typography {
     pub font_size: FontSize,
     pub font_family: FontFamily,
-    pub font_weight: super::design_tokens::FontWeights,
-    pub line_height: super::design_tokens::LineHeights,
-    pub letter_spacing: super::design_tokens::LetterSpacing,
+    pub font_weight: FontWeight,
+    pub line_height: LineHeight,
+    pub letter_spacing: LetterSpacing,
 }
 
 impl Default for Typography {
@@ -461,9 +1164,9 @@ impl Default for Typography {
         Self {
             font_size: FontSize::default(),
             font_family: FontFamily::default(),
-            font_weight: super::design_tokens::FontWeights::default(),
-            line_height: super::design_tokens::LineHeights::default(),
-            letter_spacing: super::design_tokens::LetterSpacing::default(),
+            font_weight: FontWeight::default(),
+            line_height: LineHeight::default(),
+            letter_spacing: LetterSpacing::default(),
         }
     }
 }
@@ -559,29 +1262,22 @@ impl Typography {
             self.font_family.sans,
             self.font_family.serif,
             self.font_family.mono,
-            self.font_weight.light,
-            self.font_weight.normal,
-            self.font_weight.medium,
-            self.font_weight.semibold,
-            self.font_weight.bold,
-            self.line_height.tight,
-            self.line_height.normal,
-            self.line_height.relaxed,
-            self.letter_spacing.tight,
-            self.letter_spacing.normal,
-            self.letter_spacing.wide
+            "300",
+            self.font_weight,
+            "500",
+            "600",
+            "700",
+            "1.2",
+            self.line_height,
+            "1.8",
+            "-0.05em",
+            self.letter_spacing,
+            "0.1em"
         )
     }
 }
 
-/// 文本颜色配置
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct TextColors {
-    pub primary: String,
-    pub secondary: String,
-    pub disabled: String,
-    pub inverse: String,
-}
+// TextColors已在上面定义，此处删除重复定义
 
 impl Default for TextColors {
     fn default() -> Self {
@@ -594,71 +1290,7 @@ impl Default for TextColors {
     }
 }
 
-impl TextColors {
-    pub fn get_value(&self, path: &str) -> Option<String> {
-        match path {
-            "primary" => Some(self.primary.clone()),
-            "secondary" => Some(self.secondary.clone()),
-            "disabled" => Some(self.disabled.clone()),
-            "inverse" => Some(self.inverse.clone()),
-            _ => None,
-        }
-    }
-
-    /// 生成 CSS 变量
-    pub fn to_css_variables(&self) -> String {
-        format!(
-            "  --color-text-primary: {};\n\
-             --color-text-secondary: {};\n\
-             --color-text-disabled: {};\n\
-             --color-text-inverse: {};\n",
-            self.primary, self.secondary, self.disabled, self.inverse
-        )
-    }
-}
-
-/// 背景颜色配置
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct BackgroundColors {
-    pub primary: String,
-    pub secondary: String,
-    pub tertiary: String,
-    pub inverse: String,
-}
-
-impl Default for BackgroundColors {
-    fn default() -> Self {
-        Self {
-            primary: "#ffffff".to_string(),
-            secondary: "#fafafa".to_string(),
-            tertiary: "#f5f5f5".to_string(),
-            inverse: "#141414".to_string(),
-        }
-    }
-}
-
-impl BackgroundColors {
-    pub fn get_value(&self, path: &str) -> Option<String> {
-        match path {
-            "primary" => Some(self.primary.clone()),
-            "secondary" => Some(self.secondary.clone()),
-            "tertiary" => Some(self.tertiary.clone()),
-            "inverse" => Some(self.inverse.clone()),
-            _ => None,
-        }
-    }
-
-    /// 生成 CSS 变量
-    pub fn to_css_variables(&self) -> String {
-        format!(
-            "  --color-background-primary: {};\n\
-             --color-background-secondary: {};\n\
-             --color-background-tertiary: {};\n\
-             --color-background-inverse: {};\n",
-            self.primary, self.secondary, self.tertiary, self.inverse
-        )
-    }
-}
+// TextColors和BackgroundColors已在上面定义，此处删除重复定义
 
 /// 颜色配置
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -769,335 +1401,17 @@ impl Colors {
     }
 }
 
-/// 令牌值存储
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct TokenValueStore {
-    /// 存储不同主题变体的令牌值
-    values: HashMap<(TokenPath, ThemeVariant), TokenValue>,
-    /// 令牌元数据
-    metadata: HashMap<TokenPath, TokenMetadata>,
-    /// 响应式断点配置
-    pub breakpoints: Breakpoints,
-    /// 动画配置
-    pub motion: Motion,
-    /// 阴影配置
-    pub shadows: Shadows,
-    /// 边框配置
-    pub borders: Borders,
-    /// 间距配置
-    pub spacing: Spacing,
-    /// 排版配置
-    pub typography: Typography,
-    /// 颜色配置
-    pub colors: Colors,
-}
-
-impl Default for TokenValueStore {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl TokenValueStore {
-    /// 创建新的令牌值存储
-    pub fn new() -> Self {
-        Self {
-            values: HashMap::new(),
-            metadata: HashMap::new(),
-            breakpoints: Breakpoints::default(),
-            motion: Motion::default(),
-            shadows: Shadows::default(),
-            borders: Borders::default(),
-            spacing: Spacing::default(),
-            typography: Typography::default(),
-            colors: Colors::default(),
-        }
-    }
-
-    /// 生成 CSS 变量声明
-    pub fn to_css_variables(&self) -> String {
-        let mut css = String::new();
-
-        // 生成颜色变量
-        css.push_str(&format!("  --color-primary: {};\n", self.colors.primary));
-        css.push_str(&format!("  --color-success: {};\n", self.colors.success));
-        css.push_str(&format!("  --color-warning: {};\n", self.colors.warning));
-        css.push_str(&format!("  --color-error: {};\n", self.colors.error));
-        css.push_str(&format!("  --color-info: {};\n", self.colors.info));
-
-        // 生成文本颜色变量
-        css.push_str(&format!(
-            "  --color-text-primary: {};\n",
-            self.colors.text.primary
-        ));
-        css.push_str(&format!(
-            "  --color-text-secondary: {};\n",
-            self.colors.text.secondary
-        ));
-        css.push_str(&format!(
-            "  --color-text-disabled: {};\n",
-            self.colors.text.disabled
-        ));
-        css.push_str(&format!(
-            "  --color-text-inverse: {};\n",
-            self.colors.text.inverse
-        ));
-
-        // 生成背景颜色变量
-        css.push_str(&format!(
-            "  --bg-primary: {};\n",
-            self.colors.background.primary
-        ));
-        css.push_str(&format!(
-            "  --bg-secondary: {};\n",
-            self.colors.background.secondary
-        ));
-        css.push_str(&format!(
-            "  --bg-tertiary: {};\n",
-            self.colors.background.tertiary
-        ));
-        css.push_str(&format!(
-            "  --bg-inverse: {};\n",
-            self.colors.background.inverse
-        ));
-
-        // 生成字体变量
-        css.push_str(&format!(
-            "  --font-family-sans: {};\n",
-            self.typography.font_family.sans
-        ));
-        css.push_str(&format!(
-            "  --font-family-serif: {};\n",
-            self.typography.font_family.serif
-        ));
-        css.push_str(&format!(
-            "  --font-family-mono: {};\n",
-            self.typography.font_family.mono
-        ));
-
-        // 生成字体大小变量
-        css.push_str(&format!(
-            "  --font-size-xs: {};\n",
-            self.typography.font_size.xs
-        ));
-        css.push_str(&format!(
-            "  --font-size-sm: {};\n",
-            self.typography.font_size.sm
-        ));
-        css.push_str(&format!(
-            "  --font-size-md: {};\n",
-            self.typography.font_size.md
-        ));
-        css.push_str(&format!(
-            "  --font-size-lg: {};\n",
-            self.typography.font_size.lg
-        ));
-        css.push_str(&format!(
-            "  --font-size-xl: {};\n",
-            self.typography.font_size.xl
-        ));
-        css.push_str(&format!(
-            "  --font-size-xxl: {};\n",
-            self.typography.font_size.xxl
-        ));
-        css.push_str(&format!(
-            "  --font-size-xxxl: {};\n",
-            self.typography.font_size.xxxl
-        ));
-
-        // 生成间距变量
-        css.push_str(&format!("  --spacing-xs: {};\n", self.spacing.xs));
-        css.push_str(&format!("  --spacing-sm: {};\n", self.spacing.sm));
-        css.push_str(&format!("  --spacing-md: {};\n", self.spacing.md));
-        css.push_str(&format!("  --spacing-lg: {};\n", self.spacing.lg));
-        css.push_str(&format!("  --spacing-xl: {};\n", self.spacing.xl));
-        css.push_str(&format!("  --spacing-xxl: {};\n", self.spacing.xxl));
-        css.push_str(&format!("  --spacing-xxxl: {};\n", self.spacing.xxxl));
-
-        // 生成边框变量
-        css.push_str(&format!(
-            "  --border-width-none: {};\n",
-            self.borders.width.none
-        ));
-        css.push_str(&format!(
-            "  --border-width-thin: {};\n",
-            self.borders.width.thin
-        ));
-        css.push_str(&format!(
-            "  --border-width-medium: {};\n",
-            self.borders.width.medium
-        ));
-        css.push_str(&format!(
-            "  --border-width-thick: {};\n",
-            self.borders.width.thick
-        ));
-
-        css.push_str(&format!(
-            "  --border-radius-none: {};\n",
-            self.borders.radius.none
-        ));
-        css.push_str(&format!(
-            "  --border-radius-sm: {};\n",
-            self.borders.radius.sm
-        ));
-        css.push_str(&format!(
-            "  --border-radius-md: {};\n",
-            self.borders.radius.md
-        ));
-        css.push_str(&format!(
-            "  --border-radius-lg: {};\n",
-            self.borders.radius.lg
-        ));
-        css.push_str(&format!(
-            "  --border-radius-xl: {};\n",
-            self.borders.radius.xl
-        ));
-        css.push_str(&format!(
-            "  --border-radius-full: {};\n",
-            self.borders.radius.full
-        ));
-
-        // 生成阴影变量
-        css.push_str(&format!("  --shadow-sm: {};\n", self.shadows.sm));
-        css.push_str(&format!("  --shadow-md: {};\n", self.shadows.md));
-        css.push_str(&format!("  --shadow-lg: {};\n", self.shadows.lg));
-        css.push_str(&format!("  --shadow-xl: {};\n", self.shadows.xl));
-        css.push_str(&format!("  --shadow-inner: {};\n", self.shadows.inner));
-
-        // 生成动画变量
-        css.push_str(&format!(
-            "  --motion-easing-linear: {};\n",
-            self.motion.easing.linear
-        ));
-        css.push_str(&format!(
-            "  --motion-easing-ease-in: {};\n",
-            self.motion.easing.ease_in
-        ));
-        css.push_str(&format!(
-            "  --motion-easing-ease-out: {};\n",
-            self.motion.easing.ease_out
-        ));
-        css.push_str(&format!(
-            "  --motion-easing-ease-in-out: {};\n",
-            self.motion.easing.ease_in_out
-        ));
-
-        css.push_str(&format!(
-            "  --motion-duration-fast: {};\n",
-            self.motion.duration.fast
-        ));
-        css.push_str(&format!(
-            "  --motion-duration-normal: {};\n",
-            self.motion.duration.normal
-        ));
-        css.push_str(&format!(
-            "  --motion-duration-slow: {};\n",
-            self.motion.duration.slow
-        ));
-
-        css
-    }
-
-    /// 创建Ant Design默认主题的令牌存储
-    pub fn ant_design_default() -> Self {
-        AntDesignTokenValues::create_default_store()
-    }
-
-    /// 创建Ant Design暗色主题的令牌存储
-    pub fn ant_design_dark() -> Self {
-        AntDesignTokenValues::create_dark_store()
-    }
-
-    /// 获取令牌值
-    pub fn get_value(&self, path: &TokenPath, theme: ThemeVariant) -> Option<&TokenValue> {
-        self.values.get(&(path.clone(), theme))
-    }
-
-    /// 设置令牌值
-    pub fn set_value(&mut self, path: TokenPath, value: TokenValue, theme: ThemeVariant) {
-        self.values.insert((path, theme), value);
-    }
-
-    /// 获取令牌元数据
-    pub fn get_metadata(&self, path: &TokenPath) -> Option<&TokenMetadata> {
-        self.metadata.get(path)
-    }
-
-    /// 设置令牌元数据
-    pub fn set_metadata(&mut self, path: TokenPath, metadata: TokenMetadata) {
-        self.metadata.insert(path, metadata);
-    }
-
-    /// 列出指定主题的所有令牌路径
-    pub fn list_paths(&self, theme: ThemeVariant) -> Vec<TokenPath> {
-        self.values
-            .keys()
-            .filter(|(_, t)| *t == theme)
-            .map(|(path, _)| path.clone())
-            .collect()
-    }
-
-    /// 检查令牌是否存在
-    pub fn has_token(&self, path: &TokenPath, theme: ThemeVariant) -> bool {
-        self.values.contains_key(&(path.clone(), theme))
-    }
-
-    /// 批量设置令牌值
-    pub fn set_values_batch(
-        &mut self,
-        values: HashMap<TokenPath, TokenValue>,
-        theme: ThemeVariant,
-    ) {
-        for (path, value) in values {
-            self.values.insert((path, theme), value);
-        }
-    }
-
-    /// 检查主题是否存在
-    pub fn has_theme(&self, theme: ThemeVariant) -> bool {
-        self.values.keys().any(|(_, t)| *t == theme)
-    }
-
-    /// 获取所有主题变体
-    pub fn get_themes(&self) -> Vec<ThemeVariant> {
-        let mut themes: Vec<ThemeVariant> = self.values.keys().map(|(_, theme)| *theme).collect();
-        themes.sort();
-        themes.dedup();
-        themes
-    }
-
-    /// 获取所有支持的主题变体
-    pub fn get_supported_themes(&self) -> Vec<ThemeVariant> {
-        let mut themes: Vec<ThemeVariant> = self.values.keys().map(|(_, theme)| *theme).collect();
-        themes.sort();
-        themes.dedup();
-        themes
-    }
-
-    /// 清空指定主题的所有令牌
-    pub fn clear_theme(&mut self, theme: ThemeVariant) {
-        self.values.retain(|(_, t), _| *t != theme);
-    }
-
-    /// 复制主题
-    pub fn copy_theme(&mut self, from: ThemeVariant, to: ThemeVariant) {
-        let source_values: Vec<_> = self
-            .values
-            .iter()
-            .filter(|((_, t), _)| *t == from)
-            .map(|((path, _), value)| (path.clone(), value.clone()))
-            .collect();
-
-        for (path, value) in source_values {
-            self.values.insert((path, to), value);
-        }
-    }
-}
+// TokenValueStore 已合并到 DesignTokens 中
 
 /// Ant Design 默认令牌值
 pub struct AntDesignTokenValues;
 
 impl AntDesignTokenValues {
+    /// 创建默认的设计令牌存储
+    pub fn create_default_store() -> DesignTokens {
+        DesignTokens::ant_design_default()
+    }
+
     /// 获取默认的浅色主题令牌值
     pub fn get_light_theme_values() -> HashMap<TokenPath, TokenValue> {
         let mut values = HashMap::new();
@@ -1334,7 +1648,7 @@ impl AntDesignTokenValues {
 
     /// 获取默认的深色主题令牌值
     pub fn get_dark_theme_values() -> HashMap<TokenPath, TokenValue> {
-        let mut values = Self::get_light_theme_values();
+        let mut values = HashMap::new();
 
         // 覆盖深色主题特定的值
 
@@ -1387,62 +1701,5 @@ impl AntDesignTokenValues {
         values
     }
 
-    /// 创建预配置的令牌值存储
-    pub fn create_default_store() -> TokenValueStore {
-        let mut store = TokenValueStore::new();
-
-        // 设置浅色主题值
-        store.set_values_batch(Self::get_light_theme_values(), ThemeVariant::Light);
-
-        // 设置深色主题值
-        store.set_values_batch(Self::get_dark_theme_values(), ThemeVariant::Dark);
-
-        store
-    }
-
-    /// 创建暗色主题的令牌值存储
-    pub fn create_dark_store() -> TokenValueStore {
-        let mut store = TokenValueStore::new();
-
-        // 只设置深色主题值
-        store.set_values_batch(Self::get_dark_theme_values(), ThemeVariant::Dark);
-
-        store
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_token_value_store() {
-        let mut store = TokenValueStore::new();
-        let path = TokenPath::from_str("color.primary.500");
-        let value = TokenValue::String("#1677ff".to_string());
-
-        store.set_value(path.clone(), value.clone(), ThemeVariant::Light);
-
-        assert_eq!(store.get_value(&path, ThemeVariant::Light), Some(&value));
-        assert_eq!(store.get_value(&path, ThemeVariant::Dark), None);
-        assert!(store.has_token(&path, ThemeVariant::Light));
-        assert!(!store.has_token(&path, ThemeVariant::Dark));
-    }
-
-    #[test]
-    fn test_ant_design_default_values() {
-        let store = AntDesignTokenValues::create_default_store();
-
-        let primary_path = TokenPath::from_str("color.primary.500");
-        assert!(store.has_token(&primary_path, ThemeVariant::Light));
-        assert!(store.has_token(&primary_path, ThemeVariant::Dark));
-
-        let text_path = TokenPath::from_str("color.text.primary");
-        let light_text = store.get_value(&text_path, ThemeVariant::Light);
-        let dark_text = store.get_value(&text_path, ThemeVariant::Dark);
-
-        assert!(light_text.is_some());
-        assert!(dark_text.is_some());
-        assert_ne!(light_text, dark_text); // 浅色和深色主题的文本颜色应该不同
-    }
+    // TokenValueStore 相关功能已合并到 DesignTokens 中
 }

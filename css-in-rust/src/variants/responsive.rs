@@ -3,7 +3,7 @@
 //! 提供完整的响应式设计支持，包括断点管理、媒体查询生成和运行时变体选择。
 
 use super::{VariantConfig, VariantStyle};
-use crate::theme::BreakpointTokens;
+use crate::theme::Breakpoints;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -131,14 +131,14 @@ impl ResponsiveManager {
     }
 
     /// 从断点令牌初始化
-    pub fn from_breakpoint_tokens(tokens: &BreakpointTokens) -> Self {
+    pub fn from_breakpoint_tokens(tokens: &Breakpoints) -> Self {
         let mut manager = Self::new();
         manager.update_from_tokens(tokens);
         manager
     }
 
     /// 从断点令牌更新
-    pub fn update_from_tokens(&mut self, tokens: &BreakpointTokens) {
+    pub fn update_from_tokens(&mut self, tokens: &Breakpoints) {
         // 解析断点令牌并更新断点定义
         let breakpoint_values = vec![
             ("xs", &tokens.xs),
@@ -389,7 +389,7 @@ impl Default for ResponsiveVariantBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::theme::BreakpointTokens;
+    use crate::theme::Breakpoints;
 
     #[test]
     fn test_responsive_manager_creation() {

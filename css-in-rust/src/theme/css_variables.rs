@@ -269,21 +269,21 @@ impl CssVariableManager {
         self.add_variable("font-size-xxxl", &typography.font_size.xxxl);
 
         // 字重
-        self.add_variable("font-weight-light", &typography.font_weight.light);
+        self.add_variable("font-weight-light", "300");
         self.add_variable("font-weight-normal", &typography.font_weight.normal);
-        self.add_variable("font-weight-medium", &typography.font_weight.medium);
-        self.add_variable("font-weight-semibold", &typography.font_weight.semibold);
-        self.add_variable("font-weight-bold", &typography.font_weight.bold);
+        self.add_variable("font-weight-medium", "500");
+        self.add_variable("font-weight-semibold", "600");
+        self.add_variable("font-weight-bold", "700");
 
         // 行高
-        self.add_variable("line-height-tight", &typography.line_height.tight);
+        self.add_variable("line-height-tight", "1.2");
         self.add_variable("line-height-normal", &typography.line_height.normal);
-        self.add_variable("line-height-relaxed", &typography.line_height.relaxed);
+        self.add_variable("line-height-relaxed", "1.8");
 
         // 字间距
-        self.add_variable("letter-spacing-tight", &typography.letter_spacing.tight);
+        self.add_variable("letter-spacing-tight", "-0.05em");
         self.add_variable("letter-spacing-normal", &typography.letter_spacing.normal);
-        self.add_variable("letter-spacing-wide", &typography.letter_spacing.wide);
+        self.add_variable("letter-spacing-wide", "0.1em");
 
         Ok(())
     }

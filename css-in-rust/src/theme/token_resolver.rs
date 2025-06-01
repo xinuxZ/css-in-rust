@@ -7,14 +7,14 @@ use super::token_definitions::{
     ColorValue, DimensionValue, MathOperation, ShadowValue, ThemeVariant, TokenDefinitions,
     TokenPath, TokenReference, TokenTransform, TokenValidationError, TokenValue, TypographyValue,
 };
-use super::token_values::TokenValueStore;
+use super::token_values::DesignTokens;
 use std::collections::{HashMap, HashSet};
 
 /// 令牌解析器
 #[derive(Debug)]
 pub struct TokenResolver {
     /// 令牌值存储
-    store: TokenValueStore,
+    store: DesignTokens,
     /// 解析缓存
     cache: HashMap<(TokenPath, ThemeVariant), TokenValue>,
     /// 当前解析栈（用于检测循环引用）
@@ -23,7 +23,7 @@ pub struct TokenResolver {
 
 impl TokenResolver {
     /// 创建新的令牌解析器
-    pub fn new(store: TokenValueStore) -> Self {
+    pub fn new(store: DesignTokens) -> Self {
         Self {
             store,
             cache: HashMap::new(),
@@ -54,9 +54,9 @@ impl TokenResolver {
         // 获取原始值
         let raw_value = self
             .store
-            .get_value(path, theme)
-            .ok_or_else(|| TokenValidationError::MissingReference(path.to_string()))?
-            .clone();
+            .get_value(&path.to_string())
+            .ok_or_else(|| TokenValidationError::MissingReference(path.to_string()))
+            .map(|s| TokenValue::String(s))?;
 
         // 解析值（处理引用）
         let resolved_value = self.resolve_value(&raw_value, theme)?;
@@ -119,22 +119,28 @@ impl TokenResolver {
     }
 
     /// 获取存储引用
-    pub fn get_store(&self) -> &TokenValueStore {
+    pub fn get_store(&self) -> &DesignTokens {
         &self.store
     }
 
     /// 获取存储可变引用
-    pub fn get_store_mut(&mut self) -> &mut TokenValueStore {
+    pub fn get_store_mut(&mut self) -> &mut DesignTokens {
         &mut self.store
     }
 
     /// 验证令牌引用的完整性
     pub fn validate_references(&mut self, theme: ThemeVariant) -> Vec<TokenValidationError> {
         let mut errors = Vec::new();
-        let paths = self.store.list_paths(theme);
+        let theme_str = match theme {
+            ThemeVariant::Light => "light",
+            ThemeVariant::Dark => "dark",
+            ThemeVariant::Auto => "light", // 默认使用light主题
+        };
+        let paths = self.store.list_paths(theme_str);
 
         for path in paths {
-            if let Err(error) = self.resolve_token(&path, theme) {
+            let token_path = TokenPath::from_str(&path);
+            if let Err(error) = self.resolve_token(&token_path, theme) {
                 errors.push(error);
             }
         }
@@ -149,12 +155,19 @@ impl TokenResolver {
         theme: ThemeVariant,
     ) -> Vec<TokenPath> {
         let mut references = Vec::new();
-        let paths = self.store.list_paths(theme);
+        let theme_str = match theme {
+            ThemeVariant::Light => "light",
+            ThemeVariant::Dark => "dark",
+            ThemeVariant::Auto => "light", // 默认使用light主题
+        };
+        let paths = self.store.list_paths(theme_str);
 
         for path in paths {
-            if let Some(value) = self.store.get_value(&path, theme) {
-                if self.value_references_path(value, target_path) {
-                    references.push(path);
+            let token_path = TokenPath::from_str(&path);
+            if let Some(value_str) = self.store.get_value(&path) {
+                let value = TokenValue::String(value_str);
+                if self.value_references_path(&value, target_path) {
+                    references.push(token_path);
                 }
             }
         }
@@ -687,7 +700,9 @@ impl TokenResolver {
 impl TokenDefinitions for TokenResolver {
     fn get_token_value(&self, path: &TokenPath, theme: ThemeVariant) -> Option<TokenValue> {
         // 注意：这里返回原始值，不进行解析
-        self.store.get_value(path, theme).cloned()
+        self.store
+            .get_value(&path.to_string())
+            .map(|s| TokenValue::String(s))
     }
 
     fn set_token_value(
@@ -696,7 +711,7 @@ impl TokenDefinitions for TokenResolver {
         value: TokenValue,
         theme: ThemeVariant,
     ) -> Result<(), String> {
-        self.store.set_value(path.clone(), value, theme);
+        self.store.set_value(&path.to_string(), value.to_string())?;
         // 清空相关缓存
         self.cache
             .retain(|(cached_path, cached_theme), _| cached_path != path || *cached_theme != theme);
@@ -707,11 +722,20 @@ impl TokenDefinitions for TokenResolver {
         &self,
         path: &TokenPath,
     ) -> Option<super::token_definitions::TokenMetadata> {
-        self.store.get_metadata(path).cloned()
+        self.store.get_metadata(&path.to_string())
     }
 
     fn list_token_paths(&self, theme: ThemeVariant) -> Vec<TokenPath> {
-        self.store.list_paths(theme)
+        let theme_str = match theme {
+            ThemeVariant::Light => "light",
+            ThemeVariant::Dark => "dark",
+            ThemeVariant::Auto => "light", // 默认使用light主题
+        };
+        self.store
+            .list_paths(theme_str)
+            .into_iter()
+            .map(|path| TokenPath::from_str(&path))
+            .collect()
     }
 }
 
@@ -722,7 +746,12 @@ mod tests {
 
     #[test]
     fn test_token_resolver_basic() {
-        let store = AntDesignTokenValues::create_default_store();
+        let mut store = DesignTokens::default();
+        // 添加测试令牌
+        let light_values = AntDesignTokenValues::get_light_theme_values();
+        for (path, value) in light_values {
+            store.set_value(&path.to_string(), value.to_string());
+        }
         let mut resolver = TokenResolver::new(store);
 
         let path = TokenPath::from_str("color.primary.500");
@@ -736,21 +765,13 @@ mod tests {
 
     #[test]
     fn test_token_reference_resolution() {
-        let mut store = TokenValueStore::new();
+        let mut store = DesignTokens::default();
 
         // 设置基础值
-        store.set_value(
-            TokenPath::from_str("base.color"),
-            TokenValue::String("#1677ff".to_string()),
-            ThemeVariant::Light,
-        );
+        store.set_value("base.color", "#1677ff".to_string());
 
         // 设置引用值
-        store.set_value(
-            TokenPath::from_str("primary.color"),
-            TokenValue::Reference("base.color".to_string()),
-            ThemeVariant::Light,
-        );
+        store.set_value("primary.color", "base.color".to_string());
 
         let mut resolver = TokenResolver::new(store);
         let result =
@@ -764,19 +785,11 @@ mod tests {
 
     #[test]
     fn test_circular_reference_detection() {
-        let mut store = TokenValueStore::new();
+        let mut store = DesignTokens::default();
 
         // 创建循环引用
-        store.set_value(
-            TokenPath::from_str("a"),
-            TokenValue::Reference("b".to_string()),
-            ThemeVariant::Light,
-        );
-        store.set_value(
-            TokenPath::from_str("b"),
-            TokenValue::Reference("a".to_string()),
-            ThemeVariant::Light,
-        );
+        store.set_value("a", "b".to_string());
+        store.set_value("b", "a".to_string());
 
         let mut resolver = TokenResolver::new(store);
         let result = resolver.resolve_token(&TokenPath::from_str("a"), ThemeVariant::Light);
@@ -791,13 +804,9 @@ mod tests {
 
     #[test]
     fn test_computation() {
-        let mut store = TokenValueStore::new();
+        let mut store = DesignTokens::default();
 
-        store.set_value(
-            TokenPath::from_str("base.size"),
-            TokenValue::Number(16.0),
-            ThemeVariant::Light,
-        );
+        store.set_value("base.size", "16.0".to_string());
 
         let mut resolver = TokenResolver::new(store);
 

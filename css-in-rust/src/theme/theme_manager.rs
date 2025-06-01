@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
-use super::design_token_system::DesignTokenSystem;
+use super::token_system::DesignTokenSystem;
 use super::{DesignTokens, Theme, ThemeMode, TokenValue};
 
 /// 主题历史记录管理器
@@ -431,10 +431,10 @@ impl ThemeManager {
 
     /// 获取设计令牌值
     pub fn get_token_value(&self, path: &str) -> Result<TokenValue, ThemeError> {
-        let token_system = self.token_system.read().unwrap();
+        let mut token_system = self.token_system.write().unwrap();
         token_system
-            .get_token_value(path)
-            .ok_or_else(|| ThemeError::TokenNotFound(format!("Token not found: {}", path)))
+            .get_token(path)
+            .map_err(|e| ThemeError::TokenNotFound(format!("Token not found: {} - {}", path, e)))
     }
 
     /// 设置设计令牌值
