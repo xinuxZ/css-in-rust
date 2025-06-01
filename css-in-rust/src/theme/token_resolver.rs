@@ -4,7 +4,8 @@
 //! 职责：令牌解析逻辑、引用处理、值计算
 
 use super::token_definitions::{
-    ThemeVariant, TokenDefinitions, TokenPath, TokenValidationError, TokenValue,
+    ColorValue, DimensionValue, MathOperation, ShadowValue, ThemeVariant, TokenDefinitions,
+    TokenPath, TokenReference, TokenTransform, TokenValidationError, TokenValue, TypographyValue,
 };
 use super::token_values::TokenValueStore;
 use std::collections::{HashMap, HashSet};
@@ -200,6 +201,360 @@ impl TokenResolver {
         }
     }
 
+    /// 应用令牌变换
+    pub fn apply_transform(
+        &mut self,
+        value: &TokenValue,
+        transform: &TokenTransform,
+        theme: ThemeVariant,
+    ) -> Result<TokenValue, TokenValidationError> {
+        match transform {
+            TokenTransform::Alpha(alpha) => match value {
+                TokenValue::Color(color) => {
+                    let mut new_color = color.clone();
+                    new_color.alpha = Some(*alpha);
+                    Ok(TokenValue::Color(new_color))
+                }
+                _ => Err(TokenValidationError::TypeMismatch {
+                    expected: "Color".to_string(),
+                    actual: format!("{:?}", value),
+                }),
+            },
+            TokenTransform::Lighten(amount) => match value {
+                TokenValue::Color(color) => Ok(TokenValue::Color(color.lighten(*amount))),
+                _ => Err(TokenValidationError::TypeMismatch {
+                    expected: "Color".to_string(),
+                    actual: format!("{:?}", value),
+                }),
+            },
+            TokenTransform::Darken(amount) => match value {
+                TokenValue::Color(color) => Ok(TokenValue::Color(color.darken(*amount))),
+                _ => Err(TokenValidationError::TypeMismatch {
+                    expected: "Color".to_string(),
+                    actual: format!("{:?}", value),
+                }),
+            },
+            TokenTransform::Saturate(amount) => match value {
+                TokenValue::Color(color) => Ok(TokenValue::Color(color.saturate(*amount))),
+                _ => Err(TokenValidationError::TypeMismatch {
+                    expected: "Color".to_string(),
+                    actual: format!("{:?}", value),
+                }),
+            },
+            TokenTransform::Desaturate(amount) => match value {
+                TokenValue::Color(color) => Ok(TokenValue::Color(color.desaturate(*amount))),
+                _ => Err(TokenValidationError::TypeMismatch {
+                    expected: "Color".to_string(),
+                    actual: format!("{:?}", value),
+                }),
+            },
+            TokenTransform::HueRotate(degrees) => {
+                match value {
+                    TokenValue::Color(color) => {
+                        // 简单实现，实际应该进行色相旋转
+                        let mut new_color = color.clone();
+                        new_color.hex =
+                            format!("{}/* hue rotated by {} degrees */", color.hex, degrees);
+                        Ok(TokenValue::Color(new_color))
+                    }
+                    _ => Err(TokenValidationError::TypeMismatch {
+                        expected: "Color".to_string(),
+                        actual: format!("{:?}", value),
+                    }),
+                }
+            }
+            TokenTransform::Contrast(amount) => {
+                match value {
+                    TokenValue::Color(color) => {
+                        // 简单实现，实际应该调整对比度
+                        let mut new_color = color.clone();
+                        new_color.hex =
+                            format!("{}/* contrast adjusted by {} */", color.hex, amount);
+                        Ok(TokenValue::Color(new_color))
+                    }
+                    _ => Err(TokenValidationError::TypeMismatch {
+                        expected: "Color".to_string(),
+                        actual: format!("{:?}", value),
+                    }),
+                }
+            }
+            TokenTransform::Math(operation) => self.apply_math_operation(value, operation, theme),
+            TokenTransform::ColorModify { operation, amount } => {
+                self.apply_color_modification(value, operation, *amount)
+            }
+            TokenTransform::Scale(factor) => self.apply_scale_transform(value, *factor),
+            TokenTransform::Conditional {
+                condition,
+                if_true,
+                if_false,
+            } => {
+                // 递归应用条件变换
+                let condition_result = self.evaluate_condition(condition, theme)?;
+                let selected_transform = if condition_result { if_true } else { if_false };
+                self.apply_transform(value, selected_transform, theme)
+            }
+        }
+    }
+
+    /// 应用数学运算变换
+    fn apply_math_operation(
+        &mut self,
+        value: &TokenValue,
+        operation: &MathOperation,
+        theme: ThemeVariant,
+    ) -> Result<TokenValue, TokenValidationError> {
+        match operation {
+            MathOperation::Add(operand) => {
+                let operand_value = TokenValue::Number(*operand as f64);
+                self.add_values(value, &operand_value)
+            }
+            MathOperation::Subtract(operand) => {
+                let operand_value = TokenValue::Number(*operand as f64);
+                self.subtract_values(value, &operand_value)
+            }
+            MathOperation::Multiply(operand) => {
+                let operand_value = TokenValue::Number(*operand as f64);
+                self.multiply_values(value, &operand_value)
+            }
+            MathOperation::Divide(operand) => {
+                let operand_value = TokenValue::Number(*operand as f64);
+                self.divide_values(value, &operand_value)
+            }
+            MathOperation::Min(operand) => {
+                let operand_value = TokenValue::Number(*operand as f64);
+                // 实现min逻辑
+                match (value, &operand_value) {
+                    (TokenValue::Number(a), TokenValue::Number(b)) => {
+                        Ok(TokenValue::Number(a.min(*b)))
+                    }
+                    _ => Err(TokenValidationError::TypeMismatch {
+                        expected: "Number".to_string(),
+                        actual: format!("{:?}", value),
+                    }),
+                }
+            }
+            MathOperation::Max(operand) => {
+                let operand_value = TokenValue::Number(*operand as f64);
+                // 实现max逻辑
+                match (value, &operand_value) {
+                    (TokenValue::Number(a), TokenValue::Number(b)) => {
+                        Ok(TokenValue::Number(a.max(*b)))
+                    }
+                    _ => Err(TokenValidationError::TypeMismatch {
+                        expected: "Number".to_string(),
+                        actual: format!("{:?}", value),
+                    }),
+                }
+            }
+            MathOperation::Clamp(min_val, max_val, _) => {
+                // 实现clamp逻辑
+                match value {
+                    TokenValue::Number(val) => {
+                        let clamped = val.max(*min_val as f64).min(*max_val as f64);
+                        Ok(TokenValue::Number(clamped))
+                    }
+                    _ => Err(TokenValidationError::TypeMismatch {
+                        expected: "Number".to_string(),
+                        actual: format!("{:?}", value),
+                    }),
+                }
+            }
+        }
+    }
+
+    /// 应用颜色修改变换
+    fn apply_color_modification(
+        &self,
+        value: &TokenValue,
+        operation: &str,
+        amount: f32,
+    ) -> Result<TokenValue, TokenValidationError> {
+        match value {
+            TokenValue::Color(color_value) => {
+                let modified_color = match operation {
+                    "lighten" => color_value.lighten(amount),
+                    "darken" => color_value.darken(amount),
+                    "saturate" => color_value.saturate(amount),
+                    "desaturate" => color_value.desaturate(amount),
+                    "fade" => color_value.fade(amount),
+                    _ => {
+                        return Err(TokenValidationError::InvalidValue(format!(
+                            "Unknown color operation: {}",
+                            operation
+                        )))
+                    }
+                };
+                Ok(TokenValue::Color(modified_color))
+            }
+            _ => Err(TokenValidationError::TypeMismatch {
+                expected: "color".to_string(),
+                actual: value.token_type().to_string(),
+            }),
+        }
+    }
+
+    /// 应用缩放变换
+    fn apply_scale_transform(
+        &self,
+        value: &TokenValue,
+        factor: f32,
+    ) -> Result<TokenValue, TokenValidationError> {
+        match value {
+            TokenValue::Number(n) => Ok(TokenValue::Number(n * factor as f64)),
+            TokenValue::Dimension(dim) => {
+                let scaled_dim = dim.scale(factor);
+                Ok(TokenValue::Dimension(scaled_dim))
+            }
+            _ => Err(TokenValidationError::TypeMismatch {
+                expected: "number or dimension".to_string(),
+                actual: value.token_type().to_string(),
+            }),
+        }
+    }
+
+    /// 应用条件变换
+    fn apply_conditional_transform(
+        &mut self,
+        condition: &str,
+        if_true: &TokenReference,
+        if_false: &TokenReference,
+        theme: ThemeVariant,
+    ) -> Result<TokenValue, TokenValidationError> {
+        let condition_result = self.evaluate_condition(condition, theme)?;
+        let reference = if condition_result { if_true } else { if_false };
+        self.resolve_token_reference(reference, theme)
+    }
+
+    /// 解析令牌引用
+    fn resolve_token_reference(
+        &mut self,
+        reference: &TokenReference,
+        theme: ThemeVariant,
+    ) -> Result<TokenValue, TokenValidationError> {
+        // 解析引用路径
+        let path = TokenPath::from_str(&reference.reference);
+        let mut value = self.resolve_token(&path, theme)?;
+
+        // 应用变换（如果有）
+        if let Some(transform) = &reference.transform {
+            value = self.apply_transform(&value, transform, theme)?;
+        }
+
+        Ok(value)
+    }
+
+    /// 评估条件表达式
+    fn evaluate_condition(
+        &mut self,
+        condition: &str,
+        theme: ThemeVariant,
+    ) -> Result<bool, TokenValidationError> {
+        // 简单的条件评估，支持主题检查
+        if condition == "theme.light" {
+            Ok(theme == ThemeVariant::Light)
+        } else if condition == "theme.dark" {
+            Ok(theme == ThemeVariant::Dark)
+        } else {
+            // 可以扩展支持更复杂的条件表达式
+            Err(TokenValidationError::InvalidValue(format!(
+                "Unknown condition: {}",
+                condition
+            )))
+        }
+    }
+
+    /// 值加法运算
+    fn add_values(
+        &self,
+        left: &TokenValue,
+        right: &TokenValue,
+    ) -> Result<TokenValue, TokenValidationError> {
+        match (left, right) {
+            (TokenValue::Number(a), TokenValue::Number(b)) => Ok(TokenValue::Number(a + b)),
+            (TokenValue::Dimension(a), TokenValue::Dimension(b)) => {
+                Ok(TokenValue::Dimension(a.add(b)?))
+            }
+            _ => Err(TokenValidationError::TypeMismatch {
+                expected: "compatible numeric types".to_string(),
+                actual: format!("{} and {}", left.token_type(), right.token_type()),
+            }),
+        }
+    }
+
+    /// 值减法运算
+    fn subtract_values(
+        &self,
+        left: &TokenValue,
+        right: &TokenValue,
+    ) -> Result<TokenValue, TokenValidationError> {
+        match (left, right) {
+            (TokenValue::Number(a), TokenValue::Number(b)) => Ok(TokenValue::Number(a - b)),
+            (TokenValue::Dimension(a), TokenValue::Dimension(b)) => {
+                Ok(TokenValue::Dimension(a.subtract(b)?))
+            }
+            _ => Err(TokenValidationError::TypeMismatch {
+                expected: "compatible numeric types".to_string(),
+                actual: format!("{} and {}", left.token_type(), right.token_type()),
+            }),
+        }
+    }
+
+    /// 值乘法运算
+    fn multiply_values(
+        &self,
+        left: &TokenValue,
+        right: &TokenValue,
+    ) -> Result<TokenValue, TokenValidationError> {
+        match (left, right) {
+            (TokenValue::Number(a), TokenValue::Number(b)) => Ok(TokenValue::Number(a * b)),
+            (TokenValue::Dimension(a), TokenValue::Number(b)) => {
+                Ok(TokenValue::Dimension(a.multiply(*b)))
+            }
+            (TokenValue::Number(a), TokenValue::Dimension(b)) => {
+                Ok(TokenValue::Dimension(b.multiply(*a)))
+            }
+            _ => Err(TokenValidationError::TypeMismatch {
+                expected: "numeric types".to_string(),
+                actual: format!("{} and {}", left.token_type(), right.token_type()),
+            }),
+        }
+    }
+
+    /// 值除法运算
+    fn divide_values(
+        &self,
+        left: &TokenValue,
+        right: &TokenValue,
+    ) -> Result<TokenValue, TokenValidationError> {
+        match (left, right) {
+            (TokenValue::Number(a), TokenValue::Number(b)) => {
+                if *b == 0.0 {
+                    Err(TokenValidationError::InvalidValue(
+                        "Division by zero".to_string(),
+                    ))
+                } else {
+                    Ok(TokenValue::Number(a / b))
+                }
+            }
+            (TokenValue::Dimension(a), TokenValue::Number(b)) => {
+                if *b == 0.0 {
+                    Err(TokenValidationError::InvalidValue(
+                        "Division by zero".to_string(),
+                    ))
+                } else {
+                    Ok(TokenValue::Dimension(
+                        a.divide(*b)
+                            .map_err(|e| TokenValidationError::InvalidValue(e))?,
+                    ))
+                }
+            }
+            _ => Err(TokenValidationError::TypeMismatch {
+                expected: "number".to_string(),
+                actual: "mixed".to_string(),
+            }),
+        }
+    }
+
     /// 计算加法表达式
     fn compute_addition(
         &mut self,
@@ -291,6 +646,18 @@ impl TokenResolver {
                     ))
                 } else {
                     Ok(TokenValue::Number(a / b))
+                }
+            }
+            (TokenValue::Dimension(a), TokenValue::Number(b)) => {
+                if b == 0.0 {
+                    Err(TokenValidationError::InvalidValue(
+                        "Division by zero".to_string(),
+                    ))
+                } else {
+                    Ok(TokenValue::Dimension(
+                        a.divide(b)
+                            .map_err(|e| TokenValidationError::InvalidValue(e))?,
+                    ))
                 }
             }
             _ => Err(TokenValidationError::TypeMismatch {

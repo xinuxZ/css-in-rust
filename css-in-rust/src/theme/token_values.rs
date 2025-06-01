@@ -211,11 +211,12 @@ impl Shadows {
 
     pub fn to_css_variables(&self) -> String {
         format!(
-            "  --border-width-none: {};\n\
-             --border-width-thin: {};\n\
-             --border-width-medium: {};\n\
-             --border-width-thick: {};\n",
-            self.none, self.thin, self.medium, self.thick
+            "  --shadow-sm: {};\n\
+             --shadow-md: {};\n\
+             --shadow-lg: {};\n\
+             --shadow-xl: {};\n\
+             --shadow-inner: {};\n",
+            self.sm, self.md, self.lg, self.xl, self.inner
         )
     }
 }
@@ -259,11 +260,13 @@ impl BorderRadius {
 
     pub fn to_css_variables(&self) -> String {
         format!(
-            "  --border-width-none: {};\n\
-             --border-width-thin: {};\n\
-             --border-width-medium: {};\n\
-             --border-width-thick: {};\n",
-            self.none, self.thin, self.medium, self.thick
+            "  --border-radius-none: {};\n\
+             --border-radius-sm: {};\n\
+             --border-radius-md: {};\n\
+             --border-radius-lg: {};\n\
+             --border-radius-xl: {};\n\
+             --border-radius-full: {};\n",
+            self.none, self.sm, self.md, self.lg, self.xl, self.full
         )
     }
 }
@@ -338,11 +341,9 @@ impl Borders {
 
     pub fn to_css_variables(&self) -> String {
         format!(
-            "  --border-width-none: {};\n\
-             --border-width-thin: {};\n\
-             --border-width-medium: {};\n\
-             --border-width-thick: {};\n",
-            self.none, self.thin, self.medium, self.thick
+            "{}{}",
+            self.radius.to_css_variables(),
+            self.width.to_css_variables()
         )
     }
 }
@@ -389,11 +390,14 @@ impl Spacing {
 
     pub fn to_css_variables(&self) -> String {
         format!(
-            "  --border-width-none: {};\n\
-             --border-width-thin: {};\n\
-             --border-width-medium: {};\n\
-             --border-width-thick: {};\n",
-            self.none, self.thin, self.medium, self.thick
+            "  --spacing-xs: {};\n\
+             --spacing-sm: {};\n\
+             --spacing-md: {};\n\
+             --spacing-lg: {};\n\
+             --spacing-xl: {};\n\
+             --spacing-xxl: {};\n\
+             --spacing-xxxl: {};\n",
+            self.xs, self.sm, self.md, self.lg, self.xl, self.xxl, self.xxxl
         )
     }
 }
@@ -524,11 +528,48 @@ impl Typography {
 
     pub fn to_css_variables(&self) -> String {
         format!(
-            "  --border-width-none: {};\n\
-             --border-width-thin: {};\n\
-             --border-width-medium: {};\n\
-             --border-width-thick: {};\n",
-            self.none, self.thin, self.medium, self.thick
+            "  --font-size-xs: {};\n\
+             --font-size-sm: {};\n\
+             --font-size-md: {};\n\
+             --font-size-lg: {};\n\
+             --font-size-xl: {};\n\
+             --font-size-xxl: {};\n\
+             --font-size-xxxl: {};\n\
+             --font-family-sans: {};\n\
+             --font-family-serif: {};\n\
+             --font-family-mono: {};\n\
+             --font-weight-light: {};\n\
+             --font-weight-normal: {};\n\
+             --font-weight-medium: {};\n\
+             --font-weight-semibold: {};\n\
+             --font-weight-bold: {};\n\
+             --line-height-tight: {};\n\
+             --line-height-normal: {};\n\
+             --line-height-relaxed: {};\n\
+             --letter-spacing-tight: {};\n\
+             --letter-spacing-normal: {};\n\
+             --letter-spacing-wide: {};\n",
+            self.font_size.xs,
+            self.font_size.sm,
+            self.font_size.md,
+            self.font_size.lg,
+            self.font_size.xl,
+            self.font_size.xxl,
+            self.font_size.xxxl,
+            self.font_family.sans,
+            self.font_family.serif,
+            self.font_family.mono,
+            self.font_weight.light,
+            self.font_weight.normal,
+            self.font_weight.medium,
+            self.font_weight.semibold,
+            self.font_weight.bold,
+            self.line_height.tight,
+            self.line_height.normal,
+            self.line_height.relaxed,
+            self.letter_spacing.tight,
+            self.letter_spacing.normal,
+            self.letter_spacing.wide
         )
     }
 }

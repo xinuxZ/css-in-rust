@@ -5,6 +5,7 @@
 
 use super::design_tokens::*;
 use crate::theme::TokenValue;
+use crate::token_definitions::ColorValue;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 /// 设计令牌系统
@@ -596,7 +597,9 @@ impl DesignTokenSystem {
 
             _ => {
                 // 未知路径，返回默认值
-                Some(crate::theme::TokenValue::string("unknown-token"))
+                Some(crate::theme::TokenValue::String(
+                    "unknown-token".to_string(),
+                ))
             }
         }
     }
@@ -626,70 +629,70 @@ impl DesignTokenSystem {
     /// 解析字体大小令牌
     fn resolve_font_size_token(&self, size: &str) -> Option<crate::theme::TokenValue> {
         match size {
-            "xs" => Some(crate::theme::TokenValue::string("12px")),
-            "sm" => Some(crate::theme::TokenValue::string("14px")),
-            "base" => Some(crate::theme::TokenValue::string("16px")),
-            "lg" => Some(crate::theme::TokenValue::string("18px")),
-            "xl" => Some(crate::theme::TokenValue::string("20px")),
-            "2xl" => Some(crate::theme::TokenValue::string("24px")),
-            "3xl" => Some(crate::theme::TokenValue::string("30px")),
-            _ => Some(crate::theme::TokenValue::string("14px")),
+            "xs" => Some(crate::theme::TokenValue::String("12px".to_string())),
+            "sm" => Some(crate::theme::TokenValue::String("14px".to_string())),
+            "base" => Some(crate::theme::TokenValue::String("16px".to_string())),
+            "lg" => Some(crate::theme::TokenValue::String("18px".to_string())),
+            "xl" => Some(crate::theme::TokenValue::String("20px".to_string())),
+            "2xl" => Some(crate::theme::TokenValue::String("24px".to_string())),
+            "3xl" => Some(crate::theme::TokenValue::String("30px".to_string())),
+            _ => Some(crate::theme::TokenValue::String("14px".to_string())),
         }
     }
 
     /// 解析间距令牌
     fn resolve_spacing_token(&self, size: &str) -> Option<crate::theme::TokenValue> {
         match size {
-            "xs" => Some(crate::theme::TokenValue::string("4px")),
-            "sm" => Some(crate::theme::TokenValue::string("8px")),
-            "md" => Some(crate::theme::TokenValue::string("16px")),
-            "lg" => Some(crate::theme::TokenValue::string("24px")),
-            "xl" => Some(crate::theme::TokenValue::string("32px")),
-            "2xl" => Some(crate::theme::TokenValue::string("48px")),
-            _ => Some(crate::theme::TokenValue::string("16px")),
+            "xs" => Some(crate::theme::TokenValue::String("4px".to_string())),
+            "sm" => Some(crate::theme::TokenValue::String("8px".to_string())),
+            "md" => Some(crate::theme::TokenValue::String("16px".to_string())),
+            "lg" => Some(crate::theme::TokenValue::String("24px".to_string())),
+            "xl" => Some(crate::theme::TokenValue::String("32px".to_string())),
+            "2xl" => Some(crate::theme::TokenValue::String("48px".to_string())),
+            _ => Some(crate::theme::TokenValue::String("16px".to_string())),
         }
     }
 
     /// 解析边框圆角令牌
     fn resolve_border_radius_token(&self, size: &str) -> Option<crate::theme::TokenValue> {
         match size {
-            "none" => Some(crate::theme::TokenValue::string("0px")),
-            "sm" => Some(crate::theme::TokenValue::string("2px")),
-            "base" => Some(crate::theme::TokenValue::string("6px")),
-            "lg" => Some(crate::theme::TokenValue::string("8px")),
-            "xl" => Some(crate::theme::TokenValue::string("12px")),
-            "full" => Some(crate::theme::TokenValue::string("9999px")),
-            _ => Some(crate::theme::TokenValue::string("6px")),
+            "none" => Some(crate::theme::TokenValue::String("0px".to_string())),
+            "sm" => Some(crate::theme::TokenValue::String("2px".to_string())),
+            "base" => Some(crate::theme::TokenValue::String("6px".to_string())),
+            "lg" => Some(crate::theme::TokenValue::String("8px".to_string())),
+            "xl" => Some(crate::theme::TokenValue::String("12px".to_string())),
+            "full" => Some(crate::theme::TokenValue::String("9999px".to_string())),
+            _ => Some(crate::theme::TokenValue::String("6px".to_string())),
         }
     }
 
     /// 解析语义颜色令牌
     fn resolve_semantic_color_token(&self, semantic: &str) -> Option<crate::theme::TokenValue> {
         match semantic {
-            "primary" => Some(crate::theme::TokenValue::string("#1890ff")),
-            "success" => Some(crate::theme::TokenValue::string("#52c41a")),
-            "warning" => Some(crate::theme::TokenValue::string("#faad14")),
-            "error" => Some(crate::theme::TokenValue::string("#ff4d4f")),
-            "info" => Some(crate::theme::TokenValue::string("#1890ff")),
-            "text_primary" => Some(crate::theme::TokenValue::string("#000000d9")),
-            "text_secondary" => Some(crate::theme::TokenValue::string("#00000073")),
-            "text_disabled" => Some(crate::theme::TokenValue::string("#00000040")),
-            "background" => Some(crate::theme::TokenValue::string("#ffffff")),
-            "border" => Some(crate::theme::TokenValue::string("#d9d9d9")),
-            _ => Some(crate::theme::TokenValue::string("#000000")),
+            "primary" => Some(crate::theme::TokenValue::String("#1890ff".to_string())),
+            "success" => Some(crate::theme::TokenValue::String("#52c41a".to_string())),
+            "warning" => Some(crate::theme::TokenValue::String("#faad14".to_string())),
+            "error" => Some(crate::theme::TokenValue::String("#ff4d4f".to_string())),
+            "info" => Some(crate::theme::TokenValue::String("#1890ff".to_string())),
+            "text_primary" => Some(crate::theme::TokenValue::String("#000000d9".to_string())),
+            "text_secondary" => Some(crate::theme::TokenValue::String("#00000073".to_string())),
+            "text_disabled" => Some(crate::theme::TokenValue::String("#00000040".to_string())),
+            "background" => Some(crate::theme::TokenValue::String("#ffffff".to_string())),
+            "border" => Some(crate::theme::TokenValue::String("#d9d9d9".to_string())),
+            _ => Some(crate::theme::TokenValue::String("#000000".to_string())),
         }
     }
 
     /// 解析语义排版令牌
     fn resolve_semantic_typography_token(&self, element: &str) -> Option<crate::theme::TokenValue> {
         match element {
-            "h1" => Some(crate::theme::TokenValue::string("32px")),
-            "h2" => Some(crate::theme::TokenValue::string("24px")),
-            "h3" => Some(crate::theme::TokenValue::string("20px")),
-            "h4" => Some(crate::theme::TokenValue::string("16px")),
-            "body" => Some(crate::theme::TokenValue::string("14px")),
-            "caption" => Some(crate::theme::TokenValue::string("12px")),
-            _ => Some(crate::theme::TokenValue::string("14px")),
+            "h1" => Some(crate::theme::TokenValue::String("32px".to_string())),
+            "h2" => Some(crate::theme::TokenValue::String("24px".to_string())),
+            "h3" => Some(crate::theme::TokenValue::String("20px".to_string())),
+            "h4" => Some(crate::theme::TokenValue::String("16px".to_string())),
+            "body" => Some(crate::theme::TokenValue::String("14px".to_string())),
+            "caption" => Some(crate::theme::TokenValue::String("12px".to_string())),
+            _ => Some(crate::theme::TokenValue::String("14px".to_string())),
         }
     }
 
@@ -700,14 +703,16 @@ impl DesignTokenSystem {
         property: &str,
     ) -> Option<crate::theme::TokenValue> {
         match (component, property) {
-            ("button", "height") => Some(crate::theme::TokenValue::string("32px")),
-            ("button", "padding") => Some(crate::theme::TokenValue::string("4px 15px")),
-            ("button", "border_radius") => Some(crate::theme::TokenValue::string("6px")),
-            ("input", "height") => Some(crate::theme::TokenValue::string("32px")),
-            ("input", "padding") => Some(crate::theme::TokenValue::string("4px 11px")),
-            ("card", "padding") => Some(crate::theme::TokenValue::string("24px")),
-            ("card", "border_radius") => Some(crate::theme::TokenValue::string("8px")),
-            _ => Some(crate::theme::TokenValue::string("auto")),
+            ("button", "height") => Some(crate::theme::TokenValue::String("32px".to_string())),
+            ("button", "padding") => Some(crate::theme::TokenValue::String("4px 15px".to_string())),
+            ("button", "border_radius") => {
+                Some(crate::theme::TokenValue::String("6px".to_string()))
+            }
+            ("input", "height") => Some(crate::theme::TokenValue::String("32px".to_string())),
+            ("input", "padding") => Some(crate::theme::TokenValue::String("4px 11px".to_string())),
+            ("card", "padding") => Some(crate::theme::TokenValue::String("24px".to_string())),
+            ("card", "border_radius") => Some(crate::theme::TokenValue::String("8px".to_string())),
+            _ => Some(crate::theme::TokenValue::String("auto".to_string())),
         }
     }
 
@@ -719,11 +724,19 @@ impl DesignTokenSystem {
         variant: &str,
     ) -> Option<crate::theme::TokenValue> {
         match (component, property, variant) {
-            ("button", "height", "large") => Some(crate::theme::TokenValue::string("40px")),
-            ("button", "height", "small") => Some(crate::theme::TokenValue::string("24px")),
-            ("button", "padding", "large") => Some(crate::theme::TokenValue::string("6px 15px")),
-            ("button", "padding", "small") => Some(crate::theme::TokenValue::string("0px 7px")),
-            _ => Some(crate::theme::TokenValue::string("auto")),
+            ("button", "height", "large") => {
+                Some(crate::theme::TokenValue::String("40px".to_string()))
+            }
+            ("button", "height", "small") => {
+                Some(crate::theme::TokenValue::String("24px".to_string()))
+            }
+            ("button", "padding", "large") => {
+                Some(crate::theme::TokenValue::String("6px 15px".to_string()))
+            }
+            ("button", "padding", "small") => {
+                Some(crate::theme::TokenValue::String("0px 7px".to_string()))
+            }
+            _ => Some(crate::theme::TokenValue::String("auto".to_string())),
         }
     }
 
@@ -1702,7 +1715,7 @@ impl DesignTokenSystem {
             _ => return None,
         };
 
-        Some(TokenValue::Color(color_value.clone()))
+        Some(TokenValue::Color(ColorValue::new(color_value.clone())))
         // Err(format!("未知的颜色令牌: {}.{}", color, level))
     }
 
