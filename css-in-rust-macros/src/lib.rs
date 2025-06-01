@@ -13,6 +13,32 @@ use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
 use sha2::{Digest, Sha256};
 use syn::{Error, LitStr};
+use std::collections::{HashMap, HashSet};
+use std::sync::{Mutex, OnceLock};
+
+/// Global CSS cache to avoid duplicate processing and injection
+static CSS_CACHE: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
+
+/// Initialize the CSS cache
+fn get_css_cache() -> &'static Mutex<HashMap<String, String>> {
+    CSS_CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+/// Check if CSS is already cached and return the class name if found
+fn get_cached_css(css_hash: &str) -> Option<String> {
+    if let Ok(cache) = get_css_cache().lock() {
+        cache.get(css_hash).cloned()
+    } else {
+        None
+    }
+}
+
+/// Cache the CSS with its hash and class name
+fn cache_css(css_hash: String, class_name: String) {
+    if let Ok(mut cache) = get_css_cache().lock() {
+        cache.insert(css_hash, class_name);
+    }
+}
 
 /// CSS macro for compile-time CSS processing and runtime injection
 /// Now supports theme variables and variant syntax
@@ -77,16 +103,61 @@ pub fn css_class(input: TokenStream) -> TokenStream {
     }
 }
 
+/// Multi-condition CSS macro - applies CSS based on complex conditions
+/// Supports AND (&), OR (|) operators for combining conditions
+///
+/// # Examples
+///
+/// ```rust
+/// use css_in_rust_macros::css_multi_if;
+///
+/// let is_active = true;
+/// let is_large = false;
+///
+/// // AND condition
+/// let class_name = css_multi_if!(is_active & is_large, "background-color: blue;");
+///
+/// // OR condition
+/// let class_name = css_multi_if!(is_active | is_large, "background-color: green;");
+///
+/// // Complex condition
+/// let class_name = css_multi_if!((is_active & !is_large) | (is_large & !is_active), "background-color: yellow;");
+/// ```
+#[proc_macro]
+pub fn css_multi_if(input: TokenStream) -> TokenStream {
+    let input2 = TokenStream2::from(input);
+    match css_multi_if_impl_internal(input2) {
+        Ok(tokens) => TokenStream::from(tokens),
+        Err(err) => TokenStream::from(err.to_compile_error()),
+    }
+}
+
 /// Internal implementation of the css! macro
 fn css_impl_internal(input: TokenStream2) -> syn::Result<TokenStream2> {
-    // Try to parse as a string literal first
-    if let Ok(lit_str) = syn::parse2::<LitStr>(input.clone()) {
-        return process_css_string(&lit_str.value(), lit_str.span());
+    let css_content = if let Ok(lit_str) = syn::parse2::<LitStr>(input.clone()) {
+        lit_str.value()
+    } else {
+        parse_css_syntax(input)?
+    };
+
+    // Calculate hash for caching
+    let css_hash = calculate_css_hash(&css_content);
+
+    // Check cache first
+    if let Some(cached_class) = get_cached_css(&css_hash) {
+        return Ok(quote! { #cached_class });
     }
 
-    // If not a string literal, try to parse as CSS syntax
-    let css_content = parse_css_syntax(input)?;
-    process_css_string(&css_content, Span::call_site())
+    // Generate CSS ID
+    let css_id = format!("css-{}", &css_hash[..8]);
+
+    // Process CSS with caching
+    let result = process_css_with_cache(&css_content, &css_id)?;
+
+    // Cache the result
+    cache_css(css_hash, css_id.clone());
+
+    Ok(result)
 }
 
 /// Internal implementation of the css_if! macro
@@ -118,120 +189,33 @@ fn css_if_impl_internal(input: TokenStream2) -> syn::Result<TokenStream2> {
         .parse()
         .map_err(|_| Error::new(Span::call_site(), "Invalid condition syntax"))?;
 
-    // Process CSS with variant and theme variable support
-    let processed_css = process_css_with_variants_and_themes(css_content)?;
-
-    let css_literal = processed_css.css;
-    let _media_queries = processed_css.media_queries;
-    let _pseudo_selectors = processed_css.pseudo_selectors;
-
-    // Generate a unique identifier for this CSS block
+    // Calculate hash for caching
     let css_hash = calculate_css_hash(css_content);
+
+    // Check cache first
+    if let Some(cached_class) = get_cached_css(&css_hash) {
+        return Ok(quote! {
+            {
+                if #condition_tokens {
+                    #cached_class
+                } else {
+                    String::new()
+                }
+            }
+        });
+    }
+
+    // Generate CSS ID
     let css_id = format!("css-{}", &css_hash[..8]);
-    let css_id_literal = css_id.clone();
 
-    // 处理媒体查询和伪选择器
-    let media_css = process_media_queries(&_media_queries, &css_id);
-    let pseudo_css = process_pseudo_selectors(&_pseudo_selectors, &css_id);
+    // Process CSS with caching
+    let css_processing_result = process_css_with_cache(css_content, &css_id)?;
 
-    // 优化 CSS
-    let optimized_css = optimize_css_with_lightningcss(&css_literal);
 
     Ok(quote! {
         {
             if #condition_tokens {
-                // Use a static to ensure the CSS is only processed once
-                static CSS_INJECTED: ::std::sync::OnceLock<::std::string::String> = ::std::sync::OnceLock::new();
-
-                CSS_INJECTED.get_or_init(|| {
-                    let class_name = #css_id_literal;
-
-                    // Inject CSS into document head (web target only)
-                    #[cfg(target_arch = "wasm32")]
-                    {
-                        use wasm_bindgen::prelude::*;
-
-                        #[wasm_bindgen]
-                        extern "C" {
-                            type Document;
-                            type Element;
-                            type HtmlStyleElement;
-                            type Node;
-
-                            #[wasm_bindgen(js_namespace = console)]
-                            fn log(s: &str);
-
-                            #[wasm_bindgen(js_name = document, js_namespace = window)]
-                            static DOCUMENT: Document;
-
-                            #[wasm_bindgen(method, js_name = createElement)]
-                            fn create_element(this: &Document, tag_name: &str) -> Element;
-
-                            #[wasm_bindgen(method, js_name = appendChild)]
-                            fn append_child(this: &Node, child: &Node);
-
-                            #[wasm_bindgen(method, setter = innerHTML)]
-                            fn set_inner_html(this: &Element, html: &str);
-
-                            #[wasm_bindgen(method, getter = head)]
-                            fn head(this: &Document) -> Element;
-                        }
-
-                        let style_element = DOCUMENT.create_element("style");
-                        let mut css_rules_vec = Vec::new();
-
-                        // Base CSS rule
-                        if !#optimized_css.is_empty() {
-                            css_rules_vec.push(format!(".{} {{ {} }}", class_name, #optimized_css));
-                        }
-
-                        // Add media queries
-                        let media_css = #media_css;
-                        if !media_css.is_empty() {
-                            let media_with_class = media_css.replace("{class_name}", &class_name);
-                            css_rules_vec.push(media_with_class);
-                        }
-
-                        // Add pseudo selectors
-                        let pseudo_css = #pseudo_css;
-                        if !pseudo_css.is_empty() {
-                            let pseudo_with_class = pseudo_css.replace("{class_name}", &class_name);
-                            css_rules_vec.push(pseudo_with_class);
-                        }
-
-                        // Apply optimizations: deduplicate and compress
-                        let deduplicated_rules = {
-                            let mut seen = std::collections::HashSet::new();
-                            let mut deduplicated = Vec::new();
-                            for rule in &css_rules_vec {
-                                let normalized = rule.trim();
-                                if !normalized.is_empty() && seen.insert(normalized.to_string()) {
-                                    deduplicated.push(rule.clone());
-                                }
-                            }
-                            deduplicated
-                        };
-
-                        let css_rules = deduplicated_rules.join("\n")
-                            .lines()
-                            .map(|line| line.trim())
-                            .filter(|line| !line.is_empty())
-                            .collect::<Vec<_>>()
-                            .join("")
-                            .replace("; ", ";")
-                            .replace(": ", ":")
-                            .replace(" {", "{")
-                            .replace("{ ", "{")
-                            .replace(" }", "}")
-                            .replace("} ", "}");
-
-                        style_element.set_inner_html(&css_rules);
-                        let head = DOCUMENT.head();
-                        head.append_child(&style_element.into());
-                    }
-
-                    class_name.to_string()
-                }).clone()
+                #css_processing_result
             } else {
                 String::new()
             }
@@ -981,11 +965,7 @@ fn process_css_string(css: &str, span: Span) -> syn::Result<TokenStream2> {
                     extern "C" {
                         type Document;
                         type Element;
-                        type HtmlStyleElement;
                         type Node;
-
-                        #[wasm_bindgen(js_namespace = console)]
-                        fn log(s: &str);
 
                         #[wasm_bindgen(js_name = document, js_namespace = window)]
                         static DOCUMENT: Document;
@@ -1003,54 +983,63 @@ fn process_css_string(css: &str, span: Span) -> syn::Result<TokenStream2> {
                         fn head(this: &Document) -> Element;
                     }
 
-                    let style_element = DOCUMENT.create_element("style");
-                    let mut css_rules_vec = Vec::new();
+                    // Check if style element already exists
+                    let style_id = format!("css-cache-{}", #css_hash);
+                    if DOCUMENT.get_element_by_id(&style_id).is_none() {
+                        let style_element = DOCUMENT.create_element("style");
+                        style_element.set_attribute("id", &style_id).ok();
 
-                    // Base CSS rule
-                    if !#optimized_css.is_empty() {
-                        css_rules_vec.push(format!(".{} {{ {} }}", class_name, #optimized_css));
-                    }
+                        let mut css_rules_vec = Vec::new();
 
-                    // Add media queries and pseudo selectors support
-                    if !#media_css.is_empty() {
-                        let media_css_with_class = #media_css.replace("{class_name}", &class_name);
-                        css_rules_vec.push(media_css_with_class);
-                    }
-
-                    if !#pseudo_css.is_empty() {
-                        let pseudo_css_with_class = #pseudo_css.replace("{class_name}", &class_name);
-                        css_rules_vec.push(pseudo_css_with_class);
-                    }
-
-                    // Apply optimizations: deduplicate and compress
-                    let deduplicated_rules = {
-                        let mut seen = std::collections::HashSet::new();
-                        let mut deduplicated = Vec::new();
-                        for rule in &css_rules_vec {
-                            let normalized = rule.trim();
-                            if !normalized.is_empty() && seen.insert(normalized.to_string()) {
-                                deduplicated.push(rule.clone());
-                            }
+                        // Base CSS rule
+                        if !#optimized_css.is_empty() {
+                            css_rules_vec.push(format!(".{} {{ {} }}", class_name, #optimized_css));
                         }
-                        deduplicated
-                    };
 
-                    let css_rules = deduplicated_rules.join("\n")
-                        .lines()
-                        .map(|line| line.trim())
-                        .filter(|line| !line.is_empty())
-                        .collect::<Vec<_>>()
-                        .join("")
-                        .replace("; ", ";")
-                        .replace(": ", ":")
-                        .replace(" {", "{")
-                        .replace("{ ", "{")
-                        .replace(" }", "}")
-                        .replace("} ", "}")
+                        // Add media queries
+                        let media_css = #media_css;
+                        if !media_css.is_empty() {
+                            let media_with_class = media_css.replace("{class_name}", &class_name);
+                            css_rules_vec.push(media_with_class);
+                        }
 
-                    style_element.set_inner_html(&css_rules);
-                    let head = DOCUMENT.head();
-                    head.append_child(&style_element.into());
+                        // Add pseudo selectors
+                        let pseudo_css = #pseudo_css;
+                        if !pseudo_css.is_empty() {
+                            let pseudo_with_class = pseudo_css.replace("{class_name}", &class_name);
+                            css_rules_vec.push(pseudo_with_class);
+                        }
+
+                        // Apply optimizations: deduplicate and compress
+                        let deduplicated_rules = {
+                            let mut seen = std::collections::HashSet::new();
+                            let mut deduplicated = Vec::new();
+                            for rule in &css_rules_vec {
+                                let normalized = rule.trim();
+                                if !normalized.is_empty() && seen.insert(normalized.to_string()) {
+                                    deduplicated.push(rule.clone());
+                                }
+                            }
+                            deduplicated
+                        };
+
+                        let css_rules = deduplicated_rules.join("\n")
+                            .lines()
+                            .map(|line| line.trim())
+                            .filter(|line| !line.is_empty())
+                            .collect::<Vec<_>>()
+                            .join("")
+                            .replace("; ", ";")
+                            .replace(": ", ":")
+                            .replace(" {", "{")
+                            .replace("{ ", "{")
+                            .replace(" }", "}")
+                            .replace("} ", "}");
+
+                        style_element.set_inner_html(&css_rules);
+                        let head = DOCUMENT.head();
+                        head.append_child(&style_element.into());
+                    }
                 }
 
                 // For non-web targets, just return the class name
@@ -1309,3 +1298,284 @@ fn calculate_css_hash(css: &str) -> String {
     let result = hasher.finalize();
     format!("{:x}", result)
 }
+
+/// Internal implementation of the css_multi_if! macro
+fn css_multi_if_impl_internal(input: TokenStream2) -> syn::Result<TokenStream2> {
+    // Parse the input to extract condition and CSS
+    let input_str = input.to_string();
+
+    // Find the last comma to separate condition from CSS
+    let comma_pos = input_str.rfind(',').ok_or_else(|| {
+        Error::new(
+            Span::call_site(),
+            "css_multi_if! macro requires condition and CSS separated by comma",
+        )
+    })?;
+
+    let condition_str = input_str[..comma_pos].trim();
+    let css_str = input_str[comma_pos + 1..].trim();
+
+    // Remove quotes from CSS string if present
+    let css_content = if css_str.starts_with('"') && css_str.ends_with('"') {
+        &css_str[1..css_str.len() - 1]
+    } else {
+        css_str
+    };
+
+    // Parse condition tokens - support complex expressions
+    let condition_tokens: TokenStream2 = condition_str
+        .parse()
+        .map_err(|_| Error::new(Span::call_site(), "Invalid condition syntax"))?;
+
+    // Process CSS with variant and theme variable support
+    let processed_css = process_css_with_variants_and_themes(css_content)?;
+
+    let css_literal = processed_css.css;
+    let _media_queries = processed_css.media_queries;
+    let _pseudo_selectors = processed_css.pseudo_selectors;
+
+    // Generate a unique identifier for this CSS block
+    let css_hash = calculate_css_hash(css_content);
+    let css_id = format!("css-multi-{}", &css_hash[..8]);
+    let css_id_literal = css_id.clone();
+
+    // 处理媒体查询和伪选择器
+    let media_css = process_media_queries(&_media_queries, &css_id);
+    let pseudo_css = process_pseudo_selectors(&_pseudo_selectors, &css_id);
+
+    // 优化 CSS
+    let optimized_css = optimize_css_with_lightningcss(&css_literal);
+
+    Ok(quote! {
+        {
+            if #condition_tokens {
+                // Use a static to ensure the CSS is only processed once per condition combination
+                static CSS_INJECTED: ::std::sync::OnceLock<::std::string::String> = ::std::sync::OnceLock::new();
+
+                CSS_INJECTED.get_or_init(|| {
+                    let class_name = #css_id_literal;
+
+                    // Inject CSS into document head (web target only)
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        use wasm_bindgen::prelude::*;
+
+                        #[wasm_bindgen]
+                        extern "C" {
+                            type Document;
+                            type Element;
+                            type HtmlStyleElement;
+                            type Node;
+
+                            #[wasm_bindgen(js_namespace = console)]
+                            fn log(s: &str);
+
+                            #[wasm_bindgen(js_name = document, js_namespace = window)]
+                            static DOCUMENT: Document;
+
+                            #[wasm_bindgen(method, js_name = createElement)]
+                            fn create_element(this: &Document, tag_name: &str) -> Element;
+
+                            #[wasm_bindgen(method, js_name = appendChild)]
+                            fn append_child(this: &Node, child: &Node);
+
+                            #[wasm_bindgen(method, setter = innerHTML)]
+                            fn set_inner_html(this: &Element, html: &str);
+
+                            #[wasm_bindgen(method, getter = head)]
+                            fn head(this: &Document) -> Element;
+                        }
+
+                        let style_element = DOCUMENT.create_element("style");
+                        let mut css_rules_vec = Vec::new();
+
+                        // Base CSS rule
+                        if !#optimized_css.is_empty() {
+                            css_rules_vec.push(format!(".{} {{ {} }}", class_name, #optimized_css));
+                        }
+
+                        // Add media queries
+                        let media_css = #media_css;
+                        if !media_css.is_empty() {
+                            let media_with_class = media_css.replace("{class_name}", &class_name);
+                            css_rules_vec.push(media_with_class);
+                        }
+
+                        // Add pseudo selectors
+                        let pseudo_css = #pseudo_css;
+                        if !pseudo_css.is_empty() {
+                            let pseudo_with_class = pseudo_css.replace("{class_name}", &class_name);
+                            css_rules_vec.push(pseudo_with_class);
+                        }
+
+                        // Apply optimizations: deduplicate and compress
+                        let deduplicated_rules = {
+                            let mut seen = std::collections::HashSet::new();
+                            let mut deduplicated = Vec::new();
+                            for rule in &css_rules_vec {
+                                let normalized = rule.trim();
+                                if !normalized.is_empty() && seen.insert(normalized.to_string()) {
+                                    deduplicated.push(rule.clone());
+                                }
+                            }
+                            deduplicated
+                        };
+
+                        let css_rules = deduplicated_rules.join("\n")
+                            .lines()
+                            .map(|line| line.trim())
+                            .filter(|line| !line.is_empty())
+                            .collect::<Vec<_>>()
+                            .join("")
+                            .replace("; ", ";")
+                            .replace(": ", ":")
+                            .replace(" {", "{")
+                            .replace("{ ", "{")
+                            .replace(" }", "}")
+                            .replace("} ", "}");
+
+                        style_element.set_inner_html(&css_rules);
+                        let head = DOCUMENT.head();
+                        head.append_child(&style_element.into());
+                    }
+
+                    class_name.to_string()
+                }).clone()
+            } else {
+                String::new()
+            }
+        }
+    })
+}
+
+/// Enhanced CSS processing with caching support
+fn process_css_with_cache(css_content: &str, css_id: &str) -> syn::Result<TokenStream2> {
+    let css_hash = calculate_css_hash(css_content);
+
+    // Check cache first
+    if let Some(cached_class) = get_cached_css(&css_hash) {
+        return Ok(quote! { #cached_class });
+    }
+
+    // Process CSS if not cached
+    let processed_css = process_css_with_variants_and_themes(css_content)?;
+    let optimized_css = optimize_css_with_lightningcss(&processed_css.css);
+
+    // 处理媒体查询和伪选择器
+    let media_css = process_media_queries(&processed_css.media_queries, css_id);
+    let pseudo_css = process_pseudo_selectors(&processed_css.pseudo_selectors, css_id);
+
+    let class_name = css_id.to_string();
+
+    Ok(quote! {
+        {
+            // Use a static to ensure the CSS is only processed once
+            static CSS_INJECTED: ::std::sync::OnceLock<::std::string::String> = ::std::sync::OnceLock::new();
+
+            CSS_INJECTED.get_or_init(|| {
+                let class_name = #class_name;
+
+                // Cache the result
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    // For non-WASM targets, just cache the class name
+                    use std::collections::HashMap;
+                    use std::sync::{Mutex, OnceLock};
+
+                    static CACHE: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
+                    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+
+                    if let Ok(mut cache_guard) = cache.lock() {
+                        cache_guard.insert(#css_hash.to_string(), class_name.clone());
+                    }
+                }
+
+                // Inject CSS into document head (web target only)
+                #[cfg(target_arch = "wasm32")]
+                {
+                    use wasm_bindgen::prelude::*;
+
+                    #[wasm_bindgen]
+                    extern "C" {
+                        type Document;
+                        type Element;
+                        type Node;
+
+                        #[wasm_bindgen(js_name = document, js_namespace = window)]
+                        static DOCUMENT: Document;
+
+                        #[wasm_bindgen(method, js_name = createElement)]
+                        fn create_element(this: &Document, tag_name: &str) -> Element;
+
+                        #[wasm_bindgen(method, js_name = appendChild)]
+                        fn append_child(this: &Node, child: &Node);
+
+                        #[wasm_bindgen(method, setter = innerHTML)]
+                        fn set_inner_html(this: &Element, html: &str);
+
+                        #[wasm_bindgen(method, getter = head)]
+                        fn head(this: &Document) -> Element;
+
+                        #[wasm_bindgen(method, js_name = getElementById)]
+                        fn get_element_by_id(this: &Document, id: &str) -> Option<Element>;
+                    }
+
+                    // Check if style element already exists
+                    let style_id = format!("css-cache-{}", #css_hash);
+                    if DOCUMENT.get_element_by_id(&style_id).is_none() {
+                        let style_element = DOCUMENT.create_element("style");
+                        style_element.set_attribute("id", &style_id).ok();
+
+                        let mut css_rules_vec = Vec::new();
+
+                        // Base CSS rule
+                        if !#optimized_css.is_empty() {
+                            css_rules_vec.push(format!(".{} {{ {} }}", class_name, #optimized_css));
+                        }
+
+                        // Add media queries
+                        let media_css = #media_css;
+                        if !media_css.is_empty() {
+                            let media_with_class = media_css.replace("{class_name}", &class_name);
+                            css_rules_vec.push(media_with_class);
+                        }
+
+                        // Add pseudo selectors
+                        let pseudo_css = #pseudo_css;
+                        if !pseudo_css.is_empty() {
+                            let pseudo_with_class = pseudo_css.replace("{class_name}", &class_name);
+                            css_rules_vec.push(pseudo_with_class);
+                        }
+
+                        // Apply optimizations: deduplicate and compress
+                        let deduplicated_rules = {
+                            let mut seen = std::collections::HashSet::new();
+                            let mut deduplicated = Vec::new();
+                            for rule in &css_rules_vec {
+                                let normalized = rule.trim();
+                                if !normalized.is_empty() && seen.insert(normalized.to_string()) {
+                                    deduplicated.push(rule.clone());
+                                }
+                            }
+                            deduplicated
+                        };
+
+                        let css_rules = deduplicated_rules.join("\n")
+                            .lines()
+                            .map(|line| line.trim())
+                            .filter(|line| !line.is_empty())
+                            .collect::<Vec<_>>()
+                            .join("")
+                            .replace("; ", ";")
+                            .replace(": ", ":")
+                            .replace(" {", "{")
+                            .replace("{ ", "{")
+                            .replace(" }", "}")
+                            .replace("} ", "}")
+                            .replace(",", ", ")
+                            .replace(",", ", ")
+                            .replace(",", ", ")
+                            .replace(",", ", ")
+                            .replace(",", ", ")
+                            .replace(",", ", ")
+                            .replace("
