@@ -1,2 +1,4 @@
 /target
 /css-in-rust/target
+.DS_Store
+**/.DS_Store
