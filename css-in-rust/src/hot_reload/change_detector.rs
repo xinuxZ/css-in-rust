@@ -568,10 +568,426 @@ impl ChangeDetector {
     }
 
     /// 分析依赖关系
-    fn analyze_dependencies(&self, _path: &Path) -> Result<Vec<PathBuf>, ChangeDetectorError> {
-        // 简化实现，返回空依赖列表
-        // 在实际实现中，可以分析import/use语句等
-        Ok(vec![])
+    fn analyze_dependencies(&self, path: &Path) -> Result<Vec<PathBuf>, ChangeDetectorError> {
+        // 完整实现：分析import/use语句等
+        let mut dependencies = Vec::new();
+
+        // 读取文件内容
+        let content = std::fs::read_to_string(path)
+            .map_err(|e| ChangeDetectorError::IoError(e.to_string()))?;
+
+        // 根据文件扩展名选择不同的分析策略
+        match path.extension().and_then(|ext| ext.to_str()) {
+            Some("rs") => {
+                dependencies.extend(self.analyze_rust_dependencies(&content, path)?);
+            }
+            Some("css") | Some("scss") | Some("sass") => {
+                dependencies.extend(self.analyze_css_dependencies(&content, path)?);
+            }
+            Some("js") | Some("ts") | Some("jsx") | Some("tsx") => {
+                dependencies.extend(self.analyze_js_dependencies(&content, path)?);
+            }
+            _ => {
+                // 对于未知文件类型，尝试通用的依赖分析
+                dependencies.extend(self.analyze_generic_dependencies(&content, path)?);
+            }
+        }
+
+        Ok(dependencies)
+    }
+
+    /// 分析Rust文件的依赖关系
+    fn analyze_rust_dependencies(
+        &self,
+        content: &str,
+        base_path: &Path,
+    ) -> Result<Vec<PathBuf>, ChangeDetectorError> {
+        let mut dependencies = Vec::new();
+
+        for line in content.lines() {
+            let trimmed = line.trim();
+
+            // 分析use语句
+            if trimmed.starts_with("use ") {
+                if let Some(dep_path) = self.extract_rust_use_path(trimmed, base_path) {
+                    dependencies.push(dep_path);
+                }
+            }
+
+            // 分析mod语句
+            if trimmed.starts_with("mod ") {
+                if let Some(dep_path) = self.extract_rust_mod_path(trimmed, base_path) {
+                    dependencies.push(dep_path);
+                }
+            }
+
+            // 分析include!宏
+            if trimmed.contains("include!") {
+                if let Some(dep_path) = self.extract_rust_include_path(trimmed, base_path) {
+                    dependencies.push(dep_path);
+                }
+            }
+        }
+
+        Ok(dependencies)
+    }
+
+    /// 分析CSS文件的依赖关系
+    fn analyze_css_dependencies(
+        &self,
+        content: &str,
+        base_path: &Path,
+    ) -> Result<Vec<PathBuf>, ChangeDetectorError> {
+        let mut dependencies = Vec::new();
+
+        for line in content.lines() {
+            let trimmed = line.trim();
+
+            // 分析@import语句
+            if trimmed.starts_with("@import") {
+                if let Some(dep_path) = self.extract_css_import_path(trimmed, base_path) {
+                    dependencies.push(dep_path);
+                }
+            }
+
+            // 分析url()引用
+            if trimmed.contains("url(") {
+                dependencies.extend(self.extract_css_url_paths(trimmed, base_path));
+            }
+        }
+
+        Ok(dependencies)
+    }
+
+    /// 分析JavaScript/TypeScript文件的依赖关系
+    fn analyze_js_dependencies(
+        &self,
+        content: &str,
+        base_path: &Path,
+    ) -> Result<Vec<PathBuf>, ChangeDetectorError> {
+        let mut dependencies = Vec::new();
+
+        for line in content.lines() {
+            let trimmed = line.trim();
+
+            // 分析import语句
+            if trimmed.starts_with("import ") {
+                if let Some(dep_path) = self.extract_js_import_path(trimmed, base_path) {
+                    dependencies.push(dep_path);
+                }
+            }
+
+            // 分析require语句
+            if trimmed.contains("require(") {
+                if let Some(dep_path) = self.extract_js_require_path(trimmed, base_path) {
+                    dependencies.push(dep_path);
+                }
+            }
+        }
+
+        Ok(dependencies)
+    }
+
+    /// 通用依赖分析
+    fn analyze_generic_dependencies(
+        &self,
+        content: &str,
+        base_path: &Path,
+    ) -> Result<Vec<PathBuf>, ChangeDetectorError> {
+        let mut dependencies = Vec::new();
+
+        // 查找可能的文件路径引用
+        for line in content.lines() {
+            // 简单的路径匹配，查找引号中的文件路径
+            let quotes = ['"', '\''];
+            for quote in &quotes {
+                let mut start = 0;
+                while let Some(quote_start) = line[start..].find(*quote) {
+                    let quote_start = start + quote_start + 1;
+                    if let Some(quote_end) = line[quote_start..].find(*quote) {
+                        let path_str = &line[quote_start..quote_start + quote_end];
+
+                        // 检查是否是文件路径（包含文件扩展名）
+                        if path_str.contains('.')
+                            && (path_str.ends_with(".rs")
+                                || path_str.ends_with(".css")
+                                || path_str.ends_with(".scss")
+                                || path_str.ends_with(".sass")
+                                || path_str.ends_with(".js")
+                                || path_str.ends_with(".ts")
+                                || path_str.ends_with(".jsx")
+                                || path_str.ends_with(".tsx")
+                                || path_str.ends_with(".json"))
+                        {
+                            let potential_path =
+                                base_path.parent().unwrap_or(base_path).join(path_str);
+                            if potential_path.exists() {
+                                dependencies.push(potential_path);
+                            }
+                        }
+
+                        start = quote_start + quote_end + 1;
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+
+        Ok(dependencies)
+    }
+
+    /// 提取Rust use语句中的路径
+    fn extract_rust_use_path(&self, line: &str, base_path: &Path) -> Option<PathBuf> {
+        let line = line.trim();
+
+        // 提取use语句的路径部分
+        let use_path = if let Some(path) = line.strip_prefix("use ") {
+            path.split(';').next()?.trim()
+        } else {
+            return None;
+        };
+
+        let parent_dir = base_path.parent()?;
+
+        // 处理不同类型的use语句
+        if use_path.starts_with("super::") {
+            // 处理super::路径
+            let relative_path = use_path.strip_prefix("super::")?;
+            let super_dir = parent_dir.parent()?;
+            self.resolve_module_path(relative_path, super_dir)
+        } else if use_path.starts_with("crate::") {
+            // 处理crate::路径
+            let relative_path = use_path.strip_prefix("crate::")?;
+            let crate_root = self.find_crate_root(base_path)?;
+            self.resolve_module_path(relative_path, &crate_root)
+        } else if use_path.starts_with("self::") {
+            // 处理self::路径
+            let relative_path = use_path.strip_prefix("self::")?;
+            self.resolve_module_path(relative_path, parent_dir)
+        } else if !use_path.contains("::")
+            || use_path.starts_with("std::")
+            || use_path.starts_with("core::")
+        {
+            // 标准库或外部crate，不需要追踪
+            None
+        } else {
+            // 相对路径或其他模块路径
+            self.resolve_module_path(use_path, parent_dir)
+        }
+    }
+
+    /// 解析模块路径为文件路径
+    fn resolve_module_path(&self, module_path: &str, base_dir: &Path) -> Option<PathBuf> {
+        let parts: Vec<&str> = module_path.split("::").collect();
+        let mut current_path = base_dir.to_path_buf();
+
+        for (i, part) in parts.iter().enumerate() {
+            // 移除泛型参数和其他修饰符
+            let clean_part = part
+                .split('<')
+                .next()?
+                .split('{')
+                .next()?
+                .split('(')
+                .next()?
+                .trim();
+
+            if clean_part.is_empty() {
+                continue;
+            }
+
+            if i == parts.len() - 1 {
+                // 最后一个部分，可能是文件或模块
+                let candidates = [
+                    current_path.join(format!("{}.rs", clean_part)),
+                    current_path.join(clean_part).join("mod.rs"),
+                    current_path.join(clean_part).join("lib.rs"),
+                ];
+
+                for candidate in &candidates {
+                    if candidate.exists() {
+                        return Some(candidate.clone());
+                    }
+                }
+            } else {
+                // 中间路径，应该是目录
+                current_path = current_path.join(clean_part);
+            }
+        }
+
+        None
+    }
+
+    /// 查找crate根目录
+    fn find_crate_root(&self, start_path: &Path) -> Option<PathBuf> {
+        let mut current = start_path;
+
+        while let Some(parent) = current.parent() {
+            // 查找Cargo.toml文件
+            if parent.join("Cargo.toml").exists() {
+                return Some(parent.join("src"));
+            }
+
+            // 查找lib.rs或main.rs
+            if parent.join("src").join("lib.rs").exists() {
+                return Some(parent.join("src"));
+            }
+
+            if parent.join("src").join("main.rs").exists() {
+                return Some(parent.join("src"));
+            }
+
+            current = parent;
+        }
+
+        None
+    }
+
+    /// 提取Rust mod语句中的路径
+    fn extract_rust_mod_path(&self, line: &str, base_path: &Path) -> Option<PathBuf> {
+        // 提取mod语句中的模块名
+        if let Some(mod_name) = line.strip_prefix("mod ").and_then(|s| s.split(';').next()) {
+            let mod_name = mod_name.trim();
+            let parent_dir = base_path.parent()?;
+
+            // 尝试不同的模块文件位置
+            let candidates = [
+                parent_dir.join(format!("{}.rs", mod_name)),
+                parent_dir.join(mod_name).join("mod.rs"),
+            ];
+
+            for candidate in &candidates {
+                if candidate.exists() {
+                    return Some(candidate.clone());
+                }
+            }
+        }
+        None
+    }
+
+    /// 提取Rust include!宏中的路径
+    fn extract_rust_include_path(&self, line: &str, base_path: &Path) -> Option<PathBuf> {
+        // 查找include!("path")模式
+        if let Some(start) = line.find("include!(\"") {
+            let start = start + "include!(\"".len();
+            if let Some(end) = line[start..].find('"') {
+                let path_str = &line[start..start + end];
+                let full_path = base_path.parent()?.join(path_str);
+                if full_path.exists() {
+                    return Some(full_path);
+                }
+            }
+        }
+        None
+    }
+
+    /// 提取CSS @import语句中的路径
+    fn extract_css_import_path(&self, line: &str, base_path: &Path) -> Option<PathBuf> {
+        // 查找@import "path"或@import url("path")模式
+        let patterns = [
+            ("@import \"", "\""),
+            ("@import '", "'"),
+            ("@import url(\"", "\")"),
+            ("@import url('", "')"),
+        ];
+
+        for (prefix, suffix) in &patterns {
+            if let Some(start) = line.find(prefix) {
+                let start = start + prefix.len();
+                if let Some(end) = line[start..].find(suffix) {
+                    let path_str = &line[start..start + end];
+                    let full_path = base_path.parent()?.join(path_str);
+                    if full_path.exists() {
+                        return Some(full_path);
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    /// 提取CSS url()中的路径
+    fn extract_css_url_paths(&self, line: &str, base_path: &Path) -> Vec<PathBuf> {
+        let mut paths = Vec::new();
+
+        // 查找url("path")或url('path')模式
+        let patterns = [("url(\"", "\")"), ("url('", "')"), ("url(", ")")];
+
+        for (prefix, suffix) in &patterns {
+            let mut search_start = 0;
+            while let Some(start) = line[search_start..].find(prefix) {
+                let start = search_start + start + prefix.len();
+                if let Some(end) = line[start..].find(suffix) {
+                    let path_str = &line[start..start + end];
+                    // 跳过HTTP URLs
+                    if !path_str.starts_with("http") && !path_str.starts_with("data:") {
+                        let full_path = base_path.parent().unwrap_or(base_path).join(path_str);
+                        if full_path.exists() {
+                            paths.push(full_path);
+                        }
+                    }
+                    search_start = start + end + suffix.len();
+                } else {
+                    break;
+                }
+            }
+        }
+
+        paths
+    }
+
+    /// 提取JavaScript import语句中的路径
+    fn extract_js_import_path(&self, line: &str, base_path: &Path) -> Option<PathBuf> {
+        // 查找import ... from "path"模式
+        if let Some(from_pos) = line.find(" from ") {
+            let after_from = &line[from_pos + 6..].trim();
+            if let Some(path_str) = self.extract_quoted_string(after_from) {
+                // 跳过node_modules包
+                if !path_str.starts_with('.') && !path_str.starts_with('/') {
+                    return None;
+                }
+                let full_path = base_path.parent()?.join(path_str);
+                if full_path.exists() {
+                    return Some(full_path);
+                }
+            }
+        }
+        None
+    }
+
+    /// 提取JavaScript require语句中的路径
+    fn extract_js_require_path(&self, line: &str, base_path: &Path) -> Option<PathBuf> {
+        // 查找require("path")模式
+        if let Some(start) = line.find("require(") {
+            let start = start + "require(".len();
+            if let Some(path_str) = self.extract_quoted_string(&line[start..]) {
+                // 跳过node_modules包
+                if !path_str.starts_with('.') && !path_str.starts_with('/') {
+                    return None;
+                }
+                let full_path = base_path.parent()?.join(path_str);
+                if full_path.exists() {
+                    return Some(full_path);
+                }
+            }
+        }
+        None
+    }
+
+    /// 提取引号中的字符串
+    fn extract_quoted_string(&self, text: &str) -> Option<String> {
+        let text = text.trim();
+        if text.starts_with('"') {
+            if let Some(end) = text[1..].find('"') {
+                return Some(text[1..1 + end].to_string());
+            }
+        } else if text.starts_with('\'') {
+            if let Some(end) = text[1..].find('\'') {
+                return Some(text[1..1 + end].to_string());
+            }
+        }
+        None
     }
 
     /// 获取缓存的分析结果

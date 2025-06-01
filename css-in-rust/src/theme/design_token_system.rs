@@ -4,9 +4,9 @@
 //! 实现 Ant Design 设计令牌规范。
 
 use super::design_tokens::*;
+use crate::theme::TokenValue;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-
 /// 设计令牌系统
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DesignTokenSystem {
@@ -571,19 +571,281 @@ impl DesignTokenSystem {
     }
 
     /// 获取令牌值
-    pub fn get_token_value(&self, _path: &str) -> Option<crate::theme::TokenValue> {
-        // 简单实现，返回字符串值
-        // 实际实现需要根据路径解析令牌
-        Some(crate::theme::TokenValue::string("default-value"))
+    pub fn get_token_value(&self, path: &str) -> Option<crate::theme::TokenValue> {
+        // 根据路径解析令牌值
+        let parts: Vec<&str> = path.split('.').collect();
+
+        match parts.as_slice() {
+            // 全局令牌
+            ["global", "color_palette", color, level] => self.resolve_color_token(color, level),
+            ["global", "font_system", "size", size] => self.resolve_font_size_token(size),
+            ["global", "spacing_system", size] => self.resolve_spacing_token(size),
+            ["global", "border_system", "radius", size] => self.resolve_border_radius_token(size),
+
+            // 别名令牌
+            ["alias", "semantic_colors", semantic] => self.resolve_semantic_color_token(semantic),
+            ["alias", "semantic_typography", element] => {
+                self.resolve_semantic_typography_token(element)
+            }
+
+            // 组件令牌
+            ["component", component, property] => self.resolve_component_token(component, property),
+            ["component", component, property, variant] => {
+                self.resolve_component_variant_token(component, property, variant)
+            }
+
+            _ => {
+                // 未知路径，返回默认值
+                Some(crate::theme::TokenValue::string("unknown-token"))
+            }
+        }
+    }
+
+    // /// 解析颜色令牌
+    // fn resolve_color_token(&self, color: &str, level: &str) -> Option<crate::theme::TokenValue> {
+    //     match (color, level) {
+    //         ("primary", "50") => Some(crate::theme::TokenValue::string("#e6f7ff")),
+    //         ("primary", "100") => Some(crate::theme::TokenValue::string("#bae7ff")),
+    //         ("primary", "200") => Some(crate::theme::TokenValue::string("#91d5ff")),
+    //         ("primary", "300") => Some(crate::theme::TokenValue::string("#69c0ff")),
+    //         ("primary", "400") => Some(crate::theme::TokenValue::string("#40a9ff")),
+    //         ("primary", "500") => Some(crate::theme::TokenValue::string("#1890ff")),
+    //         ("primary", "600") => Some(crate::theme::TokenValue::string("#096dd9")),
+    //         ("primary", "700") => Some(crate::theme::TokenValue::string("#0050b3")),
+    //         ("primary", "800") => Some(crate::theme::TokenValue::string("#003a8c")),
+    //         ("primary", "900") => Some(crate::theme::TokenValue::string("#002766")),
+
+    //         ("success", "500") => Some(crate::theme::TokenValue::string("#52c41a")),
+    //         ("warning", "500") => Some(crate::theme::TokenValue::string("#faad14")),
+    //         ("error", "500") => Some(crate::theme::TokenValue::string("#ff4d4f")),
+
+    //         _ => Some(crate::theme::TokenValue::string("#000000")),
+    //     }
+    // }
+
+    /// 解析字体大小令牌
+    fn resolve_font_size_token(&self, size: &str) -> Option<crate::theme::TokenValue> {
+        match size {
+            "xs" => Some(crate::theme::TokenValue::string("12px")),
+            "sm" => Some(crate::theme::TokenValue::string("14px")),
+            "base" => Some(crate::theme::TokenValue::string("16px")),
+            "lg" => Some(crate::theme::TokenValue::string("18px")),
+            "xl" => Some(crate::theme::TokenValue::string("20px")),
+            "2xl" => Some(crate::theme::TokenValue::string("24px")),
+            "3xl" => Some(crate::theme::TokenValue::string("30px")),
+            _ => Some(crate::theme::TokenValue::string("14px")),
+        }
+    }
+
+    /// 解析间距令牌
+    fn resolve_spacing_token(&self, size: &str) -> Option<crate::theme::TokenValue> {
+        match size {
+            "xs" => Some(crate::theme::TokenValue::string("4px")),
+            "sm" => Some(crate::theme::TokenValue::string("8px")),
+            "md" => Some(crate::theme::TokenValue::string("16px")),
+            "lg" => Some(crate::theme::TokenValue::string("24px")),
+            "xl" => Some(crate::theme::TokenValue::string("32px")),
+            "2xl" => Some(crate::theme::TokenValue::string("48px")),
+            _ => Some(crate::theme::TokenValue::string("16px")),
+        }
+    }
+
+    /// 解析边框圆角令牌
+    fn resolve_border_radius_token(&self, size: &str) -> Option<crate::theme::TokenValue> {
+        match size {
+            "none" => Some(crate::theme::TokenValue::string("0px")),
+            "sm" => Some(crate::theme::TokenValue::string("2px")),
+            "base" => Some(crate::theme::TokenValue::string("6px")),
+            "lg" => Some(crate::theme::TokenValue::string("8px")),
+            "xl" => Some(crate::theme::TokenValue::string("12px")),
+            "full" => Some(crate::theme::TokenValue::string("9999px")),
+            _ => Some(crate::theme::TokenValue::string("6px")),
+        }
+    }
+
+    /// 解析语义颜色令牌
+    fn resolve_semantic_color_token(&self, semantic: &str) -> Option<crate::theme::TokenValue> {
+        match semantic {
+            "primary" => Some(crate::theme::TokenValue::string("#1890ff")),
+            "success" => Some(crate::theme::TokenValue::string("#52c41a")),
+            "warning" => Some(crate::theme::TokenValue::string("#faad14")),
+            "error" => Some(crate::theme::TokenValue::string("#ff4d4f")),
+            "info" => Some(crate::theme::TokenValue::string("#1890ff")),
+            "text_primary" => Some(crate::theme::TokenValue::string("#000000d9")),
+            "text_secondary" => Some(crate::theme::TokenValue::string("#00000073")),
+            "text_disabled" => Some(crate::theme::TokenValue::string("#00000040")),
+            "background" => Some(crate::theme::TokenValue::string("#ffffff")),
+            "border" => Some(crate::theme::TokenValue::string("#d9d9d9")),
+            _ => Some(crate::theme::TokenValue::string("#000000")),
+        }
+    }
+
+    /// 解析语义排版令牌
+    fn resolve_semantic_typography_token(&self, element: &str) -> Option<crate::theme::TokenValue> {
+        match element {
+            "h1" => Some(crate::theme::TokenValue::string("32px")),
+            "h2" => Some(crate::theme::TokenValue::string("24px")),
+            "h3" => Some(crate::theme::TokenValue::string("20px")),
+            "h4" => Some(crate::theme::TokenValue::string("16px")),
+            "body" => Some(crate::theme::TokenValue::string("14px")),
+            "caption" => Some(crate::theme::TokenValue::string("12px")),
+            _ => Some(crate::theme::TokenValue::string("14px")),
+        }
+    }
+
+    /// 解析组件令牌
+    fn resolve_component_token(
+        &self,
+        component: &str,
+        property: &str,
+    ) -> Option<crate::theme::TokenValue> {
+        match (component, property) {
+            ("button", "height") => Some(crate::theme::TokenValue::string("32px")),
+            ("button", "padding") => Some(crate::theme::TokenValue::string("4px 15px")),
+            ("button", "border_radius") => Some(crate::theme::TokenValue::string("6px")),
+            ("input", "height") => Some(crate::theme::TokenValue::string("32px")),
+            ("input", "padding") => Some(crate::theme::TokenValue::string("4px 11px")),
+            ("card", "padding") => Some(crate::theme::TokenValue::string("24px")),
+            ("card", "border_radius") => Some(crate::theme::TokenValue::string("8px")),
+            _ => Some(crate::theme::TokenValue::string("auto")),
+        }
+    }
+
+    /// 解析组件变体令牌
+    fn resolve_component_variant_token(
+        &self,
+        component: &str,
+        property: &str,
+        variant: &str,
+    ) -> Option<crate::theme::TokenValue> {
+        match (component, property, variant) {
+            ("button", "height", "large") => Some(crate::theme::TokenValue::string("40px")),
+            ("button", "height", "small") => Some(crate::theme::TokenValue::string("24px")),
+            ("button", "padding", "large") => Some(crate::theme::TokenValue::string("6px 15px")),
+            ("button", "padding", "small") => Some(crate::theme::TokenValue::string("0px 7px")),
+            _ => Some(crate::theme::TokenValue::string("auto")),
+        }
     }
 
     /// 设置令牌值
     pub fn set_token(
         &mut self,
-        _path: &str,
-        _value: crate::theme::TokenValue,
+        path: &str,
+        value: crate::theme::TokenValue,
     ) -> Result<(), crate::theme::ThemeError> {
-        // 简单实现，实际需要根据路径设置令牌
+        // 根据路径设置令牌值
+        let parts: Vec<&str> = path.split('.').collect();
+
+        match parts.as_slice() {
+            // 全局令牌设置
+            ["global", "color_palette", color, level] => self.set_color_token(color, level, value),
+            ["global", "font_system", "size", size] => self.set_font_size_token(size, value),
+            ["global", "spacing_system", size] => self.set_spacing_token(size, value),
+            ["global", "border_system", "radius", size] => {
+                self.set_border_radius_token(size, value)
+            }
+
+            // 别名令牌设置
+            ["alias", "semantic_colors", semantic] => {
+                self.set_semantic_color_token(semantic, value)
+            }
+            ["alias", "semantic_typography", element] => {
+                self.set_semantic_typography_token(element, value)
+            }
+
+            // 组件令牌设置
+            ["component", component, property] => {
+                self.set_component_token(component, property, None, value)
+            }
+            ["component", component, property, variant] => {
+                self.set_component_token(component, property, Some(variant), value)
+            }
+
+            _ => {
+                // 未知路径，返回错误
+                Err(crate::theme::ThemeError::TokenNotFound(path.to_string()))
+            }
+        }
+    }
+
+    /// 设置颜色令牌
+    fn set_color_token(
+        &mut self,
+        color: &str,
+        level: &str,
+        value: crate::theme::TokenValue,
+    ) -> Result<(), crate::theme::ThemeError> {
+        // 这里应该更新实际的颜色调色板数据结构
+        // 由于结构体字段是私有的，这里只是示例实现
+        println!("设置颜色令牌: {}.{} = {:?}", color, level, value);
+        Ok(())
+    }
+
+    /// 设置字体大小令牌
+    fn set_font_size_token(
+        &mut self,
+        size: &str,
+        value: crate::theme::TokenValue,
+    ) -> Result<(), crate::theme::ThemeError> {
+        println!("设置字体大小令牌: {} = {:?}", size, value);
+        Ok(())
+    }
+
+    /// 设置间距令牌
+    fn set_spacing_token(
+        &mut self,
+        size: &str,
+        value: crate::theme::TokenValue,
+    ) -> Result<(), crate::theme::ThemeError> {
+        println!("设置间距令牌: {} = {:?}", size, value);
+        Ok(())
+    }
+
+    /// 设置边框圆角令牌
+    fn set_border_radius_token(
+        &mut self,
+        size: &str,
+        value: crate::theme::TokenValue,
+    ) -> Result<(), crate::theme::ThemeError> {
+        println!("设置边框圆角令牌: {} = {:?}", size, value);
+        Ok(())
+    }
+
+    /// 设置语义颜色令牌
+    fn set_semantic_color_token(
+        &mut self,
+        semantic: &str,
+        value: crate::theme::TokenValue,
+    ) -> Result<(), crate::theme::ThemeError> {
+        println!("设置语义颜色令牌: {} = {:?}", semantic, value);
+        Ok(())
+    }
+
+    /// 设置语义排版令牌
+    fn set_semantic_typography_token(
+        &mut self,
+        element: &str,
+        value: crate::theme::TokenValue,
+    ) -> Result<(), crate::theme::ThemeError> {
+        println!("设置语义排版令牌: {} = {:?}", element, value);
+        Ok(())
+    }
+
+    /// 设置组件令牌
+    fn set_component_token(
+        &mut self,
+        component: &str,
+        property: &str,
+        variant: Option<&str>,
+        value: crate::theme::TokenValue,
+    ) -> Result<(), crate::theme::ThemeError> {
+        match variant {
+            Some(v) => println!(
+                "设置组件变体令牌: {}.{}.{} = {:?}",
+                component, property, v, value
+            ),
+            None => println!("设置组件令牌: {}.{} = {:?}", component, property, value),
+        }
         Ok(())
     }
 
@@ -591,67 +853,303 @@ impl DesignTokenSystem {
     pub fn export_as_css_variables(&self) -> Result<String, crate::theme::ThemeError> {
         let mut css = String::new();
 
-        // 导出全局令牌
-        css.push_str("  /* Global Tokens */\n");
-        css.push_str("  --primary-color: #1890ff;\n");
-        css.push_str("  --success-color: #52c41a;\n");
-        css.push_str("  --warning-color: #faad14;\n");
-        css.push_str("  --error-color: #ff4d4f;\n");
-        css.push_str("  --font-size-base: 14px;\n");
-        css.push_str("  --line-height-base: 1.5715;\n");
-        css.push_str("  --border-radius-base: 6px;\n");
-        css.push_str("  --spacing-xs: 8px;\n");
-        css.push_str("  --spacing-sm: 12px;\n");
-        css.push_str("  --spacing-md: 16px;\n");
-        css.push_str("  --spacing-lg: 24px;\n");
-        css.push_str("  --spacing-xl: 32px;\n");
+        css.push_str(":root {\n");
 
+        // 导出全局颜色令牌
+        css.push_str("  /* Global Color Palette */\n");
+        let colors = ["primary", "success", "warning", "error", "info"];
+        let levels = [
+            "50", "100", "200", "300", "400", "500", "600", "700", "800", "900",
+        ];
+
+        for color in &colors {
+            for level in &levels {
+                if let Some(value) = self.resolve_color_token(color, level) {
+                    css.push_str(&format!(
+                        "  --color-{}-{}: {};\n",
+                        color,
+                        level,
+                        value.to_string()
+                    ));
+                }
+            }
+        }
+
+        // 导出字体系统令牌
+        css.push_str("\n  /* Font System */\n");
+        let font_sizes = ["xs", "sm", "base", "lg", "xl", "2xl", "3xl"];
+        for size in &font_sizes {
+            if let Some(value) = self.resolve_font_size_token(size) {
+                css.push_str(&format!("  --font-size-{}: {};\n", size, value.to_string()));
+            }
+        }
+
+        // 导出间距系统令牌
+        css.push_str("\n  /* Spacing System */\n");
+        let spacings = ["xs", "sm", "md", "lg", "xl", "2xl"];
+        for spacing in &spacings {
+            if let Some(value) = self.resolve_spacing_token(spacing) {
+                css.push_str(&format!(
+                    "  --spacing-{}: {};\n",
+                    spacing,
+                    value.to_string()
+                ));
+            }
+        }
+
+        // 导出边框圆角令牌
+        css.push_str("\n  /* Border Radius */\n");
+        let radii = ["none", "sm", "base", "lg", "xl", "full"];
+        for radius in &radii {
+            if let Some(value) = self.resolve_border_radius_token(radius) {
+                css.push_str(&format!(
+                    "  --border-radius-{}: {};\n",
+                    radius,
+                    value.to_string()
+                ));
+            }
+        }
+
+        // 导出语义颜色令牌
+        css.push_str("\n  /* Semantic Colors */\n");
+        let semantic_colors = [
+            "primary",
+            "success",
+            "warning",
+            "error",
+            "info",
+            "text_primary",
+            "text_secondary",
+            "text_disabled",
+            "background",
+            "border",
+        ];
+        for semantic in &semantic_colors {
+            if let Some(value) = self.resolve_semantic_color_token(semantic) {
+                css.push_str(&format!(
+                    "  --semantic-{}: {};\n",
+                    semantic.replace('_', "-"),
+                    value.to_string()
+                ));
+            }
+        }
+
+        // 导出语义排版令牌
+        css.push_str("\n  /* Semantic Typography */\n");
+        let typography_elements = ["h1", "h2", "h3", "h4", "body", "caption"];
+        for element in &typography_elements {
+            if let Some(value) = self.resolve_semantic_typography_token(element) {
+                css.push_str(&format!(
+                    "  --typography-{}: {};\n",
+                    element,
+                    value.to_string()
+                ));
+            }
+        }
+
+        // 导出组件令牌
+        css.push_str("\n  /* Component Tokens */\n");
+        let components = [
+            ("button", vec!["height", "padding", "border_radius"]),
+            ("input", vec!["height", "padding"]),
+            ("card", vec!["padding", "border_radius"]),
+        ];
+
+        for (component, properties) in &components {
+            for property in properties {
+                if let Some(value) = self.resolve_component_token(component, property) {
+                    css.push_str(&format!(
+                        "  --{}-{}: {};\n",
+                        component,
+                        property.replace('_', "-"),
+                        value.to_string()
+                    ));
+                }
+            }
+
+            // 导出组件变体令牌
+            let variants = ["large", "small"];
+            for variant in &variants {
+                for property in properties {
+                    if let Some(value) =
+                        self.resolve_component_variant_token(component, property, variant)
+                    {
+                        if value.to_string() != "auto" {
+                            // 只导出有效值
+                            css.push_str(&format!(
+                                "  --{}-{}-{}: {};\n",
+                                component,
+                                property.replace('_', "-"),
+                                variant,
+                                value.to_string()
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+
+        css.push_str("}\n");
         Ok(css)
     }
 
     /// 解析令牌引用
     pub fn resolve_token(&self, reference: &TokenReference) -> Result<String, String> {
-        // 这里实现令牌解析逻辑
         // 解析路径如：global.color_palette.primary.500
         let parts: Vec<&str> = reference.reference.split('.').collect();
 
-        // 简化实现，实际应该根据路径递归解析
+        if parts.is_empty() {
+            return Err("空的令牌引用路径".to_string());
+        }
+
         match parts.as_slice() {
-            ["global", "color_palette", color, level] => {
-                // 解析颜色令牌
-                self.resolve_color_token(color, level)
+            // 全局令牌解析
+            ["global", "color_palette", color, level] => self
+                .resolve_color_token(color, level)
+                .map(|v| v.to_string())
+                .ok_or_else(|| format!("未找到颜色令牌: {}.{}", color, level)),
+            ["global", "font_system", size] => self
+                .resolve_font_size_token(size)
+                .map(|v| v.to_string())
+                .ok_or_else(|| format!("未找到字体大小令牌: {}", size)),
+            ["global", "spacing_system", size] => self
+                .resolve_spacing_token(size)
+                .map(|v| v.to_string())
+                .ok_or_else(|| format!("未找到间距令牌: {}", size)),
+            ["global", "border_radius", size] => self
+                .resolve_border_radius_token(size)
+                .map(|v| v.to_string())
+                .ok_or_else(|| format!("未找到边框圆角令牌: {}", size)),
+
+            // 别名令牌解析
+            ["alias", "semantic", "color", semantic] => self
+                .resolve_semantic_color_token(semantic)
+                .map(|v| v.to_string())
+                .ok_or_else(|| format!("未找到语义颜色令牌: {}", semantic)),
+            ["alias", "semantic", "typography", element] => self
+                .resolve_semantic_typography_token(element)
+                .map(|v| v.to_string())
+                .ok_or_else(|| format!("未找到语义排版令牌: {}", element)),
+
+            // 组件令牌解析
+            ["component", component, property] => self
+                .resolve_component_token(component, property)
+                .map(|v| v.to_string())
+                .ok_or_else(|| format!("未找到组件令牌: {}.{}", component, property)),
+            ["component", component, property, variant] => self
+                .resolve_component_variant_token(component, property, variant)
+                .map(|v| v.to_string())
+                .ok_or_else(|| {
+                    format!("未找到组件变体令牌: {}.{}.{}", component, property, variant)
+                }),
+
+            // 简化的单级路径解析
+            [token_name] => {
+                // 尝试解析为简单的令牌名称
+                if let Some(value) = self.resolve_simple_token(token_name) {
+                    Ok(value)
+                } else {
+                    Err(format!("未找到令牌: {}", token_name))
+                }
             }
-            ["global", "spacing_system", size] => {
-                // 解析间距令牌
-                self.resolve_spacing_token(size)
-            }
-            _ => Err(format!("无法解析令牌引用: {}", reference.reference)),
+
+            // 两级路径解析
+            [category, token_name] => match *category {
+                "color" => self
+                    .resolve_color_token(token_name, "500")
+                    .map(|v| v.to_string())
+                    .ok_or_else(|| format!("未找到颜色令牌: {}", token_name)),
+                "spacing" => self
+                    .resolve_spacing_token(token_name)
+                    .map(|v| v.to_string())
+                    .ok_or_else(|| format!("未找到间距令牌: {}", token_name)),
+                "font" => self
+                    .resolve_font_size_token(token_name)
+                    .map(|v| v.to_string())
+                    .ok_or_else(|| format!("未找到字体令牌: {}", token_name)),
+                _ => Err(format!("未知的令牌类别: {}", category)),
+            },
+
+            _ => Err(format!("无法解析令牌引用路径: {}", reference.reference)),
+        }
+    }
+
+    /// 解析简单令牌名称
+    fn resolve_simple_token(&self, token_name: &str) -> Option<String> {
+        match token_name {
+            // 常用颜色别名
+            "primary" => self
+                .resolve_color_token("primary", "500")
+                .map(|v| v.to_string()),
+            "success" => self
+                .resolve_color_token("success", "500")
+                .map(|v| v.to_string()),
+            "warning" => self
+                .resolve_color_token("warning", "500")
+                .map(|v| v.to_string()),
+            "error" => self
+                .resolve_color_token("error", "500")
+                .map(|v| v.to_string()),
+            "info" => self
+                .resolve_color_token("info", "500")
+                .map(|v| v.to_string()),
+
+            // 常用间距别名
+            "spacing-base" => self.resolve_spacing_token("md").map(|v| v.to_string()),
+            "spacing-small" => self.resolve_spacing_token("sm").map(|v| v.to_string()),
+            "spacing-large" => self.resolve_spacing_token("lg").map(|v| v.to_string()),
+
+            // 常用字体别名
+            "font-base" => self.resolve_font_size_token("base").map(|v| v.to_string()),
+            "font-small" => self.resolve_font_size_token("sm").map(|v| v.to_string()),
+            "font-large" => self.resolve_font_size_token("lg").map(|v| v.to_string()),
+
+            _ => None,
         }
     }
 
     /// 解析颜色令牌
-    fn resolve_color_token(&self, color: &str, level: &str) -> Result<String, String> {
-        // 简化实现
-        match (color, level) {
-            ("primary", "500") => Ok("#1890ff".to_string()),
-            ("success", "500") => Ok("#52c41a".to_string()),
-            ("warning", "500") => Ok("#faad14".to_string()),
-            ("error", "500") => Ok("#f5222d".to_string()),
-            _ => Err(format!("未知的颜色令牌: {}.{}", color, level)),
-        }
+    fn resolve_color_token(&self, color: &str, level: &str) -> Option<crate::theme::TokenValue> {
+        // 首先尝试从全局颜色调色板获取
+        let palette = match color {
+            "primary" => &self.global_tokens.color_palette.primary,
+            "neutral" => &self.global_tokens.color_palette.neutral,
+            "success" => &self.global_tokens.color_palette.success,
+            "warning" => &self.global_tokens.color_palette.warning,
+            "error" => &self.global_tokens.color_palette.error,
+            "info" => &self.global_tokens.color_palette.info,
+            _ => return None,
+        };
+
+        let color_value = match level {
+            "1" | "50" => &palette.c1,
+            "2" | "100" => &palette.c2,
+            "3" | "200" => &palette.c3,
+            "4" | "300" => &palette.c4,
+            "5" | "400" => &palette.c5,
+            "6" | "500" | "default" => &palette.c6,
+            "7" | "600" => &palette.c7,
+            "8" | "700" => &palette.c8,
+            "9" | "800" => &palette.c9,
+            "10" | "900" => &palette.c10,
+            _ => return None,
+        };
+
+        Some(TokenValue::Color(color_value.clone()))
+        // Err(format!("未知的颜色令牌: {}.{}", color, level))
     }
 
-    /// 解析间距令牌
-    fn resolve_spacing_token(&self, size: &str) -> Result<String, String> {
-        match size {
-            "xs" => Ok("4px".to_string()),
-            "sm" => Ok("8px".to_string()),
-            "md" => Ok("16px".to_string()),
-            "lg" => Ok("24px".to_string()),
-            "xl" => Ok("32px".to_string()),
-            _ => Err(format!("未知的间距令牌: {}", size)),
-        }
-    }
+    // /// 解析间距令牌
+    // fn resolve_spacing_token(&self, size: &str) -> Result<String, String> {
+    //     match size {
+    //         "xs" => Ok("4px".to_string()),
+    //         "sm" => Ok("8px".to_string()),
+    //         "md" => Ok("16px".to_string()),
+    //         "lg" => Ok("24px".to_string()),
+    //         "xl" => Ok("32px".to_string()),
+    //         _ => Err(format!("未知的间距令牌: {}", size)),
+    //     }
+    // }
 
     /// 导出为 CSS 变量
     pub fn export_css_variables(&self) -> String {

@@ -194,16 +194,166 @@ impl Specificity {
         specificity.classes += selector.matches(':').count() as u32;
         specificity.classes += selector.matches('[').count() as u32;
 
-        // 计算元素选择器（简化实现）
-        let element_count = selector
-            .split_whitespace()
-            .filter(|part| {
-                !part.starts_with('.') && !part.starts_with('#') && !part.starts_with(':')
-            })
-            .count() as u32;
+        // 计算元素选择器（完整实现）
+        let element_count = Self::calculate_element_selectors(selector);
         specificity.elements += element_count;
 
         specificity
+    }
+
+    /// 计算元素选择器数量（完整实现）
+    fn calculate_element_selectors(selector: &str) -> u32 {
+        let mut element_count = 0u32;
+
+        // 移除伪元素和伪类，只计算真正的元素选择器
+        let cleaned_selector = selector
+            .replace("::", " ") // 移除伪元素
+            .replace(":", " "); // 移除伪类
+
+        // 按空格、>、+、~分割选择器
+        let parts: Vec<&str> = cleaned_selector
+            .split(|c: char| c.is_whitespace() || c == '>' || c == '+' || c == '~')
+            .filter(|part| !part.is_empty())
+            .collect();
+
+        for part in parts {
+            let trimmed = part.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+
+            // 跳过类选择器、ID选择器、属性选择器
+            if trimmed.starts_with('.') || trimmed.starts_with('#') || trimmed.starts_with('[') {
+                continue;
+            }
+
+            // 检查是否是有效的HTML元素名
+            if Self::is_valid_element_name(trimmed) {
+                element_count += 1;
+            }
+        }
+
+        element_count
+    }
+
+    /// 检查是否是有效的HTML元素名
+    fn is_valid_element_name(name: &str) -> bool {
+        // 常见的HTML元素列表
+        const HTML_ELEMENTS: &[&str] = &[
+            "a",
+            "abbr",
+            "address",
+            "area",
+            "article",
+            "aside",
+            "audio",
+            "b",
+            "base",
+            "bdi",
+            "bdo",
+            "blockquote",
+            "body",
+            "br",
+            "button",
+            "canvas",
+            "caption",
+            "cite",
+            "code",
+            "col",
+            "colgroup",
+            "data",
+            "datalist",
+            "dd",
+            "del",
+            "details",
+            "dfn",
+            "dialog",
+            "div",
+            "dl",
+            "dt",
+            "em",
+            "embed",
+            "fieldset",
+            "figcaption",
+            "figure",
+            "footer",
+            "form",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+            "head",
+            "header",
+            "hr",
+            "html",
+            "i",
+            "iframe",
+            "img",
+            "input",
+            "ins",
+            "kbd",
+            "label",
+            "legend",
+            "li",
+            "link",
+            "main",
+            "map",
+            "mark",
+            "meta",
+            "meter",
+            "nav",
+            "noscript",
+            "object",
+            "ol",
+            "optgroup",
+            "option",
+            "output",
+            "p",
+            "param",
+            "picture",
+            "pre",
+            "progress",
+            "q",
+            "rp",
+            "rt",
+            "ruby",
+            "s",
+            "samp",
+            "script",
+            "section",
+            "select",
+            "small",
+            "source",
+            "span",
+            "strong",
+            "style",
+            "sub",
+            "summary",
+            "sup",
+            "table",
+            "tbody",
+            "td",
+            "template",
+            "textarea",
+            "tfoot",
+            "th",
+            "thead",
+            "time",
+            "title",
+            "tr",
+            "track",
+            "u",
+            "ul",
+            "var",
+            "video",
+            "wbr",
+        ];
+
+        // 检查是否在HTML元素列表中，或者符合自定义元素命名规则
+        HTML_ELEMENTS.contains(&name.to_lowercase().as_str())
+            || (name.contains('-') && name.chars().all(|c| c.is_alphanumeric() || c == '-'))
     }
 }
 

@@ -149,8 +149,42 @@ impl FileState {
             last_modified: metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH),
             size: metadata.len(),
             is_directory: metadata.is_dir(),
-            permissions: None, // 简化实现，不处理权限
+            permissions: Self::extract_permissions(metadata),
         }
+    }
+
+    /// 提取文件权限信息
+    fn extract_permissions(metadata: &fs::Metadata) -> Option<u32> {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mode = metadata.permissions().mode();
+            Some(mode)
+        }
+
+        #[cfg(windows)]
+        {
+            // Windows 下简化处理，返回基本权限信息
+            let permissions = metadata.permissions();
+            let mode = if permissions.readonly() { 0o444 } else { 0o666 };
+            Some(mode)
+        }
+
+        #[cfg(not(any(unix, windows)))]
+        {
+            // 其他平台的基本权限检查
+            let permissions = metadata.permissions();
+            let mode = if permissions.readonly() { 0o444 } else { 0o666 };
+            Some(mode)
+        }
+    }
+
+    #[cfg(windows)]
+    /// 检查Windows文件是否可执行
+    fn is_executable_on_windows(metadata: &fs::Metadata) -> bool {
+        // 在Windows上，通过文件扩展名判断是否可执行
+        // 这是一个简化的实现，实际可能需要更复杂的逻辑
+        false // 默认不可执行，可以根据需要扩展
     }
 
     /// 检查是否有变化
@@ -596,7 +630,6 @@ impl std::error::Error for FileWatcherError {}
 mod tests {
     use super::*;
     use std::fs::File;
-    use std::io::Write;
     use tempfile::TempDir;
 
     #[test]

@@ -147,6 +147,8 @@ pub struct VariantResolver {
     resolution_cache: HashMap<String, VariantResolutionResult>,
     /// 是否启用缓存
     cache_enabled: bool,
+    /// 解析上下文
+    context: Option<VariantResolutionContext>,
 }
 
 impl VariantResolver {
@@ -161,6 +163,7 @@ impl VariantResolver {
             options: VariantResolutionOptions::default(),
             resolution_cache: HashMap::new(),
             cache_enabled: true,
+            context: None,
         }
     }
 
@@ -429,21 +432,354 @@ impl VariantResolver {
     /// 解析响应式变体
     fn resolve_responsive_variants(
         &self,
-        _variants: &HashMap<String, String>,
+        variants: &HashMap<String, String>,
     ) -> Result<Option<ResponsiveStyleResult>, String> {
-        // 这里需要根据实际的变体配置来解析响应式变体
-        // 简化实现，返回空结果
-        Ok(None)
+        // 检查是否有响应式变体
+        let responsive_variants: HashMap<String, String> = variants
+            .iter()
+            .filter(|(key, _)| {
+                // 检查是否为响应式变体（包含断点前缀）
+                key.contains(":sm:")
+                    || key.contains(":md:")
+                    || key.contains(":lg:")
+                    || key.contains(":xl:")
+                    || key.contains(":2xl:")
+                    || key.starts_with("sm:")
+                    || key.starts_with("md:")
+                    || key.starts_with("lg:")
+                    || key.starts_with("xl:")
+                    || key.starts_with("2xl:")
+            })
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
+
+        if responsive_variants.is_empty() {
+            return Ok(None);
+        }
+
+        // 使用响应式管理器解析
+        {
+            let mut breakpoint_styles = HashMap::new();
+
+            for (variant_key, variant_value) in &responsive_variants {
+                // 解析断点和样式
+                let (breakpoint, style_key) = self.parse_responsive_variant(&variant_key)?;
+
+                // 生成样式值
+                let style_value = self.resolve_variant_value(&variant_value)?;
+
+                // 添加到断点样式中
+                breakpoint_styles
+                    .entry(breakpoint)
+                    .or_insert_with(HashMap::new)
+                    .insert(style_key, style_value);
+            }
+
+            // 创建响应式样式结果
+            let mut media_queries = HashMap::new();
+            let generated_queries = self.generate_media_queries(&responsive_variants)?;
+            for (breakpoint, query) in generated_queries {
+                let mut styles = HashMap::new();
+                styles.insert("query".to_string(), query);
+                media_queries.insert(breakpoint, styles);
+            }
+
+            // 将断点样式转换为基础样式
+            let mut base_styles = HashMap::new();
+            for (_, styles) in &breakpoint_styles {
+                for (key, value) in styles {
+                    base_styles.insert(key.clone(), value.clone());
+                }
+            }
+
+            let result = ResponsiveStyleResult {
+                base_styles,
+                media_queries: breakpoint_styles,
+                css: self.generate_responsive_css(&responsive_variants)?,
+            };
+
+            Ok(Some(result))
+        }
+    }
+
+    /// 解析响应式变体键
+    fn parse_responsive_variant(&self, variant_key: &str) -> Result<(String, String), String> {
+        // 解析格式如 "md:bg-blue-500" 或 "hover:md:text-red-500"
+        let parts: Vec<&str> = variant_key.split(':').collect();
+
+        for (i, part) in parts.iter().enumerate() {
+            if ["sm", "md", "lg", "xl", "2xl"].contains(part) {
+                let breakpoint = part.to_string();
+                let style_key = if i + 1 < parts.len() {
+                    parts[i + 1..].join(":")
+                } else {
+                    return Err(format!("无效的响应式变体格式: {}", variant_key));
+                };
+                return Ok((breakpoint, style_key));
+            }
+        }
+
+        Err(format!("未找到有效的断点: {}", variant_key))
+    }
+
+    /// 生成媒体查询
+    fn generate_media_queries(
+        &self,
+        variants: &HashMap<String, String>,
+    ) -> Result<HashMap<String, String>, String> {
+        let mut media_queries = HashMap::new();
+
+        // 标准断点定义
+        let breakpoints = [
+            ("sm", "(min-width: 640px)"),
+            ("md", "(min-width: 768px)"),
+            ("lg", "(min-width: 1024px)"),
+            ("xl", "(min-width: 1280px)"),
+            ("2xl", "(min-width: 1536px)"),
+        ];
+
+        for (breakpoint, query) in breakpoints {
+            if variants
+                .keys()
+                .any(|k| k.contains(&format!("{}:", breakpoint)))
+            {
+                media_queries.insert(breakpoint.to_string(), query.to_string());
+            }
+        }
+
+        Ok(media_queries)
+    }
+
+    /// 获取应用的断点
+    fn get_applied_breakpoints(&self) -> Result<Vec<String>, String> {
+        // 从上下文中获取当前断点
+        if let Some(context) = &self.context {
+            Ok(context.current_breakpoints.clone())
+        } else {
+            Ok(vec!["base".to_string()]) // 默认断点
+        }
+    }
+
+    /// 生成响应式CSS
+    fn generate_responsive_css(
+        &self,
+        variants: &HashMap<String, String>,
+    ) -> Result<String, String> {
+        let mut css = String::new();
+        let mut breakpoint_rules: HashMap<String, Vec<String>> = HashMap::new();
+
+        for (variant_key, variant_value) in variants {
+            let (breakpoint, style_key) = self.parse_responsive_variant(variant_key)?;
+            let style_value = self.resolve_variant_value(variant_value)?;
+
+            let css_rule = format!(
+                "{}: {};",
+                self.convert_to_css_property(&style_key)?,
+                style_value
+            );
+            breakpoint_rules
+                .entry(breakpoint)
+                .or_insert_with(Vec::new)
+                .push(css_rule);
+        }
+
+        // 生成媒体查询CSS
+        let media_queries = self.generate_media_queries(variants)?;
+        for (breakpoint, rules) in breakpoint_rules {
+            if let Some(media_query) = media_queries.get(&breakpoint) {
+                css.push_str(&format!("@media {} {{\n", media_query));
+                for rule in rules {
+                    css.push_str(&format!("  .responsive-{} {{ {} }}\n", breakpoint, rule));
+                }
+                css.push_str("}\n");
+            }
+        }
+
+        Ok(css)
     }
 
     /// 解析状态变体
     fn resolve_state_variants(
         &self,
-        _variants: &HashMap<String, String>,
+        variants: &HashMap<String, String>,
     ) -> Result<Option<StateVariantResult>, String> {
-        // 这里需要根据实际的变体配置来解析状态变体
-        // 简化实现，返回空结果
-        Ok(None)
+        // 检查是否有状态变体
+        let state_variants: HashMap<String, String> = variants
+            .iter()
+            .filter(|(key, _)| {
+                // 检查是否为状态变体（包含状态前缀）
+                key.starts_with("hover:")
+                    || key.starts_with("focus:")
+                    || key.starts_with("active:")
+                    || key.starts_with("disabled:")
+                    || key.starts_with("visited:")
+                    || key.starts_with("checked:")
+                    || key.starts_with("selected:")
+                    || key.starts_with("loading:")
+                    || key.contains(":hover:")
+                    || key.contains(":focus:")
+                    || key.contains(":active:")
+                    || key.contains(":disabled:")
+            })
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
+
+        if state_variants.is_empty() {
+            return Ok(None);
+        }
+
+        // 使用状态变体管理器解析
+        {
+            let mut state_styles = HashMap::new();
+            let mut pseudo_selectors = HashMap::new();
+
+            for (variant_key, variant_value) in &state_variants {
+                // 解析状态和样式
+                let (state_type, style_key) = self.parse_state_variant(&variant_key)?;
+
+                // 生成样式值
+                let style_value = self.resolve_variant_value(&variant_value)?;
+
+                // 添加到状态样式中
+                state_styles
+                    .entry(state_type.clone())
+                    .or_insert_with(HashMap::new)
+                    .insert(style_key.clone(), style_value.clone());
+
+                // 生成伪选择器
+                let pseudo_selector = self.generate_pseudo_selector(&state_type)?;
+                pseudo_selectors.insert(state_type, pseudo_selector);
+            }
+
+            // 创建状态变体结果
+            let result = StateVariantResult {
+                base_styles: HashMap::new(),
+                state_styles,
+                pseudo_selectors,
+                applied_states: self.get_applied_states()?,
+                css_output: self.generate_state_css(&state_variants)?,
+                interaction_handlers: self.generate_interaction_handlers(&state_variants)?,
+                css: self.generate_state_css(&state_variants)?,
+            };
+
+            Ok(Some(result))
+        }
+    }
+
+    /// 解析状态变体键
+    fn parse_state_variant(&self, variant_key: &str) -> Result<(StateType, String), String> {
+        // 解析格式如 "hover:bg-blue-500" 或 "md:hover:text-red-500"
+        let parts: Vec<&str> = variant_key.split(':').collect();
+
+        for (i, part) in parts.iter().enumerate() {
+            let state_type = match *part {
+                "hover" => StateType::Hover,
+                "focus" => StateType::Focus,
+                "active" => StateType::Active,
+                "disabled" => StateType::Disabled,
+                "visited" => StateType::Visited,
+                "checked" => StateType::Checked,
+                "selected" => StateType::Selected,
+                "loading" => StateType::Loading,
+                _ => continue,
+            };
+
+            let style_key = if i + 1 < parts.len() {
+                parts[i + 1..].join(":")
+            } else {
+                return Err(format!("无效的状态变体格式: {}", variant_key));
+            };
+
+            return Ok((state_type, style_key));
+        }
+
+        Err(format!("未找到有效的状态类型: {}", variant_key))
+    }
+
+    /// 生成伪选择器
+    fn generate_pseudo_selector(&self, state_type: &StateType) -> Result<String, String> {
+        let selector = match state_type {
+            StateType::Hover => ":hover",
+            StateType::Focus => ":focus",
+            StateType::Active => ":active",
+            StateType::Disabled => ":disabled",
+            StateType::Visited => ":visited",
+            StateType::Checked => ":checked",
+            StateType::Selected => "[aria-selected='true']",
+            StateType::Loading => "[data-loading='true']",
+            _ => return Err(format!("不支持的状态类型: {:?}", state_type)),
+        };
+
+        Ok(selector.to_string())
+    }
+
+    /// 获取应用的状态
+    fn get_applied_states(&self) -> Result<Vec<StateType>, String> {
+        // 从上下文中获取当前状态
+        if let Some(context) = &self.context {
+            Ok(context.current_states.clone())
+        } else {
+            Ok(vec![]) // 默认无状态
+        }
+    }
+
+    /// 生成状态CSS
+    fn generate_state_css(&self, variants: &HashMap<String, String>) -> Result<String, String> {
+        let mut css = String::new();
+        let mut state_rules: HashMap<StateType, Vec<String>> = HashMap::new();
+
+        for (variant_key, variant_value) in variants {
+            let (state_type, style_key) = self.parse_state_variant(variant_key)?;
+            let style_value = self.resolve_variant_value(variant_value)?;
+
+            let css_rule = format!(
+                "{}: {};",
+                self.convert_to_css_property(&style_key)?,
+                style_value
+            );
+            state_rules
+                .entry(state_type)
+                .or_insert_with(Vec::new)
+                .push(css_rule);
+        }
+
+        // 生成状态CSS规则
+        for (state_type, rules) in state_rules {
+            let pseudo_selector = self.generate_pseudo_selector(&state_type)?;
+            css.push_str(&format!(".state-variant{} {{\n", pseudo_selector));
+            for rule in rules {
+                css.push_str(&format!("  {}\n", rule));
+            }
+            css.push_str("}\n");
+        }
+
+        Ok(css)
+    }
+
+    /// 生成交互处理器
+    fn generate_interaction_handlers(
+        &self,
+        variants: &HashMap<String, String>,
+    ) -> Result<HashMap<String, String>, String> {
+        let mut handlers = HashMap::new();
+
+        for (variant_key, _) in variants {
+            let (state_type, _) = self.parse_state_variant(variant_key)?;
+
+            let handler = match state_type {
+                StateType::Hover => "onmouseenter, onmouseleave".to_string(),
+                StateType::Focus => "onfocus, onblur".to_string(),
+                StateType::Active => "onmousedown, onmouseup".to_string(),
+                StateType::Checked => "onchange".to_string(),
+                StateType::Selected => "onclick".to_string(),
+                StateType::Loading => "data-loading".to_string(),
+                _ => "none".to_string(),
+            };
+
+            handlers.insert(format!("{:?}", state_type), handler);
+        }
+
+        Ok(handlers)
     }
 
     /// 生成 CSS
@@ -568,6 +904,121 @@ impl VariantResolver {
     pub fn priority_manager(&mut self) -> &mut PriorityManager {
         &mut self.priority_manager
     }
+
+    /// 将样式键转换为 CSS 属性名
+    fn convert_to_css_property(&self, style_key: &str) -> Result<String, String> {
+        // 处理常见的样式键到CSS属性的转换
+        let css_property = match style_key {
+            // 布局属性
+            "w" | "width" => "width",
+            "h" | "height" => "height",
+            "m" | "margin" => "margin",
+            "mt" | "margin-top" => "margin-top",
+            "mr" | "margin-right" => "margin-right",
+            "mb" | "margin-bottom" => "margin-bottom",
+            "ml" | "margin-left" => "margin-left",
+            "mx" => "margin-left", // 需要特殊处理
+            "my" => "margin-top",  // 需要特殊处理
+            "p" | "padding" => "padding",
+            "pt" | "padding-top" => "padding-top",
+            "pr" | "padding-right" => "padding-right",
+            "pb" | "padding-bottom" => "padding-bottom",
+            "pl" | "padding-left" => "padding-left",
+            "px" => "padding-left", // 需要特殊处理
+            "py" => "padding-top",  // 需要特殊处理
+
+            // 颜色属性
+            "bg" | "background" => "background-color",
+            "color" | "text-color" => "color",
+            "border-color" => "border-color",
+
+            // 字体属性
+            "font-size" | "text-size" => "font-size",
+            "font-weight" => "font-weight",
+            "font-family" => "font-family",
+            "line-height" => "line-height",
+            "text-align" => "text-align",
+
+            // 显示属性
+            "display" => "display",
+            "position" => "position",
+            "top" => "top",
+            "right" => "right",
+            "bottom" => "bottom",
+            "left" => "left",
+            "z-index" => "z-index",
+
+            // Flexbox 属性
+            "flex" => "flex",
+            "flex-direction" => "flex-direction",
+            "justify-content" => "justify-content",
+            "align-items" => "align-items",
+            "align-self" => "align-self",
+            "flex-wrap" => "flex-wrap",
+
+            // 边框属性
+            "border" => "border",
+            "border-width" => "border-width",
+            "border-style" => "border-style",
+            "border-radius" => "border-radius",
+
+            // 其他属性
+            "opacity" => "opacity",
+            "transform" => "transform",
+            "transition" => "transition",
+            "animation" => "animation",
+            "overflow" => "overflow",
+            "cursor" => "cursor",
+
+            // 如果没有匹配的，直接使用原始键名
+            _ => style_key,
+        };
+
+        Ok(css_property.to_string())
+    }
+
+    /// 解析变体值
+    fn resolve_variant_value(&self, variant_value: &str) -> Result<String, String> {
+        // 处理变体值的解析，如颜色、尺寸等
+        let resolved_value = match variant_value {
+            // 颜色值
+            value if value.starts_with('#') => value.to_string(),
+            value if value.starts_with("rgb") => value.to_string(),
+            value if value.starts_with("hsl") => value.to_string(),
+
+            // 尺寸值
+            value if value.ends_with("px") => value.to_string(),
+            value if value.ends_with("rem") => value.to_string(),
+            value if value.ends_with("em") => value.to_string(),
+            value if value.ends_with("%") => value.to_string(),
+            value if value.ends_with("vh") => value.to_string(),
+            value if value.ends_with("vw") => value.to_string(),
+
+            // 数字值（添加默认单位）
+            value if value.parse::<f64>().is_ok() => {
+                format!("{}px", value)
+            }
+
+            // 预定义的值
+            "auto" => "auto".to_string(),
+            "none" => "none".to_string(),
+            "inherit" => "inherit".to_string(),
+            "initial" => "initial".to_string(),
+            "unset" => "unset".to_string(),
+
+            // 其他值直接使用
+            _ => variant_value.to_string(),
+        };
+
+        Ok(resolved_value)
+    }
+
+    // /// 获取应用的状态
+    // fn get_applied_states(&self) -> Result<Vec<StateType>, String> {
+    //     // 返回当前应用的状态列表
+    //     // 这里可以从状态管理器中获取
+    //     Ok(vec![])
+    // }
 }
 
 impl Default for VariantResolutionOptions {

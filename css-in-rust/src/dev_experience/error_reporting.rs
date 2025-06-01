@@ -182,6 +182,8 @@ pub enum ErrorFormat {
     Simple,
     /// 丰富格式
     Rich,
+    /// 紧凑格式
+    Compact,
     /// JSON格式
     Json,
     /// IDE友好格式
@@ -285,6 +287,21 @@ impl ErrorReporter {
         self.error_counts.values().sum()
     }
 
+    /// 设置是否使用颜色
+    pub fn set_use_colors(&mut self, use_colors: bool) {
+        self.output_config.use_colors = use_colors;
+    }
+
+    /// 设置是否显示建议
+    pub fn set_show_suggestions(&mut self, show_suggestions: bool) {
+        self.output_config.show_fixes = show_suggestions;
+    }
+
+    /// 设置是否显示源码上下文
+    pub fn set_show_source_context(&mut self, show_source_context: bool) {
+        self.output_config.show_source = show_source_context;
+    }
+
     /// 是否有错误
     pub fn has_errors(&self) -> bool {
         self.get_error_count(&ErrorLevel::Error) > 0
@@ -300,6 +317,7 @@ impl ErrorReporter {
         match self.format {
             ErrorFormat::Simple => self.format_simple(),
             ErrorFormat::Rich => self.format_rich(),
+            ErrorFormat::Compact => self.format_compact(),
             ErrorFormat::Json => self.format_json(),
             ErrorFormat::IdeFriendly => self.format_ide_friendly(),
             ErrorFormat::Custom(ref template) => self.format_custom(template),
@@ -347,6 +365,30 @@ impl ErrorReporter {
 
         // 添加摘要
         output.push_str(&format!("\n{}", self.format_summary()));
+
+        output
+    }
+
+    /// 格式化紧凑报告
+    fn format_compact(&self) -> String {
+        let mut output = String::new();
+
+        for error in &self.errors {
+            let file_path = error
+                .file_path
+                .as_ref()
+                .map(|p| p.to_string_lossy())
+                .unwrap_or_else(|| "<unknown>".into());
+
+            output.push_str(&format!(
+                "{}:{}:{}: {}: {}\n",
+                file_path,
+                error.range.start.line,
+                error.range.start.column,
+                self.format_level(&error.level),
+                error.message
+            ));
+        }
 
         output
     }
@@ -537,9 +579,68 @@ impl ErrorReporter {
     }
 
     /// 格式化源代码上下文
-    fn format_source_context(&self, _error: &ErrorInfo) -> String {
-        // 简化实现，实际应该读取源文件并显示上下文
-        String::from("  源代码上下文暂不可用\n")
+    fn format_source_context(&self, error: &ErrorInfo) -> String {
+        // 如果没有文件路径，返回简单信息
+        let file_path = match &error.file_path {
+            Some(path) => path,
+            None => return String::from("  源代码上下文暂不可用（无文件路径）\n"),
+        };
+
+        // 尝试读取源文件并显示上下文
+        match std::fs::read_to_string(file_path) {
+            Ok(content) => {
+                let lines: Vec<&str> = content.lines().collect();
+                let mut context = String::new();
+
+                let start_line = error.range.start.line;
+                let start_column = error.range.start.column;
+                let end_line = error.range.end.line;
+                let end_column = error.range.end.column;
+
+                // 显示上下文行（前后各2行）
+                let context_start = start_line.saturating_sub(3); // 转为0-based索引
+                let context_end = std::cmp::min(end_line + 2, lines.len());
+
+                context.push_str(&format!(
+                    "  位置: {}:{}:{}\n",
+                    file_path.display(),
+                    start_line,
+                    start_column
+                ));
+                context.push_str(&format!("  {}\n", "-".repeat(50)));
+
+                for (i, line_content) in lines
+                    .iter()
+                    .enumerate()
+                    .skip(context_start)
+                    .take(context_end - context_start)
+                {
+                    let line_num = i + 1;
+                    let is_error_line = line_num >= start_line && line_num <= end_line;
+                    let marker = if is_error_line { ">>>" } else { "   " };
+
+                    context.push_str(&format!("  {} {:4} | {}\n", marker, line_num, line_content));
+
+                    // 如果是错误行，显示列位置指示器
+                    if line_num == start_line && start_column > 0 {
+                        let spaces = " ".repeat(10 + start_column.saturating_sub(1)); // 10 = "  >>> 1234 | ".len()
+                        let indicators = if start_line == end_line && end_column > start_column {
+                            "^".repeat(end_column - start_column)
+                        } else {
+                            "^".to_string()
+                        };
+                        context.push_str(&format!("  {}{}\n", spaces, indicators));
+                    }
+                }
+
+                context.push_str(&format!("  {}\n", "-".repeat(50)));
+                context
+            }
+            Err(err) => {
+                // 如果无法读取文件，返回错误信息
+                format!("  源代码上下文暂不可用（读取文件失败: {}）\n", err)
+            }
+        }
     }
 
     /// 格式化修复建议

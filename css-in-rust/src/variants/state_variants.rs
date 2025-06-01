@@ -21,6 +21,10 @@ pub enum StateType {
     Checked,
     /// 访问过状态
     Visited,
+    /// 选择状态
+    Selected,
+    /// 加载状态
+    Loading,
     /// 第一个子元素
     FirstChild,
     /// 最后一个子元素
@@ -79,6 +83,14 @@ pub struct StateVariantResult {
     pub base_styles: HashMap<String, String>,
     /// 状态样式映射
     pub state_styles: HashMap<StateType, HashMap<String, String>>,
+    /// 伪选择器
+    pub pseudo_selectors: HashMap<StateType, String>,
+    /// 应用的状态
+    pub applied_states: Vec<StateType>,
+    /// CSS 输出
+    pub css_output: String,
+    /// 交互处理器
+    pub interaction_handlers: HashMap<String, String>,
     /// 生成的 CSS
     pub css: String,
 }
@@ -102,6 +114,8 @@ impl StateType {
             StateType::Disabled => ":disabled".to_string(),
             StateType::Checked => ":checked".to_string(),
             StateType::Visited => ":visited".to_string(),
+            StateType::Selected => "[aria-selected='true']".to_string(),
+            StateType::Loading => "[data-loading='true']".to_string(),
             StateType::FirstChild => ":first-child".to_string(),
             StateType::LastChild => ":last-child".to_string(),
             StateType::NthChildOdd => ":nth-child(odd)".to_string(),
@@ -119,6 +133,8 @@ impl StateType {
             StateType::Disabled => "disabled".to_string(),
             StateType::Checked => "checked".to_string(),
             StateType::Visited => "visited".to_string(),
+            StateType::Selected => "selected".to_string(),
+            StateType::Loading => "loading".to_string(),
             StateType::FirstChild => "first-child".to_string(),
             StateType::LastChild => "last-child".to_string(),
             StateType::NthChildOdd => "nth-child-odd".to_string(),
@@ -374,6 +390,10 @@ impl StateVariantManager {
         StateVariantResult {
             base_styles,
             state_styles: state_style_map,
+            pseudo_selectors: HashMap::new(),
+            applied_states: Vec::new(),
+            css_output: css.clone(),
+            interaction_handlers: HashMap::new(),
             css,
         }
     }

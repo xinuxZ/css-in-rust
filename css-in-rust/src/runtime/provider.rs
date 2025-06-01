@@ -42,19 +42,24 @@ pub fn init() {
     let _ = STYLE_INJECTOR.get_or_init(|| StyleInjector::new());
 }
 
-/// Inject a CSS style into the document and return the class name
+/// Inject CSS into the document
 ///
 /// # Arguments
 ///
-/// * `css` - The CSS content to inject
+/// * `css` - The CSS string to inject
 /// * `class_name` - The class name to use for the CSS rule
 ///
 /// # Returns
 ///
 /// The class name that was used for the CSS rule
-pub fn inject_style(_css: &str, class_name: &str) -> String {
-    // TODO: Implement actual style injection logic
-    // For now, just return the class name
+pub fn inject_style(css: &str, class_name: &str) -> String {
+    let injector = STYLE_INJECTOR.get_or_init(|| StyleInjector::new());
+
+    // 尝试注入样式，如果失败则记录错误但仍返回类名
+    if let Err(e) = injector.inject_style(css, class_name) {
+        eprintln!("Failed to inject style for class '{}': {:?}", class_name, e);
+    }
+
     class_name.to_string()
 }
 

@@ -502,10 +502,33 @@ impl ConditionalStyleManager {
     }
 
     /// 清除特定 prop 相关的缓存
-    fn invalidate_prop_cache(&mut self, _prop: &str) {
-        // 简单实现：清除所有缓存
-        // 在实际项目中可以更精确地清除相关缓存
-        self.style_cache.clear();
+    fn invalidate_prop_cache(&mut self, prop: &str) {
+        // 完整实现：精确清除相关缓存
+        let mut keys_to_remove = Vec::new();
+
+        for (cache_key, _) in &self.style_cache {
+            // 检查缓存键是否包含该prop
+            if self.cache_key_depends_on_prop(cache_key, prop) {
+                keys_to_remove.push(cache_key.clone());
+            }
+        }
+
+        // 移除相关的缓存项
+        for key in keys_to_remove {
+            self.style_cache.remove(&key);
+        }
+    }
+
+    /// 检查缓存键是否依赖于特定的prop
+    fn cache_key_depends_on_prop(&self, cache_key: &str, prop: &str) -> bool {
+        // 解析缓存键格式，通常为 "condition1:value1,condition2:value2"
+        cache_key.split(',').any(|condition_pair| {
+            if let Some((condition_name, _)) = condition_pair.split_once(':') {
+                condition_name.trim() == prop
+            } else {
+                false
+            }
+        })
     }
 
     /// 启用/禁用缓存

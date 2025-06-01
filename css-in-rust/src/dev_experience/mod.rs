@@ -115,12 +115,68 @@ impl DevExperienceManager {
             diagnostic_manager: DiagnosticManager::new(),
             syntax_highlighter: SyntaxHighlighter::new(&config.highlight_theme),
             ide_integration: IdeIntegration::new(IdeType::VsCode, IdeConfig::default()),
-            // TODO: 错误报告格式需要根据配置来设置，现在是硬编码的Rich
-            // 可以考虑使用一个枚举来表示错误报告格式，然后根据配置来设置
-            // 例如：ErrorFormat::Rich, ErrorFormat::Json, ErrorFormat::IdeFriendly
-            error_reporter: ErrorReporter::new(config.error_format.clone()),
+            // 根据配置设置错误报告格式
+            error_reporter: Self::create_error_reporter(&config.error_format),
             completion_provider: CompletionProvider::new(),
             config,
+        }
+    }
+
+    /// 根据配置创建错误报告器
+    fn create_error_reporter(
+        error_format: &crate::dev_experience::error_reporting::ErrorFormat,
+    ) -> ErrorReporter {
+        use crate::dev_experience::error_reporting::ErrorFormat;
+
+        match error_format {
+            ErrorFormat::Simple => {
+                // 简单格式：基础输出
+                let mut reporter = ErrorReporter::new(error_format.clone());
+                reporter.set_show_source_context(false);
+                reporter.set_show_suggestions(false);
+                reporter.set_use_colors(false);
+                reporter
+            }
+            ErrorFormat::Rich => {
+                // Rich格式：包含颜色、源码上下文、建议等
+                let mut reporter = ErrorReporter::new(error_format.clone());
+                reporter.set_show_source_context(true);
+                reporter.set_show_suggestions(true);
+                reporter.set_use_colors(true);
+                reporter
+            }
+            ErrorFormat::Compact => {
+                // 紧凑格式：简洁输出，适合CI/CD
+                let mut reporter = ErrorReporter::new(error_format.clone());
+                reporter.set_show_source_context(false);
+                reporter.set_show_suggestions(false);
+                reporter.set_use_colors(false);
+                reporter
+            }
+            ErrorFormat::Json => {
+                // JSON格式：结构化输出，适合工具集成
+                let mut reporter = ErrorReporter::new(error_format.clone());
+                reporter.set_show_source_context(false);
+                reporter.set_show_suggestions(false);
+                reporter.set_use_colors(false);
+                reporter
+            }
+            ErrorFormat::IdeFriendly => {
+                // IDE友好格式：包含位置信息，适合IDE集成
+                let mut reporter = ErrorReporter::new(error_format.clone());
+                reporter.set_show_source_context(true);
+                reporter.set_show_suggestions(true);
+                reporter.set_use_colors(false);
+                reporter
+            }
+            ErrorFormat::Custom(_) => {
+                // 自定义格式：使用默认配置
+                let mut reporter = ErrorReporter::new(error_format.clone());
+                reporter.set_show_source_context(true);
+                reporter.set_show_suggestions(true);
+                reporter.set_use_colors(false);
+                reporter
+            }
         }
     }
 
