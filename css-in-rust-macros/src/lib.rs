@@ -12,9 +12,9 @@ use proc_macro::TokenStream;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
 use sha2::{Digest, Sha256};
-use syn::{Error, LitStr};
 use std::collections::{HashMap, HashSet};
 use std::sync::{Mutex, OnceLock};
+use syn::{Error, LitStr};
 
 /// Global CSS cache to avoid duplicate processing and injection
 static CSS_CACHE: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
@@ -210,7 +210,6 @@ fn css_if_impl_internal(input: TokenStream2) -> syn::Result<TokenStream2> {
 
     // Process CSS with caching
     let css_processing_result = process_css_with_cache(css_content, &css_id)?;
-
 
     Ok(quote! {
         {
@@ -1206,10 +1205,6 @@ fn compress_css(css: &str) -> String {
         .replace(",", ", ")
 }
 
-/// Cache for compiled CSS to avoid recompilation
-static CSS_CACHE: std::sync::LazyLock<std::sync::Mutex<std::collections::HashMap<String, String>>> =
-    std::sync::LazyLock::new(|| std::sync::Mutex::new(std::collections::HashMap::new()));
-
 /// Get cached CSS or compile and cache it
 fn get_or_compile_css(cache_key: &str, css_input: &str) -> String {
     if let Ok(cache) = CSS_CACHE.lock() {
@@ -1571,11 +1566,16 @@ fn process_css_with_cache(css_content: &str, css_id: &str) -> syn::Result<TokenS
                             .replace(" {", "{")
                             .replace("{ ", "{")
                             .replace(" }", "}")
-                            .replace("} ", "}")
-                            .replace(",", ", ")
-                            .replace(",", ", ")
-                            .replace(",", ", ")
-                            .replace(",", ", ")
-                            .replace(",", ", ")
-                            .replace(",", ", ")
-                            .replace("
+                            .replace("} ", "}");
+
+                        style_element.set_inner_html(&css_rules);
+                        let head = DOCUMENT.head();
+                        head.append_child(&style_element.into());
+                    }
+                }
+
+                class_name.to_string()
+            }).clone()
+        }
+    })
+}
