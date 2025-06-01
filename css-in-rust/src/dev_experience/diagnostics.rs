@@ -534,7 +534,7 @@ impl DiagnosticRule for SyntaxErrorRule {
 struct UnusedSelectorRule;
 
 impl DiagnosticRule for UnusedSelectorRule {
-    fn check(&self, code: &str, _file_path: &str) -> Vec<Diagnostic> {
+    fn check(&self, _code: &str, _file_path: &str) -> Vec<Diagnostic> {
         // 这里应该实现更复杂的未使用选择器检测
         // 目前返回空结果
         Vec::new()

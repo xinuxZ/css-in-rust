@@ -681,27 +681,6 @@ impl CssVariableInjector {
         }
         Ok(())
     }
-
-    /// 注入 CSS 变量（兼容方法）
-    pub fn inject_css_variables(
-        &mut self,
-        variables: &HashMap<String, String>,
-    ) -> Result<(), String> {
-        // 生成CSS变量字符串
-        let mut css = String::from(":root {\n");
-        for (name, value) in variables {
-            let var_name = if name.starts_with("--") {
-                name.clone()
-            } else {
-                format!("--{}", name)
-            };
-            css.push_str(&format!("  {}: {};\n", var_name, value));
-        }
-        css.push_str("}\n");
-
-        // 使用现有的inject方法
-        self.inject(&css)
-    }
 }
 
 /// CSS 变量工具函数

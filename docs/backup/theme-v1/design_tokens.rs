@@ -279,19 +279,6 @@ impl DesignTokens {
         }
     }
 
-    /// 创建 Ant Design 亮色主题设计令牌
-    pub fn ant_design_light() -> Self {
-        Self {
-            colors: ColorTokens::ant_design_light(),
-            typography: TypographyTokens::default(),
-            spacing: SpacingTokens::default(),
-            borders: BorderTokens::default(),
-            shadows: ShadowTokens::default(),
-            motion: MotionTokens::default(),
-            breakpoints: BreakpointTokens::default(),
-        }
-    }
-
     /// 根据路径获取令牌值
     ///
     /// 支持点分路径，如 "colors.primary"、"spacing.md"、"typography.font_size.lg"

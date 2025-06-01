@@ -69,7 +69,7 @@ pub struct OperationMetric {
 
 impl OperationMetric {
     /// 创建新的操作指标
-    pub fn new(operation_type: OperationType, start_time: Instant, duration: Duration) -> Self {
+    pub fn new(operation_type: OperationType, _start_time: Instant, duration: Duration) -> Self {
         let start_timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()

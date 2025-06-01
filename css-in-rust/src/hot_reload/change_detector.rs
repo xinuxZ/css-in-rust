@@ -568,7 +568,7 @@ impl ChangeDetector {
     }
 
     /// 分析依赖关系
-    fn analyze_dependencies(&self, path: &Path) -> Result<Vec<PathBuf>, ChangeDetectorError> {
+    fn analyze_dependencies(&self, _path: &Path) -> Result<Vec<PathBuf>, ChangeDetectorError> {
         // 简化实现，返回空依赖列表
         // 在实际实现中，可以分析import/use语句等
         Ok(vec![])

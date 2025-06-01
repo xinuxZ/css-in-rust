@@ -142,7 +142,7 @@ impl KeyframesBuilder {
     }
 
     /// 添加步骤
-    pub fn step(mut self, percentage: u8) -> KeyframeStepBuilder {
+    pub fn step(self, percentage: u8) -> KeyframeStepBuilder {
         KeyframeStepBuilder {
             builder: self,
             percentage,

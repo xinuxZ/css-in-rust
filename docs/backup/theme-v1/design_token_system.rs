@@ -571,7 +571,7 @@ impl DesignTokenSystem {
     }
 
     /// 获取令牌值
-    pub fn get_token_value(&self, _path: &str) -> Option<crate::theme::TokenValue> {
+    pub fn get_token_value(&self, path: &str) -> Option<crate::theme::TokenValue> {
         // 简单实现，返回字符串值
         // 实际实现需要根据路径解析令牌
         Some(crate::theme::TokenValue::string("default-value"))
@@ -580,8 +580,8 @@ impl DesignTokenSystem {
     /// 设置令牌值
     pub fn set_token(
         &mut self,
-        _path: &str,
-        _value: crate::theme::TokenValue,
+        path: &str,
+        value: crate::theme::TokenValue,
     ) -> Result<(), crate::theme::ThemeError> {
         // 简单实现，实际需要根据路径设置令牌
         Ok(())
@@ -683,7 +683,7 @@ impl DesignTokenSystem {
 
     /// 验证令牌系统
     pub fn validate(&self) -> Result<(), Vec<String>> {
-        let errors = Vec::new();
+        let mut errors = Vec::new();
 
         // 验证令牌引用的有效性
         // 这里可以添加更多验证逻辑

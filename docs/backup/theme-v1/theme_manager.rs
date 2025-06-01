@@ -488,19 +488,19 @@ impl ThemeManager {
     pub fn set_max_history(&mut self, max: usize) {
         // 创建新的ThemeHistory实例，保留现有历史记录
         let current_history = self.theme_history.get_history().unwrap_or_default();
-        let new_theme_history = ThemeHistory::new().with_max_history(max);
-
+        let mut new_theme_history = ThemeHistory::new().with_max_history(max);
+        
         // 将现有历史记录添加到新的历史管理器中，但要遵守新的最大限制
         let start_index = if current_history.len() > max {
             current_history.len() - max
         } else {
             0
         };
-
+        
         for theme_name in &current_history[start_index..] {
             let _ = new_theme_history.add_theme(theme_name);
         }
-
+        
         self.theme_history = new_theme_history;
     }
 

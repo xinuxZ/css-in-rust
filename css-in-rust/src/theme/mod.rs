@@ -45,6 +45,22 @@ pub enum ThemeMode {
     Auto,
 }
 
+impl Default for ThemeMode {
+    fn default() -> Self {
+        Self::Light
+    }
+}
+
+impl std::fmt::Display for ThemeMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Light => write!(f, "light"),
+            Self::Dark => write!(f, "dark"),
+            Self::Auto => write!(f, "auto"),
+        }
+    }
+}
+
 impl Default for Theme {
     /// 创建默认的 Ant Design 主题
     fn default() -> Self {
@@ -128,6 +144,237 @@ impl Theme {
             custom_variables: HashMap::new(),
             mode: ThemeMode::Dark,
         }
+    }
+
+    /// 生成设计令牌的 CSS 变量
+    pub fn generate_design_tokens_css(
+        &self,
+        design_tokens: &DesignTokens,
+    ) -> HashMap<String, String> {
+        let mut variables = HashMap::new();
+
+        // 生成颜色变量
+        variables.insert(
+            "color-primary".to_string(),
+            design_tokens.colors.primary.clone(),
+        );
+        variables.insert(
+            "color-success".to_string(),
+            design_tokens.colors.success.clone(),
+        );
+        variables.insert(
+            "color-warning".to_string(),
+            design_tokens.colors.warning.clone(),
+        );
+        variables.insert(
+            "color-error".to_string(),
+            design_tokens.colors.error.clone(),
+        );
+        variables.insert("color-info".to_string(), design_tokens.colors.info.clone());
+
+        // 文本颜色
+        variables.insert(
+            "text-primary".to_string(),
+            design_tokens.colors.text.primary.clone(),
+        );
+        variables.insert(
+            "text-secondary".to_string(),
+            design_tokens.colors.text.secondary.clone(),
+        );
+        variables.insert(
+            "text-disabled".to_string(),
+            design_tokens.colors.text.disabled.clone(),
+        );
+        variables.insert(
+            "text-inverse".to_string(),
+            design_tokens.colors.text.inverse.clone(),
+        );
+
+        // 背景颜色
+        variables.insert(
+            "bg-primary".to_string(),
+            design_tokens.colors.background.primary.clone(),
+        );
+        variables.insert(
+            "bg-secondary".to_string(),
+            design_tokens.colors.background.secondary.clone(),
+        );
+        variables.insert(
+            "bg-tertiary".to_string(),
+            design_tokens.colors.background.tertiary.clone(),
+        );
+        variables.insert(
+            "bg-inverse".to_string(),
+            design_tokens.colors.background.inverse.clone(),
+        );
+
+        // 生成字体变量
+        variables.insert(
+            "font-family-sans".to_string(),
+            design_tokens.typography.font_family.sans.clone(),
+        );
+        variables.insert(
+            "font-family-serif".to_string(),
+            design_tokens.typography.font_family.serif.clone(),
+        );
+        variables.insert(
+            "font-family-mono".to_string(),
+            design_tokens.typography.font_family.mono.clone(),
+        );
+
+        variables.insert(
+            "font-size-xs".to_string(),
+            design_tokens.typography.font_size.xs.clone(),
+        );
+        variables.insert(
+            "font-size-sm".to_string(),
+            design_tokens.typography.font_size.sm.clone(),
+        );
+        variables.insert(
+            "font-size-md".to_string(),
+            design_tokens.typography.font_size.md.clone(),
+        );
+        variables.insert(
+            "font-size-lg".to_string(),
+            design_tokens.typography.font_size.lg.clone(),
+        );
+        variables.insert(
+            "font-size-xl".to_string(),
+            design_tokens.typography.font_size.xl.clone(),
+        );
+        variables.insert(
+            "font-size-xxl".to_string(),
+            design_tokens.typography.font_size.xxl.clone(),
+        );
+        variables.insert(
+            "font-size-xxxl".to_string(),
+            design_tokens.typography.font_size.xxxl.clone(),
+        );
+
+        // 生成间距变量
+        variables.insert("spacing-xs".to_string(), design_tokens.spacing.xs.clone());
+        variables.insert("spacing-sm".to_string(), design_tokens.spacing.sm.clone());
+        variables.insert("spacing-md".to_string(), design_tokens.spacing.md.clone());
+        variables.insert("spacing-lg".to_string(), design_tokens.spacing.lg.clone());
+        variables.insert("spacing-xl".to_string(), design_tokens.spacing.xl.clone());
+        variables.insert("spacing-xxl".to_string(), design_tokens.spacing.xxl.clone());
+        variables.insert(
+            "spacing-xxxl".to_string(),
+            design_tokens.spacing.xxxl.clone(),
+        );
+
+        // 生成边框变量
+        variables.insert(
+            "border-width-none".to_string(),
+            design_tokens.borders.width.none.clone(),
+        );
+        variables.insert(
+            "border-width-thin".to_string(),
+            design_tokens.borders.width.thin.clone(),
+        );
+        variables.insert(
+            "border-width-medium".to_string(),
+            design_tokens.borders.width.medium.clone(),
+        );
+        variables.insert(
+            "border-width-thick".to_string(),
+            design_tokens.borders.width.thick.clone(),
+        );
+
+        variables.insert(
+            "border-radius-none".to_string(),
+            design_tokens.borders.radius.none.clone(),
+        );
+        variables.insert(
+            "border-radius-sm".to_string(),
+            design_tokens.borders.radius.sm.clone(),
+        );
+        variables.insert(
+            "border-radius-md".to_string(),
+            design_tokens.borders.radius.md.clone(),
+        );
+        variables.insert(
+            "border-radius-lg".to_string(),
+            design_tokens.borders.radius.lg.clone(),
+        );
+        variables.insert(
+            "border-radius-xl".to_string(),
+            design_tokens.borders.radius.xl.clone(),
+        );
+        variables.insert(
+            "border-radius-full".to_string(),
+            design_tokens.borders.radius.full.clone(),
+        );
+
+        // 生成阴影变量
+        variables.insert("shadow-sm".to_string(), design_tokens.shadows.sm.clone());
+        variables.insert("shadow-md".to_string(), design_tokens.shadows.md.clone());
+        variables.insert("shadow-lg".to_string(), design_tokens.shadows.lg.clone());
+        variables.insert("shadow-xl".to_string(), design_tokens.shadows.xl.clone());
+        variables.insert(
+            "shadow-inner".to_string(),
+            design_tokens.shadows.inner.clone(),
+        );
+
+        // 生成动画变量
+        variables.insert(
+            "duration-fast".to_string(),
+            design_tokens.motion.duration.fast.clone(),
+        );
+        variables.insert(
+            "duration-normal".to_string(),
+            design_tokens.motion.duration.normal.clone(),
+        );
+        variables.insert(
+            "duration-slow".to_string(),
+            design_tokens.motion.duration.slow.clone(),
+        );
+
+        variables.insert(
+            "easing-linear".to_string(),
+            design_tokens.motion.easing.linear.clone(),
+        );
+        variables.insert(
+            "easing-ease-in".to_string(),
+            design_tokens.motion.easing.ease_in.clone(),
+        );
+        variables.insert(
+            "easing-ease-out".to_string(),
+            design_tokens.motion.easing.ease_out.clone(),
+        );
+        variables.insert(
+            "easing-ease-in-out".to_string(),
+            design_tokens.motion.easing.ease_in_out.clone(),
+        );
+
+        // 生成断点变量
+        // 断点变量
+        variables.insert(
+            "breakpoint-xs".to_string(),
+            design_tokens.breakpoints.xs.clone(),
+        );
+        variables.insert(
+            "breakpoint-sm".to_string(),
+            design_tokens.breakpoints.sm.clone(),
+        );
+        variables.insert(
+            "breakpoint-md".to_string(),
+            design_tokens.breakpoints.md.clone(),
+        );
+        variables.insert(
+            "breakpoint-lg".to_string(),
+            design_tokens.breakpoints.lg.clone(),
+        );
+        variables.insert(
+            "breakpoint-xl".to_string(),
+            design_tokens.breakpoints.xl.clone(),
+        );
+        variables.insert(
+            "breakpoint-xxl".to_string(),
+            design_tokens.breakpoints.xxl.clone(),
+        );
+
+        variables
     }
 }
 

@@ -444,7 +444,7 @@ impl HotReloadManager {
         status: &Arc<Mutex<HotReloadStatus>>,
         stats: &Arc<Mutex<HotReloadStats>>,
         pending_changes: &Arc<Mutex<HashMap<PathBuf, Instant>>>,
-        debounce_delay: Duration,
+        _debounce_delay: Duration,
     ) {
         // 检查是否暂停
         if matches!(*status.lock().unwrap(), HotReloadStatus::Paused) {

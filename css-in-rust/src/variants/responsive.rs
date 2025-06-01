@@ -186,7 +186,7 @@ impl ResponsiveManager {
         let mut responsive_styles = HashMap::new();
 
         // 处理响应式变体
-        for (variant_key, variant_value) in variants {
+        for (variant_key, _variant_value) in variants {
             if let Some(variant_style) = config.responsive.get(variant_key) {
                 // 应用响应式样式
                 for (prop, value) in &variant_style.properties {

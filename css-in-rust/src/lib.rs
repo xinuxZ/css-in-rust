@@ -45,6 +45,7 @@ pub mod macros;
 pub mod performance;
 pub mod runtime;
 pub mod theme;
+pub mod theme_bridge;
 pub mod variants;
 
 // Re-exports for convenience
@@ -55,6 +56,7 @@ pub use core::*;
 pub use hot_reload::*;
 pub use runtime::*;
 pub use theme::*;
+pub use theme_bridge::*;
 pub use variants::*;
 
 // Re-export macros when proc-macro feature is enabled
