@@ -3,9 +3,12 @@
 //! 提供智能的增量编译功能，只重新编译发生变化的CSS
 
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "optimizer")]
 use sha2::{Digest, Sha256};
+use std::collections::hash_map::DefaultHasher;
 use std::collections::{HashMap, HashSet};
 use std::fs;
+use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -47,10 +50,19 @@ impl FileDependency {
     }
 
     /// 计算文件内容哈希
+    #[cfg(feature = "optimizer")]
     pub fn calculate_hash(content: &str) -> String {
         let mut hasher = Sha256::new();
         hasher.update(content.as_bytes());
         format!("{:x}", hasher.finalize())
+    }
+
+    /// 计算文件内容哈希 (fallback)
+    #[cfg(not(feature = "optimizer"))]
+    pub fn calculate_hash(content: &str) -> String {
+        let mut hasher = DefaultHasher::new();
+        content.hash(&mut hasher);
+        format!("{:x}", hasher.finish())
     }
 
     /// 检查文件是否发生变化

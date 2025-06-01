@@ -11,7 +11,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
-use super::{DesignTokenSystem, DesignTokens, Theme, ThemeMode, TokenValue};
+use super::design_token_system::DesignTokenSystem;
+use super::{DesignTokens, Theme, ThemeMode, TokenValue};
 
 /// 主题历史记录管理器
 #[derive(Debug, Clone)]
@@ -343,7 +344,9 @@ impl ThemeManager {
         let mut token_system = self.token_system.write().unwrap();
 
         for override_config in overrides {
-            token_system.set_token(&override_config.token_path, override_config.new_value)?;
+            token_system
+                .set_token(&override_config.token_path, override_config.new_value)
+                .map_err(|e| ThemeError::TokenSystemError(e.to_string()))?;
         }
 
         // 触发令牌更新事件
@@ -368,7 +371,7 @@ impl ThemeManager {
     /// 生成当前主题的 CSS
     pub fn generate_css(&self) -> Result<String, ThemeError> {
         let current_theme = self.current_theme();
-        let token_system = self.token_system.read().unwrap();
+        let mut token_system = self.token_system.write().unwrap();
 
         let mut css = String::new();
 
@@ -376,7 +379,7 @@ impl ThemeManager {
         css.push_str(":root {\n");
 
         // 从设计令牌系统生成 CSS 变量
-        let css_vars = token_system.export_as_css_variables()?;
+        let css_vars = token_system.generate_css_variables()?;
         css.push_str(&css_vars);
 
         // 添加自定义变量
@@ -425,16 +428,18 @@ impl ThemeManager {
 
     /// 获取设计令牌值
     pub fn get_token_value(&self, path: &str) -> Result<TokenValue, ThemeError> {
-        let token_system = self.token_system.read().unwrap();
+        let mut token_system = self.token_system.write().unwrap();
         token_system
-            .get_token_value(path)
-            .ok_or_else(|| ThemeError::TokenNotFound(path.to_string()))
+            .get_token(path)
+            .map_err(|e| ThemeError::TokenNotFound(e.to_string()))
     }
 
     /// 设置设计令牌值
     pub fn set_token_value(&self, path: &str, value: TokenValue) -> Result<(), ThemeError> {
         let mut token_system = self.token_system.write().unwrap();
-        token_system.set_token(path, value)
+        token_system
+            .set_token(path, value)
+            .map_err(|e| ThemeError::TokenNotFound(e))
     }
 
     // 私有辅助方法
@@ -592,6 +597,13 @@ impl std::fmt::Display for ThemeError {
 }
 
 impl std::error::Error for ThemeError {}
+
+/// 实现从 String 到 ThemeError 的转换
+impl From<String> for ThemeError {
+    fn from(error: String) -> Self {
+        ThemeError::TokenSystemError(error)
+    }
+}
 
 #[cfg(test)]
 mod tests {

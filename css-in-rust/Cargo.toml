@@ -43,7 +43,7 @@ wasm-bindgen = "0.2"
 [dev-dependencies]
 
 [features]
-default = ["proc-macro", "optimizer"]
+default = ["proc-macro"]
 proc-macro = ["css-in-rust-macros", "proc-macro2", "quote", "syn"]
 optimizer = ["lightningcss", "sha2"]
 dioxus = []

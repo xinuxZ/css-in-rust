@@ -18,8 +18,8 @@ pub struct DesignTokenSystem {
     pub component_tokens: ComponentTokens,
     /// 令牌计算规则
     pub computation_rules: ComputationRules,
-    /// 系统元数据
-    pub metadata: SystemMetadata,
+    /// 令牌元数据
+    pub metadata: TokenMetadata,
 }
 
 /// 全局令牌（原始设计决策）
@@ -80,9 +80,9 @@ pub struct ComputationRules {
     pub typography_rules: Vec<TypographyComputationRule>,
 }
 
-/// 系统元数据
+/// 令牌元数据
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SystemMetadata {
+pub struct TokenMetadata {
     /// 版本信息
     pub version: String,
     /// 创建时间
@@ -560,7 +560,7 @@ impl DesignTokenSystem {
             alias_tokens: AliasTokens::ant_design_default(),
             component_tokens: ComponentTokens::ant_design_default(),
             computation_rules: ComputationRules::ant_design_default(),
-            metadata: SystemMetadata {
+            metadata: TokenMetadata {
                 version: "1.0.0".to_string(),
                 created_at: chrono::Utc::now().to_rfc3339(),
                 updated_at: chrono::Utc::now().to_rfc3339(),

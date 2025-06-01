@@ -272,13 +272,24 @@ fn parse_css_syntax(input: TokenStream) -> syn::Result<String> {
 }
 
 /// Calculate hash for CSS content using a simple hash function
-#[cfg(feature = "proc-macro")]
+#[cfg(all(feature = "proc-macro", feature = "optimizer"))]
 fn calculate_css_hash(css: &str) -> String {
     use sha2::{Digest, Sha256};
 
     let mut hasher = Sha256::new();
     hasher.update(css.as_bytes());
     format!("{:x}", hasher.finalize())
+}
+
+/// Calculate hash for CSS content using a simple hash function (fallback)
+#[cfg(all(feature = "proc-macro", not(feature = "optimizer")))]
+fn calculate_css_hash(css: &str) -> String {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+
+    let mut hasher = DefaultHasher::new();
+    css.hash(&mut hasher);
+    format!("{:x}", hasher.finish())
 }
 
 /// Validate CSS syntax

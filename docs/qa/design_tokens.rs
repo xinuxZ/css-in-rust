@@ -11,19 +11,19 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct DesignTokens {
     /// 颜色令牌
-    pub colors: super::token_values::Colors,
+    pub colors: ColorTokens,
     /// 字体令牌
-    pub typography: super::token_values::Typography,
+    pub typography: TypographyTokens,
     /// 间距令牌
-    pub spacing: super::token_values::Spacing,
+    pub spacing: SpacingTokens,
     /// 边框令牌
-    pub borders: super::token_values::Borders,
+    pub borders: BorderTokens,
     /// 阴影令牌
-    pub shadows: super::token_values::Shadows,
+    pub shadows: ShadowTokens,
     /// 动画令牌
-    pub motion: super::token_values::Motion,
+    pub motion: MotionTokens,
     /// 断点令牌
-    pub breakpoints: super::token_values::Breakpoints,
+    pub breakpoints: BreakpointTokens,
 }
 
 /// 颜色令牌
@@ -83,16 +83,6 @@ pub struct BorderColors {
     pub inverse: String,
 }
 
-impl Default for BorderColors {
-    fn default() -> Self {
-        Self {
-            primary: "#d9d9d9".to_string(),
-            secondary: "#f0f0f0".to_string(),
-            inverse: "#434343".to_string(),
-        }
-    }
-}
-
 /// 颜色色阶（1-10级）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ColorScale {
@@ -106,12 +96,6 @@ pub struct ColorScale {
     pub c8: String,
     pub c9: String,
     pub c10: String,
-}
-
-impl Default for ColorScale {
-    fn default() -> Self {
-        Self::blue()
-    }
 }
 
 /// 字体令牌
@@ -159,18 +143,6 @@ pub struct FontWeights {
     pub bold: String,
 }
 
-impl Default for FontWeights {
-    fn default() -> Self {
-        Self {
-            light: "300".to_string(),
-            normal: "400".to_string(),
-            medium: "500".to_string(),
-            semibold: "600".to_string(),
-            bold: "700".to_string(),
-        }
-    }
-}
-
 /// 行高
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct LineHeights {
@@ -179,32 +151,12 @@ pub struct LineHeights {
     pub relaxed: String,
 }
 
-impl Default for LineHeights {
-    fn default() -> Self {
-        Self {
-            tight: "1.2".to_string(),
-            normal: "1.5".to_string(),
-            relaxed: "1.8".to_string(),
-        }
-    }
-}
-
 /// 字间距
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct LetterSpacing {
     pub tight: String,
     pub normal: String,
     pub wide: String,
-}
-
-impl Default for LetterSpacing {
-    fn default() -> Self {
-        Self {
-            tight: "-0.025em".to_string(),
-            normal: "0".to_string(),
-            wide: "0.025em".to_string(),
-        }
-    }
 }
 
 /// 间距令牌
@@ -304,39 +256,39 @@ impl DesignTokens {
     /// 创建 Ant Design 默认设计令牌
     pub fn ant_design_default() -> Self {
         Self {
-            colors: super::token_values::Colors::default(),
-            typography: super::token_values::Typography::default(),
-            spacing: super::token_values::Spacing::default(),
-            borders: super::token_values::Borders::default(),
-            shadows: super::token_values::Shadows::default(),
-            motion: super::token_values::Motion::default(),
-            breakpoints: super::token_values::Breakpoints::default(),
+            colors: ColorTokens::ant_design_light(),
+            typography: TypographyTokens::default(),
+            spacing: SpacingTokens::default(),
+            borders: BorderTokens::default(),
+            shadows: ShadowTokens::default(),
+            motion: MotionTokens::default(),
+            breakpoints: BreakpointTokens::default(),
         }
     }
 
     /// 创建 Ant Design 暗色主题设计令牌
     pub fn ant_design_dark() -> Self {
         Self {
-            colors: super::token_values::Colors::default(),
-            typography: super::token_values::Typography::default(),
-            spacing: super::token_values::Spacing::default(),
-            borders: super::token_values::Borders::default(),
-            shadows: super::token_values::Shadows::default(),
-            motion: super::token_values::Motion::default(),
-            breakpoints: super::token_values::Breakpoints::default(),
+            colors: ColorTokens::ant_design_dark(),
+            typography: TypographyTokens::default(),
+            spacing: SpacingTokens::default(),
+            borders: BorderTokens::default(),
+            shadows: ShadowTokens::dark(),
+            motion: MotionTokens::default(),
+            breakpoints: BreakpointTokens::default(),
         }
     }
 
     /// 创建 Ant Design 亮色主题设计令牌
     pub fn ant_design_light() -> Self {
         Self {
-            colors: super::token_values::Colors::default(),
-            typography: super::token_values::Typography::default(),
-            spacing: super::token_values::Spacing::default(),
-            borders: super::token_values::Borders::default(),
-            shadows: super::token_values::Shadows::default(),
-            motion: super::token_values::Motion::default(),
-            breakpoints: super::token_values::Breakpoints::default(),
+            colors: ColorTokens::ant_design_light(),
+            typography: TypographyTokens::default(),
+            spacing: SpacingTokens::default(),
+            borders: BorderTokens::default(),
+            shadows: ShadowTokens::default(),
+            motion: MotionTokens::default(),
+            breakpoints: BreakpointTokens::default(),
         }
     }
 

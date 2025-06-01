@@ -9,15 +9,43 @@ pub mod design_token_system;
 pub mod design_tokens;
 pub mod theme_manager;
 pub mod theme_provider;
-pub mod token_value;
+
+// mod theme_provider;
+pub mod css_generator;
+pub mod token_definitions;
+pub mod token_resolver;
+pub mod token_system;
+pub mod token_values;
+
+// 导出核心类型和函数
+pub use css_generator::CssGenerator;
+pub use design_tokens::{
+    BorderTokens, BreakpointTokens, ColorScale, ColorTokens, MotionTokens, ShadowTokens,
+    SpacingTokens, TypographyTokens,
+};
+pub use token_definitions::{
+    ThemeVariant, TokenDefinitions, TokenPath, TokenValidationError, TokenValue,
+};
+pub use token_resolver::TokenResolver;
+pub use token_system::{
+    get_global_token_system, init_global_token_system, DesignTokenSystem, TokenSystemConfig,
+};
+pub use token_values::{AntDesignTokenValues, TokenValueStore};
+
+// 为了兼容性，定义DesignTokens类型别名
+pub type DesignTokens = TokenValueStore;
+
+// 重新导出便捷宏（从token_system模块导出）
+// pub use theme_provider::*;
+// pub use css_generator::*;
+// pub use token_definitions::*;
+// pub use token_resolver::*;
+// pub use token_values::*;
 
 // 重新导出主要类型
 pub use css_variables::*;
-pub use design_token_system::*;
-pub use design_tokens::*;
 pub use theme_manager::*;
 pub use theme_provider::*;
-pub use token_value::*;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -105,10 +133,25 @@ impl Theme {
     }
 
     /// 获取主题令牌值
-    ///
+    /// 获取设计令牌值
     /// 支持点分路径，如 "colors.primary" 或 "spacing.md"
     pub fn get_token(&self, path: &str) -> Option<String> {
-        self.tokens.get_value(path)
+        // 将字符串路径转换为TokenPath
+        let token_path = crate::theme::token_definitions::TokenPath::from_str(path);
+
+        // 将ThemeMode转换为ThemeVariant
+        let theme_variant = match self.mode {
+            ThemeMode::Light => ThemeVariant::Light,
+            ThemeMode::Dark => ThemeVariant::Dark,
+            ThemeMode::Auto => ThemeVariant::Light, // 默认使用Light
+        };
+
+        // 获取令牌值并转换为字符串
+        if let Some(token_value) = self.tokens.get_value(&token_path, theme_variant) {
+            Some(token_value.to_string())
+        } else {
+            None
+        }
     }
 
     /// 生成 CSS 变量声明

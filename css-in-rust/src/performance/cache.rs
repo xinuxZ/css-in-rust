@@ -3,9 +3,13 @@
 //! 提供CSS编译结果的缓存功能，支持持久化和压缩
 
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "optimizer")]
 use sha2::{Digest, Sha256};
+use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::fs;
+use std::hash::{Hash, Hasher};
+use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -171,6 +175,7 @@ impl CacheManager {
     }
 
     /// 生成缓存键
+    #[cfg(feature = "optimizer")]
     pub fn generate_cache_key(&self, css_content: &str, config_hash: &str) -> String {
         let mut hasher = Sha256::new();
         hasher.update(css_content.as_bytes());
@@ -178,11 +183,29 @@ impl CacheManager {
         format!("{:x}", hasher.finalize())
     }
 
+    /// 生成缓存键 (fallback)
+    #[cfg(not(feature = "optimizer"))]
+    pub fn generate_cache_key(&self, css_content: &str, config_hash: &str) -> String {
+        let mut hasher = DefaultHasher::new();
+        css_content.hash(&mut hasher);
+        config_hash.hash(&mut hasher);
+        format!("{:x}", hasher.finish())
+    }
+
     /// 生成内容哈希
+    #[cfg(feature = "optimizer")]
     pub fn generate_content_hash(&self, content: &str) -> String {
         let mut hasher = Sha256::new();
         hasher.update(content.as_bytes());
         format!("{:x}", hasher.finalize())
+    }
+
+    /// 生成内容哈希 (fallback)
+    #[cfg(not(feature = "optimizer"))]
+    pub fn generate_content_hash(&self, content: &str) -> String {
+        let mut hasher = DefaultHasher::new();
+        content.hash(&mut hasher);
+        format!("{:x}", hasher.finish())
     }
 
     /// 获取缓存条目

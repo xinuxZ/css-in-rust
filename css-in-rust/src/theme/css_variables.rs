@@ -200,7 +200,7 @@ impl CssVariableManager {
     }
 
     /// 添加颜色变量
-    fn add_color_variables(&mut self, colors: &super::ColorTokens) -> Result<(), String> {
+    fn add_color_variables(&mut self, colors: &super::token_values::Colors) -> Result<(), String> {
         // 主要颜色
         self.add_variable("color-primary", &colors.primary);
         self.add_variable("color-success", &colors.success);
@@ -252,7 +252,7 @@ impl CssVariableManager {
     /// 添加字体变量
     fn add_typography_variables(
         &mut self,
-        typography: &super::TypographyTokens,
+        typography: &super::token_values::Typography,
     ) -> Result<(), String> {
         // 字体族
         self.add_variable("font-family-sans", &typography.font_family.sans);
@@ -289,7 +289,10 @@ impl CssVariableManager {
     }
 
     /// 添加间距变量
-    fn add_spacing_variables(&mut self, spacing: &super::SpacingTokens) -> Result<(), String> {
+    fn add_spacing_variables(
+        &mut self,
+        spacing: &super::token_values::Spacing,
+    ) -> Result<(), String> {
         self.add_variable("spacing-xs", &spacing.xs);
         self.add_variable("spacing-sm", &spacing.sm);
         self.add_variable("spacing-md", &spacing.md);
@@ -301,7 +304,10 @@ impl CssVariableManager {
     }
 
     /// 添加边框变量
-    fn add_border_variables(&mut self, borders: &super::BorderTokens) -> Result<(), String> {
+    fn add_border_variables(
+        &mut self,
+        borders: &super::token_values::Borders,
+    ) -> Result<(), String> {
         // 边框宽度
         self.add_variable("border-width-none", &borders.width.none);
         self.add_variable("border-width-thin", &borders.width.thin);
@@ -320,7 +326,10 @@ impl CssVariableManager {
     }
 
     /// 添加阴影变量
-    fn add_shadow_variables(&mut self, shadows: &super::ShadowTokens) -> Result<(), String> {
+    fn add_shadow_variables(
+        &mut self,
+        shadows: &super::token_values::Shadows,
+    ) -> Result<(), String> {
         self.add_variable("shadow-sm", &shadows.sm);
         self.add_variable("shadow-md", &shadows.md);
         self.add_variable("shadow-lg", &shadows.lg);
@@ -330,7 +339,7 @@ impl CssVariableManager {
     }
 
     /// 添加动画变量
-    fn add_motion_variables(&mut self, motion: &super::MotionTokens) -> Result<(), String> {
+    fn add_motion_variables(&mut self, motion: &super::token_values::Motion) -> Result<(), String> {
         // 动画时长
         self.add_variable("motion-duration-fast", &motion.duration.fast);
         self.add_variable("motion-duration-normal", &motion.duration.normal);
@@ -348,7 +357,7 @@ impl CssVariableManager {
     /// 添加断点变量
     fn add_breakpoint_variables(
         &mut self,
-        breakpoints: &super::BreakpointTokens,
+        breakpoints: &super::token_values::Breakpoints,
     ) -> Result<(), String> {
         self.add_variable("breakpoint-xs", &breakpoints.xs);
         self.add_variable("breakpoint-sm", &breakpoints.sm);
