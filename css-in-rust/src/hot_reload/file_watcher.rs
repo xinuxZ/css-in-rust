@@ -556,7 +556,28 @@ impl FileWatcher {
             if parts.len() == 2 {
                 let prefix = parts[0];
                 let suffix = parts[1];
-                return path.contains(prefix) && path.ends_with(suffix);
+
+                // 处理前缀：如果为空或者路径以前缀开始
+                let prefix_matches = prefix.is_empty() || path.starts_with(prefix);
+
+                // 处理后缀：对于 **/*.rs 这样的模式
+                let suffix_matches = if suffix.starts_with('/') {
+                    // 移除开头的 / 并检查文件扩展名
+                    let suffix_without_slash = &suffix[1..];
+                    if suffix_without_slash.starts_with('*') {
+                        // 处理 /*.rs 的情况
+                        let extension = &suffix_without_slash[1..];
+                        path.ends_with(extension)
+                    } else {
+                        path.ends_with(suffix_without_slash)
+                    }
+                } else if suffix.is_empty() {
+                    true
+                } else {
+                    path.ends_with(suffix)
+                };
+
+                return prefix_matches && suffix_matches;
             }
         }
 

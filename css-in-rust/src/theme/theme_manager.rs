@@ -571,6 +571,10 @@ pub enum ThemeError {
     TokenSystemError(String),
     /// CSS 生成错误
     CssGenerationError(String),
+    /// 无效的令牌路径
+    InvalidTokenPath(String),
+    /// 无效的令牌值
+    InvalidTokenValue(String),
 }
 
 impl std::fmt::Display for ThemeError {
@@ -578,6 +582,8 @@ impl std::fmt::Display for ThemeError {
         match self {
             ThemeError::ThemeNotFound(name) => write!(f, "Theme not found: {}", name),
             ThemeError::TokenNotFound(path) => write!(f, "Token not found: {}", path),
+            ThemeError::InvalidTokenPath(path) => write!(f, "Invalid token path: {}", path),
+            ThemeError::InvalidTokenValue(msg) => write!(f, "Invalid token value: {}", msg),
             ThemeError::MissingThemeName => write!(f, "Theme name is required"),
             ThemeError::TokenSystemError(msg) => write!(f, "Token system error: {}", msg),
             ThemeError::CssGenerationError(msg) => write!(f, "CSS generation error: {}", msg),

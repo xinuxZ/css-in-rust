@@ -775,9 +775,51 @@ impl DesignTokenSystem {
         level: &str,
         value: crate::theme::TokenValue,
     ) -> Result<(), crate::theme::ThemeError> {
-        // 这里应该更新实际的颜色调色板数据结构
-        // 由于结构体字段是私有的，这里只是示例实现
-        println!("设置颜色令牌: {}.{} = {:?}", color, level, value);
+        let color_value = match value {
+            crate::theme::TokenValue::String(s) => s,
+            _ => {
+                return Err(crate::theme::ThemeError::InvalidTokenValue(
+                    "颜色令牌必须是字符串类型".to_string(),
+                ))
+            }
+        };
+
+        let color_scale = match color {
+            "primary" => &mut self.global_tokens.color_palette.primary,
+            "neutral" => &mut self.global_tokens.color_palette.neutral,
+            "success" => &mut self.global_tokens.color_palette.success,
+            "warning" => &mut self.global_tokens.color_palette.warning,
+            "error" => &mut self.global_tokens.color_palette.error,
+            "info" => &mut self.global_tokens.color_palette.info,
+            _ => {
+                return Err(crate::theme::ThemeError::InvalidTokenPath(format!(
+                    "未知的颜色类型: {}",
+                    color
+                )))
+            }
+        };
+
+        match level {
+            "1" | "c1" => color_scale.c1 = color_value,
+            "2" | "c2" => color_scale.c2 = color_value,
+            "3" | "c3" => color_scale.c3 = color_value,
+            "4" | "c4" => color_scale.c4 = color_value,
+            "5" | "c5" => color_scale.c5 = color_value,
+            "6" | "c6" => color_scale.c6 = color_value,
+            "7" | "c7" => color_scale.c7 = color_value,
+            "8" | "c8" => color_scale.c8 = color_value,
+            "9" | "c9" => color_scale.c9 = color_value,
+            "10" | "c10" => color_scale.c10 = color_value,
+            _ => {
+                return Err(crate::theme::ThemeError::InvalidTokenPath(format!(
+                    "无效的颜色级别: {}",
+                    level
+                )))
+            }
+        }
+
+        // 更新元数据
+        self.metadata.updated_at = chrono::Utc::now().to_rfc3339();
         Ok(())
     }
 
@@ -787,7 +829,28 @@ impl DesignTokenSystem {
         size: &str,
         value: crate::theme::TokenValue,
     ) -> Result<(), crate::theme::ThemeError> {
-        println!("设置字体大小令牌: {} = {:?}", size, value);
+        let size_value = match value {
+            crate::theme::TokenValue::Number(n) => n as u16,
+            crate::theme::TokenValue::String(s) => {
+                s.trim_end_matches("px").parse::<u16>().map_err(|_| {
+                    crate::theme::ThemeError::InvalidTokenValue("无效的字体大小值".to_string())
+                })?
+            }
+            _ => {
+                return Err(crate::theme::ThemeError::InvalidTokenValue(
+                    "字体大小必须是数字或字符串类型".to_string(),
+                ))
+            }
+        };
+
+        self.global_tokens
+            .font_system
+            .font_scale
+            .sizes
+            .insert(size.to_string(), size_value);
+
+        // 更新元数据
+        self.metadata.updated_at = chrono::Utc::now().to_rfc3339();
         Ok(())
     }
 
@@ -797,7 +860,27 @@ impl DesignTokenSystem {
         size: &str,
         value: crate::theme::TokenValue,
     ) -> Result<(), crate::theme::ThemeError> {
-        println!("设置间距令牌: {} = {:?}", size, value);
+        let spacing_value = match value {
+            crate::theme::TokenValue::Number(n) => n as u16,
+            crate::theme::TokenValue::String(s) => {
+                s.trim_end_matches("px").parse::<u16>().map_err(|_| {
+                    crate::theme::ThemeError::InvalidTokenValue("无效的间距值".to_string())
+                })?
+            }
+            _ => {
+                return Err(crate::theme::ThemeError::InvalidTokenValue(
+                    "间距必须是数字或字符串类型".to_string(),
+                ))
+            }
+        };
+
+        self.global_tokens
+            .spacing_system
+            .spacing_map
+            .insert(size.to_string(), spacing_value);
+
+        // 更新元数据
+        self.metadata.updated_at = chrono::Utc::now().to_rfc3339();
         Ok(())
     }
 
@@ -807,7 +890,27 @@ impl DesignTokenSystem {
         size: &str,
         value: crate::theme::TokenValue,
     ) -> Result<(), crate::theme::ThemeError> {
-        println!("设置边框圆角令牌: {} = {:?}", size, value);
+        let radius_value = match value {
+            crate::theme::TokenValue::Number(n) => n as u16,
+            crate::theme::TokenValue::String(s) => {
+                s.trim_end_matches("px").parse::<u16>().map_err(|_| {
+                    crate::theme::ThemeError::InvalidTokenValue("无效的圆角值".to_string())
+                })?
+            }
+            _ => {
+                return Err(crate::theme::ThemeError::InvalidTokenValue(
+                    "圆角值必须是数字或字符串类型".to_string(),
+                ))
+            }
+        };
+
+        self.global_tokens
+            .border_system
+            .radius
+            .insert(size.to_string(), radius_value);
+
+        // 更新元数据
+        self.metadata.updated_at = chrono::Utc::now().to_rfc3339();
         Ok(())
     }
 
@@ -817,7 +920,71 @@ impl DesignTokenSystem {
         semantic: &str,
         value: crate::theme::TokenValue,
     ) -> Result<(), crate::theme::ThemeError> {
-        println!("设置语义颜色令牌: {} = {:?}", semantic, value);
+        let reference_value = match value {
+            crate::theme::TokenValue::String(s) => s,
+            _ => {
+                return Err(crate::theme::ThemeError::InvalidTokenValue(
+                    "语义颜色令牌必须是字符串类型".to_string(),
+                ))
+            }
+        };
+
+        let token_ref = TokenReference {
+            reference: reference_value,
+            transform: None,
+        };
+
+        match semantic {
+            // 文本颜色
+            "text.primary" => self.alias_tokens.semantic_colors.text.primary = token_ref,
+            "text.secondary" => self.alias_tokens.semantic_colors.text.secondary = token_ref,
+            "text.tertiary" => self.alias_tokens.semantic_colors.text.tertiary = token_ref,
+            "text.disabled" => self.alias_tokens.semantic_colors.text.disabled = token_ref,
+            "text.inverse" => self.alias_tokens.semantic_colors.text.inverse = token_ref,
+            "text.link" => self.alias_tokens.semantic_colors.text.link = token_ref,
+            "text.link_hover" => self.alias_tokens.semantic_colors.text.link_hover = token_ref,
+
+            // 背景颜色
+            "background.primary" => {
+                self.alias_tokens.semantic_colors.background.primary = token_ref
+            }
+            "background.secondary" => {
+                self.alias_tokens.semantic_colors.background.secondary = token_ref
+            }
+            "background.tertiary" => {
+                self.alias_tokens.semantic_colors.background.tertiary = token_ref
+            }
+            "background.inverse" => {
+                self.alias_tokens.semantic_colors.background.inverse = token_ref
+            }
+            "background.overlay" => {
+                self.alias_tokens.semantic_colors.background.overlay = token_ref
+            }
+
+            // 边框颜色
+            "border.primary" => self.alias_tokens.semantic_colors.border.primary = token_ref,
+            "border.secondary" => self.alias_tokens.semantic_colors.border.secondary = token_ref,
+            "border.focus" => self.alias_tokens.semantic_colors.border.focus = token_ref,
+            "border.error" => self.alias_tokens.semantic_colors.border.error = token_ref,
+            "border.success" => self.alias_tokens.semantic_colors.border.success = token_ref,
+
+            // 状态颜色
+            "state.hover" => self.alias_tokens.semantic_colors.state.hover = token_ref,
+            "state.active" => self.alias_tokens.semantic_colors.state.active = token_ref,
+            "state.focus" => self.alias_tokens.semantic_colors.state.focus = token_ref,
+            "state.disabled" => self.alias_tokens.semantic_colors.state.disabled = token_ref,
+            "state.selected" => self.alias_tokens.semantic_colors.state.selected = token_ref,
+
+            _ => {
+                return Err(crate::theme::ThemeError::InvalidTokenPath(format!(
+                    "未知的语义颜色路径: {}",
+                    semantic
+                )))
+            }
+        }
+
+        // 更新元数据
+        self.metadata.updated_at = chrono::Utc::now().to_rfc3339();
         Ok(())
     }
 
@@ -827,7 +994,117 @@ impl DesignTokenSystem {
         element: &str,
         value: crate::theme::TokenValue,
     ) -> Result<(), crate::theme::ThemeError> {
-        println!("设置语义排版令牌: {} = {:?}", element, value);
+        let reference_value = match value {
+            crate::theme::TokenValue::String(s) => s,
+            _ => {
+                return Err(crate::theme::ThemeError::InvalidTokenValue(
+                    "语义排版令牌必须是字符串类型".to_string(),
+                ))
+            }
+        };
+
+        let token_ref = TokenReference {
+            reference: reference_value,
+            transform: None,
+        };
+
+        // 解析元素路径和属性
+        let parts: Vec<&str> = element.split('.').collect();
+        if parts.len() < 2 {
+            return Err(crate::theme::ThemeError::InvalidTokenPath(
+                "排版令牌路径格式错误，应为 'category.element.property'".to_string(),
+            ));
+        }
+
+        match parts.as_slice() {
+            // 标题字体
+            ["heading", "h1", property] => Self::update_typography_token_static(
+                &mut self.alias_tokens.semantic_typography.heading.h1,
+                property,
+                token_ref,
+            )?,
+            ["heading", "h2", property] => Self::update_typography_token_static(
+                &mut self.alias_tokens.semantic_typography.heading.h2,
+                property,
+                token_ref,
+            )?,
+            ["heading", "h3", property] => Self::update_typography_token_static(
+                &mut self.alias_tokens.semantic_typography.heading.h3,
+                property,
+                token_ref,
+            )?,
+            ["heading", "h4", property] => Self::update_typography_token_static(
+                &mut self.alias_tokens.semantic_typography.heading.h4,
+                property,
+                token_ref,
+            )?,
+            ["heading", "h5", property] => Self::update_typography_token_static(
+                &mut self.alias_tokens.semantic_typography.heading.h5,
+                property,
+                token_ref,
+            )?,
+            ["heading", "h6", property] => Self::update_typography_token_static(
+                &mut self.alias_tokens.semantic_typography.heading.h6,
+                property,
+                token_ref,
+            )?,
+
+            // 正文字体
+            ["body", "large", property] => Self::update_typography_token_static(
+                &mut self.alias_tokens.semantic_typography.body.large,
+                property,
+                token_ref,
+            )?,
+            ["body", "medium", property] => Self::update_typography_token_static(
+                &mut self.alias_tokens.semantic_typography.body.medium,
+                property,
+                token_ref,
+            )?,
+            ["body", "small", property] => Self::update_typography_token_static(
+                &mut self.alias_tokens.semantic_typography.body.small,
+                property,
+                token_ref,
+            )?,
+
+            // 说明字体
+            ["caption", "large", property] => Self::update_typography_token_static(
+                &mut self.alias_tokens.semantic_typography.caption.large,
+                property,
+                token_ref,
+            )?,
+            ["caption", "medium", property] => Self::update_typography_token_static(
+                &mut self.alias_tokens.semantic_typography.caption.medium,
+                property,
+                token_ref,
+            )?,
+            ["caption", "small", property] => Self::update_typography_token_static(
+                &mut self.alias_tokens.semantic_typography.caption.small,
+                property,
+                token_ref,
+            )?,
+
+            // 代码字体
+            ["code", "inline", property] => Self::update_typography_token_static(
+                &mut self.alias_tokens.semantic_typography.code.inline,
+                property,
+                token_ref,
+            )?,
+            ["code", "block", property] => Self::update_typography_token_static(
+                &mut self.alias_tokens.semantic_typography.code.block,
+                property,
+                token_ref,
+            )?,
+
+            _ => {
+                return Err(crate::theme::ThemeError::InvalidTokenPath(format!(
+                    "未知的排版令牌路径: {}",
+                    element
+                )))
+            }
+        }
+
+        // 更新元数据
+        self.metadata.updated_at = chrono::Utc::now().to_rfc3339();
         Ok(())
     }
 
@@ -839,12 +1116,302 @@ impl DesignTokenSystem {
         variant: Option<&str>,
         value: crate::theme::TokenValue,
     ) -> Result<(), crate::theme::ThemeError> {
-        match variant {
-            Some(v) => println!(
-                "设置组件变体令牌: {}.{}.{} = {:?}",
-                component, property, v, value
-            ),
-            None => println!("设置组件令牌: {}.{} = {:?}", component, property, value),
+        let reference_value = match value {
+            crate::theme::TokenValue::String(s) => s,
+            _ => {
+                return Err(crate::theme::ThemeError::InvalidTokenValue(
+                    "组件令牌必须是字符串类型".to_string(),
+                ))
+            }
+        };
+
+        let token_ref = TokenReference {
+            reference: reference_value,
+            transform: None,
+        };
+
+        match component {
+            "button" => self.set_button_token(property, variant, token_ref)?,
+            "input" => self.set_input_token(property, variant, token_ref)?,
+            "card" => self.set_card_token(property, token_ref)?,
+            "table" => self.set_table_token(property, variant, token_ref)?,
+            "navigation" => self.set_navigation_token(property, variant, token_ref)?,
+            _ => {
+                return Err(crate::theme::ThemeError::InvalidTokenPath(format!(
+                    "未知的组件类型: {}",
+                    component
+                )))
+            }
+        }
+
+        // 更新元数据
+        self.metadata.updated_at = chrono::Utc::now().to_rfc3339();
+        Ok(())
+    }
+
+    /// 更新排版令牌的辅助方法
+    fn update_typography_token(
+        &mut self,
+        typography_token: &mut TypographyToken,
+        property: &str,
+        token_ref: TokenReference,
+    ) -> Result<(), crate::theme::ThemeError> {
+        Self::update_typography_token_static(typography_token, property, token_ref)
+    }
+
+    fn update_typography_token_static(
+        typography_token: &mut TypographyToken,
+        property: &str,
+        token_ref: TokenReference,
+    ) -> Result<(), crate::theme::ThemeError> {
+        match property {
+            "font_family" => typography_token.font_family = token_ref,
+            "font_size" => typography_token.font_size = token_ref,
+            "font_weight" => typography_token.font_weight = token_ref,
+            "line_height" => typography_token.line_height = token_ref,
+            "letter_spacing" => typography_token.letter_spacing = token_ref,
+            _ => {
+                return Err(crate::theme::ThemeError::InvalidTokenPath(format!(
+                    "未知的排版属性: {}",
+                    property
+                )))
+            }
+        }
+
+        Ok(())
+    }
+
+    /// 设置按钮令牌的辅助方法
+    fn set_button_token(
+        &mut self,
+        property: &str,
+        variant: Option<&str>,
+        token_ref: TokenReference,
+    ) -> Result<(), crate::theme::ThemeError> {
+        let button_variant = match variant {
+            Some("primary") => &mut self.component_tokens.button.primary,
+            Some("secondary") => &mut self.component_tokens.button.secondary,
+            Some("ghost") => &mut self.component_tokens.button.ghost,
+            Some("link") => &mut self.component_tokens.button.link,
+            Some("text") => &mut self.component_tokens.button.text,
+            Some(v) => {
+                return Err(crate::theme::ThemeError::InvalidTokenPath(format!(
+                    "未知的按钮变体: {}",
+                    v
+                )))
+            }
+            None => {
+                return Err(crate::theme::ThemeError::InvalidTokenPath(
+                    "按钮令牌需要指定变体".to_string(),
+                ))
+            }
+        };
+
+        let parts: Vec<&str> = property.split('.').collect();
+        match parts.as_slice() {
+            ["background", state] => {
+                Self::update_state_token_static(&mut button_variant.background, state, token_ref)?
+            }
+            ["border", state] => {
+                Self::update_state_token_static(&mut button_variant.border, state, token_ref)?
+            }
+            ["text", state] => {
+                Self::update_state_token_static(&mut button_variant.text, state, token_ref)?
+            }
+            ["shadow", state] => {
+                Self::update_state_token_static(&mut button_variant.shadow, state, token_ref)?
+            }
+            _ => {
+                return Err(crate::theme::ThemeError::InvalidTokenPath(format!(
+                    "未知的按钮属性: {}",
+                    property
+                )))
+            }
+        }
+
+        Ok(())
+    }
+
+    /// 设置输入框令牌的辅助方法
+    fn set_input_token(
+        &mut self,
+        property: &str,
+        _variant: Option<&str>,
+        token_ref: TokenReference,
+    ) -> Result<(), crate::theme::ThemeError> {
+        let parts: Vec<&str> = property.split('.').collect();
+        match parts.as_slice() {
+            ["background", state] => Self::update_state_token_static(
+                &mut self.component_tokens.input.background,
+                state,
+                token_ref,
+            )?,
+            ["border", state] => Self::update_state_token_static(
+                &mut self.component_tokens.input.border,
+                state,
+                token_ref,
+            )?,
+            ["text", state] => Self::update_state_token_static(
+                &mut self.component_tokens.input.text,
+                state,
+                token_ref,
+            )?,
+            ["shadow", state] => Self::update_state_token_static(
+                &mut self.component_tokens.input.shadow,
+                state,
+                token_ref,
+            )?,
+            ["placeholder"] => self.component_tokens.input.placeholder = token_ref,
+            _ => {
+                return Err(crate::theme::ThemeError::InvalidTokenPath(format!(
+                    "未知的输入框属性: {}",
+                    property
+                )))
+            }
+        }
+
+        Ok(())
+    }
+
+    /// 设置卡片令牌的辅助方法
+    fn set_card_token(
+        &mut self,
+        property: &str,
+        token_ref: TokenReference,
+    ) -> Result<(), crate::theme::ThemeError> {
+        match property {
+            "background" => self.component_tokens.card.background = token_ref,
+            "border" => self.component_tokens.card.border = token_ref,
+            "shadow" => self.component_tokens.card.shadow = token_ref,
+            "radius" => self.component_tokens.card.radius = token_ref,
+            "padding" => self.component_tokens.card.padding = token_ref,
+            _ => {
+                return Err(crate::theme::ThemeError::InvalidTokenPath(format!(
+                    "未知的卡片属性: {}",
+                    property
+                )))
+            }
+        }
+
+        Ok(())
+    }
+
+    /// 设置表格令牌的辅助方法
+    fn set_table_token(
+        &mut self,
+        property: &str,
+        variant: Option<&str>,
+        token_ref: TokenReference,
+    ) -> Result<(), crate::theme::ThemeError> {
+        match property {
+            "border" => self.component_tokens.table.border = token_ref,
+            "stripe" => self.component_tokens.table.stripe = token_ref,
+            _ => {
+                let section = match variant {
+                    Some("header") => &mut self.component_tokens.table.header,
+                    Some("body") => &mut self.component_tokens.table.body,
+                    Some("footer") => &mut self.component_tokens.table.footer,
+                    Some(v) => {
+                        return Err(crate::theme::ThemeError::InvalidTokenPath(format!(
+                            "未知的表格区域: {}",
+                            v
+                        )))
+                    }
+                    None => {
+                        return Err(crate::theme::ThemeError::InvalidTokenPath(
+                            "表格令牌需要指定区域".to_string(),
+                        ))
+                    }
+                };
+
+                match property {
+                    "background" => section.background = token_ref,
+                    "text" => section.text = token_ref,
+                    "border" => section.border = token_ref,
+                    _ => {
+                        return Err(crate::theme::ThemeError::InvalidTokenPath(format!(
+                            "未知的表格属性: {}",
+                            property
+                        )))
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// 设置导航令牌的辅助方法
+    fn set_navigation_token(
+        &mut self,
+        property: &str,
+        _variant: Option<&str>,
+        token_ref: TokenReference,
+    ) -> Result<(), crate::theme::ThemeError> {
+        match property {
+            "background" => {
+                self.component_tokens.navigation.background = token_ref;
+            }
+            "border" => {
+                self.component_tokens.navigation.border = token_ref;
+            }
+            _ => {
+                let parts: Vec<&str> = property.split('.').collect();
+                match parts.as_slice() {
+                    ["item", "background", state] => Self::update_state_token_static(
+                        &mut self.component_tokens.navigation.item.background,
+                        state,
+                        token_ref,
+                    )?,
+                    ["item", "text", state] => Self::update_state_token_static(
+                        &mut self.component_tokens.navigation.item.text,
+                        state,
+                        token_ref,
+                    )?,
+                    ["item", "border", state] => Self::update_state_token_static(
+                        &mut self.component_tokens.navigation.item.border,
+                        state,
+                        token_ref,
+                    )?,
+                    _ => {
+                        return Err(crate::theme::ThemeError::InvalidTokenPath(format!(
+                            "未知的导航属性: {}",
+                            property
+                        )))
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// 更新状态令牌的辅助方法
+    fn update_state_token(
+        &mut self,
+        state_tokens: &mut StateTokens<TokenReference>,
+        state: &str,
+        token_ref: TokenReference,
+    ) -> Result<(), crate::theme::ThemeError> {
+        Self::update_state_token_static(state_tokens, state, token_ref)
+    }
+
+    /// 静态版本的更新状态令牌方法
+    fn update_state_token_static(
+        state_tokens: &mut StateTokens<TokenReference>,
+        state: &str,
+        token_ref: TokenReference,
+    ) -> Result<(), crate::theme::ThemeError> {
+        match state {
+            "default" => state_tokens.default = token_ref,
+            "hover" => state_tokens.hover = token_ref,
+            "active" => state_tokens.active = token_ref,
+            "focus" => state_tokens.focus = token_ref,
+            "disabled" => state_tokens.disabled = token_ref,
+            _ => {
+                return Err(crate::theme::ThemeError::InvalidTokenPath(format!(
+                    "未知的状态: {}",
+                    state
+                )))
+            }
         }
         Ok(())
     }

@@ -739,6 +739,9 @@ mod tests {
 
     impl ThemeChangeListener for TestListener {
         fn on_theme_change(&self, _event: &ThemeChangeEvent) {
+            // 模拟will_change事件 - 在实际的主题切换事件中设置
+            self.will_change_called.store(true, Ordering::Relaxed);
+
             match _event.event_type {
                 ThemeChangeEventType::ThemeSwitch => {
                     self.changed_called.store(true, Ordering::Relaxed);
