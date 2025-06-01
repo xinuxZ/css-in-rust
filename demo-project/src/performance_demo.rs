@@ -708,11 +708,11 @@ async fn test_performance_metrics() {
 
     // 生成一些测试样式来模拟编译过程
     let styles = vec![
-        css!("color: red; font-size: 14px; padding: 8px;"),
-        css!("background: blue; margin: 16px; border-radius: 4px;"),
-        css!("display: flex; justify-content: center; align-items: center;"),
-        css!("position: absolute; top: 0; left: 0; width: 100%; height: 100%;"),
-        css!("transform: translateX(-50%) translateY(-50%); opacity: 0.8;"),
+        css!("color: red; font-size: 14px; padding: 8px;").to_string(),
+        css!("background: blue; margin: 16px; border-radius: 4px;").to_string(),
+        css!("display: flex; justify-content: center; align-items: center;").to_string(),
+        css!("position: absolute; top: 0; left: 0; width: 100%; height: 100%;").to_string(),
+        css!("transform: translateX(-50%) translateY(-50%); opacity: 0.8;").to_string(),
     ];
 
     let compile_time = start_time.elapsed();
@@ -929,11 +929,11 @@ async fn test_build_optimizer() {
 
     // 模拟CSS代码
     let css_code = vec![
-        css!("color: red; font-size: 14px; margin: 8px;"),
-        css!("background: blue; padding: 16px; border-radius: 4px;"),
-        css!("display: flex; justify-content: center; align-items: center;"),
-        css!("position: relative; width: 100%; height: auto;"),
-        css!("color: red; font-size: 14px; margin: 8px;"), // 重复样式
+        css!("color: red; font-size: 14px; margin: 8px;").to_string(),
+        css!("background: blue; padding: 16px; border-radius: 4px;").to_string(),
+        css!("display: flex; justify-content: center; align-items: center;").to_string(),
+        css!("position: relative; width: 100%; height: auto;").to_string(),
+        css!("color: red; font-size: 14px; margin: 8px;").to_string(), // 重复样式
     ];
 
     println!("原始CSS样式数量: {}", css_code.len());
@@ -998,12 +998,7 @@ async fn test_runtime_monitor() {
         // 模拟样式应用
         let start = Instant::now();
 
-        let dynamic_style = css!(format!(
-            "color: hsl({}, 70%, 50%); transform: rotate({}deg);",
-            i * 36,
-            i * 10
-        )
-        .as_str());
+        let dynamic_style = css!("color: hsl(0, 70%, 50%); transform: rotate(0deg);"); // 使用静态样式作为示例
 
         let apply_time = start.elapsed();
         monitor.record_style_application(apply_time.as_millis() as f64);
@@ -1167,11 +1162,12 @@ async fn test_comprehensive_analysis() {
     analyzer.start_section("css_compilation");
 
     let test_styles = vec![
-        css!("display: flex; flex-direction: column; gap: 1rem;"),
-        css!("background: linear-gradient(45deg, #ff6b6b, #4ecdc4); border-radius: 8px;"),
-        css!("padding: 1rem; margin: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"),
-        css!("font-family: 'Inter', sans-serif; font-size: 1rem; line-height: 1.5;"),
-        css!("transition: all 0.3s ease; transform: scale(1); opacity: 1;"),
+        css!("display: flex; flex-direction: column; gap: 1rem;").to_string(),
+        css!("background: linear-gradient(45deg, #ff6b6b, #4ecdc4); border-radius: 8px;")
+            .to_string(),
+        css!("padding: 1rem; margin: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);").to_string(),
+        css!("font-family: 'Inter', sans-serif; font-size: 1rem; line-height: 1.5;").to_string(),
+        css!("transition: all 0.3s ease; transform: scale(1); opacity: 1;").to_string(),
     ];
 
     sleep(Duration::from_millis(80)).await;

@@ -443,7 +443,7 @@ fn demo_conditional_styles() {
     // 创建条件样式
     let dark_theme_style = ConditionalStyle {
         condition: theme_condition,
-        styles: {
+        style: {
             let mut styles = HashMap::new();
             styles.insert("background-color".to_string(), "#333".to_string());
             styles.insert("color".to_string(), "#fff".to_string());
@@ -454,7 +454,7 @@ fn demo_conditional_styles() {
 
     let large_size_style = ConditionalStyle {
         condition: size_condition,
-        styles: {
+        style: {
             let mut styles = HashMap::new();
             styles.insert("font-size".to_string(), "18px".to_string());
             styles.insert("padding".to_string(), "16px".to_string());

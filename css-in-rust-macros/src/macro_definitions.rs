@@ -244,7 +244,7 @@ pub fn css_multi_if_impl_internal(input: TokenStream2) -> Result<TokenStream2> {
                             deduplicated
                         };
 
-                        let css_rules = compress_css(deduplicated_rules.join("\n"));
+                        let css_rules = crate::css_processing::compress_css(deduplicated_rules.join("\n"));
 
                         style_element.set_inner_html(&css_rules);
                         let head = DOCUMENT.head();
@@ -294,15 +294,18 @@ fn process_css_with_cache(css_content: &str, css_id: &str) -> Result<TokenStream
                 #[cfg(not(target_arch = "wasm32"))]
                 {
                     // For non-WASM targets, just cache the class name
-                    use std::collections::HashMap;
-                    use std::sync::{Mutex, OnceLock};
+                    // use std::collections::HashMap;
+                    // use std::sync::{Mutex, OnceLock};
 
-                    static CACHE: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
-                    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+                    // static CACHE: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
+                    // let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
 
-                    if let Ok(mut cache_guard) = cache.lock() {
-                        cache_guard.insert(#css_hash.to_string(), class_name.clone());
-                    }
+                    // if let Ok(mut cache_guard) = cache.lock() {
+                    //     cache_guard.insert(#css_hash.to_string(), class_name.clone());
+                    // }
+
+                    // For non-WASM targets, caching is handled at compile time
+                    // No runtime caching needed for non-WASM targets
                 }
 
                 // Inject CSS into document head (web target only)

@@ -5,12 +5,37 @@
 use crate::components::{Button, ButtonSize, ButtonType};
 use css_in_rust::{
     css,
+    theme::{InjectionStrategy, Theme, ThemeMode},
     theme_bridge::{
         get_current_css_variables, init_global_theme_bridge, toggle_global_theme_mode,
-        with_global_theme_bridge, InjectionStrategy, Theme, ThemeMode,
+        with_global_theme_bridge,
     },
 };
 use dioxus::prelude::*;
+
+use base64 as _;
+use chrono as _;
+#[allow(unused_imports)]
+use css_in_rust_macros as _;
+use lazy_static as _;
+#[allow(unused_imports)]
+use lightningcss as _;
+use num_cpus as _;
+#[allow(unused_imports)]
+use proc_macro2 as _;
+#[allow(unused_imports)]
+use quote as _;
+use regex as _;
+#[allow(unused_imports)]
+use serde as _;
+#[allow(unused_imports)]
+use serde_json as _;
+use sha1 as _;
+#[allow(unused_imports)]
+use sha2 as _;
+#[allow(unused_imports)]
+use syn as _;
+use tempfile as _;
 
 /// 主题演示应用
 ///

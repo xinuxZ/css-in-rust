@@ -822,9 +822,6 @@ impl TypographyTokens {
     }
 }
 
-// 为其他令牌类型实现类似的方法...
-// 由于篇幅限制，这里只展示核心实现，其他类型的实现类似
-
 impl Default for SpacingTokens {
     fn default() -> Self {
         Self {
@@ -866,9 +863,6 @@ impl SpacingTokens {
         )
     }
 }
-
-// 为简化代码，其他类型的实现省略，但结构类似
-// 包括 BorderTokens, ShadowTokens, MotionTokens, BreakpointTokens
 
 impl Default for BorderTokens {
     fn default() -> Self {

@@ -400,7 +400,7 @@ fn test_priority_management() {
     println!("\n--- 测试优先级管理 ---");
 
     // 创建优先级管理器
-    let priority_manager = PriorityManager::new();
+    let _priority_manager = PriorityManager::new();
 
     // 定义不同优先级的样式
     let base_style = css!("color: black; font-size: 14px; padding: 8px;"); // 优先级 1
