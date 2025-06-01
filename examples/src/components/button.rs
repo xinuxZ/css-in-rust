@@ -325,7 +325,10 @@ pub fn Button(props: ButtonProps) -> Element {
             border-radius: var(--ant-border-radius-lg, 8px);
             "
         },
-        ButtonSize::Middle => css! { "" }, // 默认尺寸
+        ButtonSize::Middle => css! {
+            ""
+        }
+        .to_string(), // 默认尺寸
         ButtonSize::Small => css! {
             "
             height: var(--ant-control-height-sm, 24px);
@@ -351,7 +354,10 @@ pub fn Button(props: ButtonProps) -> Element {
             border-radius: var(--ant-control-height, 32px);
             "
         },
-        ButtonShape::Default => css! { "" },
+        ButtonShape::Default => css! {
+            ""
+        }
+        .to_string(),
     };
 
     // 危险按钮样式
@@ -379,7 +385,10 @@ pub fn Button(props: ButtonProps) -> Element {
             "
         }
     } else {
-        css! { "" }
+        css! {
+            ""
+        }
+        .to_string()
     };
 
     // 主要危险按钮样式
@@ -410,7 +419,10 @@ pub fn Button(props: ButtonProps) -> Element {
             "
         }
     } else {
-        css! { "" }
+        css! {
+            ""
+        }
+        .to_string()
     };
 
     // 幽灵按钮样式
@@ -427,7 +439,10 @@ pub fn Button(props: ButtonProps) -> Element {
             "
         }
     } else {
-        css! { "" }
+        css! {
+            ""
+        }
+        .to_string()
     };
 
     // 块级按钮样式
@@ -439,7 +454,10 @@ pub fn Button(props: ButtonProps) -> Element {
             "
         }
     } else {
-        css! { "" }
+        css! {
+            ""
+        }
+        .to_string()
     };
 
     // 加载状态样式
@@ -461,7 +479,10 @@ pub fn Button(props: ButtonProps) -> Element {
             "
         }
     } else {
-        css! { "" }
+        css! {
+            ""
+        }
+        .to_string()
     };
 
     // 组合所有样式类

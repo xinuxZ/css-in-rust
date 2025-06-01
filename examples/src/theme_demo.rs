@@ -5,13 +5,17 @@
 use crate::components::{Button, ButtonSize, ButtonType};
 use css_in_rust::{
     css,
-    theme::{InjectionStrategy, Theme, ThemeMode},
+    theme::{DesignTokens, InjectionStrategy, Theme, ThemeMode},
     theme_bridge::{
-        get_current_css_variables, init_global_theme_bridge, toggle_global_theme_mode,
+        // get_current_css_variables,
+        init_global_theme_bridge,
+        toggle_global_theme_mode,
         with_global_theme_bridge,
     },
 };
+use dioxus::hooks::{use_effect, use_signal};
 use dioxus::prelude::*;
+use std::collections::HashMap;
 
 use base64 as _;
 use chrono as _;
@@ -55,6 +59,8 @@ pub fn ThemeDemo() -> Element {
         if !theme_initialized() {
             let theme = Theme {
                 name: "ant-design".to_string(),
+                tokens: DesignTokens::default(),
+                custom_variables: HashMap::new(),
                 mode: ThemeMode::Light,
             };
 
@@ -190,7 +196,7 @@ pub fn ThemeDemo() -> Element {
                 p { "{theme_info}" }
                 Button {
                     button_type: ButtonType::Primary,
-                    onclick: toggle_theme,
+                    onclick: Some(toggle_theme),
                     "切换主题模式"
                 }
             }
@@ -206,31 +212,31 @@ pub fn ThemeDemo() -> Element {
 
                 Button {
                     button_type: ButtonType::Primary,
-                    onclick: move |_| println!("Primary button clicked!"),
+                    onclick: Some(move |_| println!("Primary button clicked!")),
                     "Primary"
                 }
 
                 Button {
                     button_type: ButtonType::Default,
-                    onclick: move |_| println!("Default button clicked!"),
+                    onclick: Some(move |_| println!("Default button clicked!")),
                     "Default"
                 }
 
                 Button {
                     button_type: ButtonType::Dashed,
-                    onclick: move |_| println!("Dashed button clicked!"),
+                    onclick: Some(move |_| println!("Dashed button clicked!")),
                     "Dashed"
                 }
 
                 Button {
                     button_type: ButtonType::Text,
-                    onclick: move |_| println!("Text button clicked!"),
+                    onclick: Some(move |_| println!("Text button clicked!")),
                     "Text"
                 }
 
                 Button {
                     button_type: ButtonType::Link,
-                    onclick: move |_| println!("Link button clicked!"),
+                    onclick: Some(move |_| println!("Link button clicked!")),
                     "Link"
                 }
             }
@@ -312,7 +318,7 @@ pub fn ThemeDemo() -> Element {
             Button {
                 button_type: ButtonType::Primary,
                 block: true,
-                style: "margin-bottom: 16px;",
+                style: Some("margin-bottom: 16px;".to_string()),
                 "Block Button"
             }
 
@@ -425,7 +431,7 @@ pub fn SimpleThemeDemo() -> Element {
 
                 Button {
                     button_type: ButtonType::Default,
-                    style: "margin-right: 10px;",
+                    style: Some("margin-right: 10px;".to_string()),
                     "默认按钮"
                 }
 
