@@ -12,7 +12,7 @@ use proc_macro::TokenStream;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
 use sha2::{Digest, Sha256};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 use syn::{Error, LitStr};
 
@@ -211,7 +211,7 @@ fn css_if_impl_internal(input: TokenStream2) -> syn::Result<TokenStream2> {
     // Process CSS with caching
     let css_processing_result = process_css_with_cache(css_content, &css_id)?;
 
-    Ok(quote! {
+    let tokens = quote! {
         {
             if #condition_tokens {
                 #css_processing_result
@@ -219,7 +219,9 @@ fn css_if_impl_internal(input: TokenStream2) -> syn::Result<TokenStream2> {
                 String::new()
             }
         }
-    })
+    };
+
+    Ok(tokens)
 }
 
 /// Internal implementation of the css_class! macro
@@ -236,9 +238,11 @@ fn css_class_impl_internal(input: TokenStream2) -> syn::Result<TokenStream2> {
     let css_hash = calculate_css_hash(&class_name);
     let unique_class = format!("{}-{}", class_name, &css_hash[..8]);
 
-    Ok(quote! {
+    let tokens = quote! {
         #unique_class
-    })
+    };
+
+    Ok(tokens)
 }
 
 /// Processed CSS result with variants and media queries
@@ -530,14 +534,16 @@ fn convert_utility_to_css(utility: &str) -> syn::Result<String> {
     // Handle width utilities
     if utility.starts_with("w-") {
         let value = &utility[2..];
-        let width_value = convert_size_value(value)?;
+        let width_value = convert_size_value(value)
+            .map_err(|e| syn::Error::new(proc_macro2::Span::call_site(), e))?;
         return Ok(format!("width: {};", width_value));
     }
 
     // Handle height utilities
     if utility.starts_with("h-") {
         let value = &utility[2..];
-        let height_value = convert_size_value(value)?;
+        let height_value = convert_size_value(value)
+            .map_err(|e| syn::Error::new(proc_macro2::Span::call_site(), e))?;
         return Ok(format!("height: {};", height_value));
     }
 
@@ -944,10 +950,10 @@ fn process_css_string(css: &str, span: Span) -> syn::Result<TokenStream2> {
     // Handle media queries and pseudo selectors
     let media_queries = &processed_css.media_queries;
     let pseudo_selectors = &processed_css.pseudo_selectors;
-    let media_css = process_media_queries(media_queries, &css_id);
-    let pseudo_css = process_pseudo_selectors(pseudo_selectors, &css_id);
+    let media_css = process_media_queries(media_queries);
+    let pseudo_css = process_pseudo_selectors(pseudo_selectors);
 
-    Ok(quote! {
+    let tokens = quote! {
         {
             // Use a static to ensure the CSS is only processed once
             static CSS_INJECTED: ::std::sync::OnceLock<::std::string::String> = ::std::sync::OnceLock::new();
@@ -1052,7 +1058,9 @@ fn process_css_string(css: &str, span: Span) -> syn::Result<TokenStream2> {
                 class_name.to_string()
             }).clone()
         }
-    })
+    };
+
+    Ok(tokens)
 }
 
 /// Parse CSS syntax from token stream
@@ -1205,25 +1213,6 @@ fn compress_css(css: &str) -> String {
         .replace(",", ", ")
 }
 
-/// Get cached CSS or compile and cache it
-fn get_or_compile_css(cache_key: &str, css_input: &str) -> String {
-    if let Ok(cache) = CSS_CACHE.lock() {
-        if let Some(cached_css) = cache.get(cache_key) {
-            return cached_css.clone();
-        }
-    }
-
-    // Compile CSS
-    let compiled_css = optimize_css_with_lightningcss(css_input);
-
-    // Cache the result
-    if let Ok(mut cache) = CSS_CACHE.lock() {
-        cache.insert(cache_key.to_string(), compiled_css.clone());
-    }
-
-    compiled_css
-}
-
 /// Simple CSS validation for special syntax
 fn validate_css_simple(css: &str) -> Result<String, String> {
     let trimmed = css.trim();
@@ -1335,13 +1324,13 @@ fn css_multi_if_impl_internal(input: TokenStream2) -> syn::Result<TokenStream2> 
     let css_id_literal = css_id.clone();
 
     // 处理媒体查询和伪选择器
-    let media_css = process_media_queries(&_media_queries, &css_id);
-    let pseudo_css = process_pseudo_selectors(&_pseudo_selectors, &css_id);
+    let media_css = process_media_queries(&_media_queries);
+    let pseudo_css = process_pseudo_selectors(&_pseudo_selectors);
 
     // 优化 CSS
     let optimized_css = optimize_css_with_lightningcss(&css_literal);
 
-    Ok(quote! {
+    let tokens = quote! {
         {
             if #condition_tokens {
                 // Use a static to ensure the CSS is only processed once per condition combination
@@ -1440,7 +1429,9 @@ fn css_multi_if_impl_internal(input: TokenStream2) -> syn::Result<TokenStream2> 
                 String::new()
             }
         }
-    })
+    };
+
+    Ok(tokens)
 }
 
 /// Enhanced CSS processing with caching support
@@ -1457,12 +1448,12 @@ fn process_css_with_cache(css_content: &str, css_id: &str) -> syn::Result<TokenS
     let optimized_css = optimize_css_with_lightningcss(&processed_css.css);
 
     // 处理媒体查询和伪选择器
-    let media_css = process_media_queries(&processed_css.media_queries, css_id);
-    let pseudo_css = process_pseudo_selectors(&processed_css.pseudo_selectors, css_id);
+    let media_css = process_media_queries(&processed_css.media_queries);
+    let pseudo_css = process_pseudo_selectors(&processed_css.pseudo_selectors);
 
     let class_name = css_id.to_string();
 
-    Ok(quote! {
+    let tokens = quote! {
         {
             // Use a static to ensure the CSS is only processed once
             static CSS_INJECTED: ::std::sync::OnceLock<::std::string::String> = ::std::sync::OnceLock::new();
@@ -1577,5 +1568,7 @@ fn process_css_with_cache(css_content: &str, css_id: &str) -> syn::Result<TokenS
                 class_name.to_string()
             }).clone()
         }
-    })
+    };
+
+    Ok(tokens)
 }
