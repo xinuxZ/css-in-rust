@@ -73,7 +73,9 @@ use lazy_static as _;
 #[allow(unused_imports)]
 use tempfile as _;
 // #[allow(unused_imports)]
-// use wasm_bindgen as _;
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen as _;
+use web_sys::wasm_bindgen as _;
 
 // Provide fallback implementations when proc-macro feature is disabled
 #[cfg(not(feature = "proc-macro"))]

@@ -807,8 +807,8 @@ impl CssVariableUtils {
 
 #[cfg(test)]
 mod tests {
+    use super::Theme;
     use super::*;
-    use crate::theme::Theme;
 
     #[test]
     fn test_css_variable_manager_creation() {

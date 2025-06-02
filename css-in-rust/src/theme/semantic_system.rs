@@ -3,7 +3,7 @@
 //! 提供语义间距、尺寸等系统的定义和管理功能。
 //! 这些系统将基础令牌映射为具有语义意义的设计令牌。
 
-use crate::theme::token_system::TokenReference;
+use super::token_system::TokenReference;
 use serde::{Deserialize, Serialize};
 
 /// 语义间距系统
