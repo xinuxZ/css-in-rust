@@ -504,7 +504,7 @@ fn test_ant_design_theme() {
     println!("\n--- 测试Ant Design主题 ---");
 
     // 创建Ant Design默认主题
-    let ant_theme = Theme::ant_design();
+    let ant_theme = Theme::default();
     println!("Ant Design主题名称: {}", ant_theme.name);
     println!("主题模式: {:?}", ant_theme.mode);
 
@@ -514,7 +514,7 @@ fn test_ant_design_theme() {
     }
 
     // 创建暗色主题
-    let dark_theme = Theme::ant_design_dark();
+    let dark_theme = Theme::default().with_mode(ThemeMode::Dark);
     println!("Ant Design暗色主题名称: {}", dark_theme.name);
     println!("暗色主题模式: {:?}", dark_theme.mode);
 
@@ -537,8 +537,8 @@ fn test_theme_switching() {
     let provider = ThemeProvider::new();
 
     // 注册主题
-    let light_theme = Theme::ant_design();
-    let dark_theme = Theme::ant_design_dark();
+    let light_theme = Theme::default();
+    let dark_theme = Theme::default().with_mode(ThemeMode::Dark);
 
     if let Err(e) = provider.register_theme("ant-design", light_theme) {
         println!("注册亮色主题失败: {}", e);
@@ -602,7 +602,7 @@ fn test_css_variables() {
     let mut manager = CssVariableManager::new();
 
     // 从主题生成变量
-    let theme = Theme::ant_design();
+    let theme = Theme::default_theme();
     match manager.generate_from_theme(&theme) {
         Ok(_) => {
             println!("从主题生成CSS变量成功");
@@ -663,15 +663,15 @@ fn test_theme_context() {
         }
     }
 
-    // 获取主题令牌
-    match context.get_token_value("test-color") {
-        Ok(value) => {
-            println!("获取主题令牌 'test-color': {}", value);
-        }
-        Err(e) => {
-            println!("获取主题令牌失败: {}", e);
-        }
-    }
+    // // 获取主题令牌
+    // match context.get_token_value("test-color") {
+    //     Ok(value) => {
+    //         println!("获取主题令牌 'test-color': {}", value);
+    //     }
+    //     Err(e) => {
+    //         println!("获取主题令牌失败: {}", e);
+    //     }
+    // }
 }
 
 /// 测试主题管理器
