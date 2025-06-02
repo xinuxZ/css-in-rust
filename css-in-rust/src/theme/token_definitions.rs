@@ -49,11 +49,43 @@ pub struct ColorValue {
     pub alpha: Option<f32>,
 }
 
+impl std::fmt::Display for ColorValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(alpha) = self.alpha {
+            if alpha < 1.0 {
+                if let Some((r, g, b)) = self.rgb {
+                    write!(f, "rgba({}, {}, {}, {})", r, g, b, alpha)
+                } else {
+                    write!(f, "{}{}%", self.hex, (alpha * 100.0) as u8)
+                }
+            } else {
+                write!(f, "{}", self.hex)
+            }
+        } else {
+            write!(f, "{}", self.hex)
+        }
+    }
+}
+
 /// 尺寸值
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DimensionValue {
     pub value: f64,
     pub unit: DimensionUnit,
+}
+
+impl std::fmt::Display for DimensionValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.unit {
+            DimensionUnit::Px => write!(f, "{}px", self.value),
+            DimensionUnit::Rem => write!(f, "{}rem", self.value),
+            DimensionUnit::Em => write!(f, "{}em", self.value),
+            DimensionUnit::Percent => write!(f, "{}%", self.value),
+            DimensionUnit::Vh => write!(f, "{}vh", self.value),
+            DimensionUnit::Vw => write!(f, "{}vw", self.value),
+            DimensionUnit::Auto => write!(f, "auto"),
+        }
+    }
 }
 
 /// 尺寸单位
@@ -87,6 +119,25 @@ pub struct ShadowValue {
     pub spread: Option<DimensionValue>,
     pub color: ColorValue,
     pub inset: bool,
+}
+
+impl std::fmt::Display for ShadowValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let inset_str = if self.inset { "inset " } else { "" };
+        if let Some(spread) = &self.spread {
+            write!(
+                f,
+                "{}{} {} {} {} {}",
+                inset_str, self.x, self.y, self.blur, spread, self.color
+            )
+        } else {
+            write!(
+                f,
+                "{}{} {} {} {}",
+                inset_str, self.x, self.y, self.blur, self.color
+            )
+        }
+    }
 }
 
 /// 令牌引用
@@ -829,6 +880,7 @@ pub enum TokenValidationError {
     CircularReference(String),
     MissingReference(String),
     TypeMismatch { expected: String, actual: String },
+    InvalidReference { path: String, reference: String },
 }
 
 impl std::fmt::Display for TokenValidationError {
@@ -846,6 +898,9 @@ impl std::fmt::Display for TokenValidationError {
             }
             TokenValidationError::TypeMismatch { expected, actual } => {
                 write!(f, "Type mismatch: expected {}, got {}", expected, actual)
+            }
+            TokenValidationError::InvalidReference { path, reference } => {
+                write!(f, "Invalid reference: {} in {}", reference, path)
             }
         }
     }

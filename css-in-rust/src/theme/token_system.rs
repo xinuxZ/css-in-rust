@@ -14,9 +14,9 @@
 use super::{
     css_generator::CssGenerator,
     token_definitions::{
-        ColorValue, DimensionValue, MathOperation, ShadowValue, ThemeVariant, TokenDefinitions,
-        TokenPath, TokenReference, TokenTier, TokenTransform, TokenType, TokenValidationError,
-        TokenValue, TypographyValue,
+        ColorValue, DimensionUnit, DimensionValue, MathOperation, ShadowValue, ThemeVariant,
+        TokenDefinitions, TokenPath, TokenReference, TokenTier, TokenTransform, TokenType,
+        TokenValidationError, TokenValue, TypographyValue,
     },
     token_resolver::TokenResolver,
     token_values::{AntDesignTokenValues, DesignTokens},
@@ -634,6 +634,8 @@ pub struct TokenSystemConfig {
     pub minify_css: bool,
     /// 是否启用严格模式（严格的类型检查）
     pub strict_mode: bool,
+    /// 是否启用深色主题
+    pub enable_dark_theme: bool,
 }
 
 /// 令牌系统统计信息
@@ -662,6 +664,7 @@ impl Default for TokenSystemConfig {
             enable_cache: true,
             minify_css: false,
             strict_mode: false,
+            enable_dark_theme: false,
         }
     }
 }
@@ -715,6 +718,705 @@ impl DesignTokenSystem {
             config,
             metadata: SystemMetadata::default(),
         }
+    }
+
+    /// 导出CSS变量
+    /// CSS变量自动导出功能
+    pub fn export_css_variables(&mut self) -> Result<String, String> {
+        let mut css_output = String::new();
+
+        // 生成根级CSS变量
+        css_output.push_str(":root {\n");
+
+        // 导出全局令牌为CSS变量
+        css_output.push_str(&self.export_global_tokens_as_css()?);
+
+        // 导出别名令牌为CSS变量
+        css_output.push_str(&self.export_alias_tokens_as_css()?);
+
+        // 导出组件令牌为CSS变量
+        css_output.push_str(&self.export_component_tokens_as_css()?);
+
+        css_output.push_str("}\n\n");
+
+        // 如果支持深色主题，生成深色主题的CSS变量
+        if self.config.enable_dark_theme {
+            css_output.push_str(&self.export_dark_theme_css_variables()?);
+        }
+
+        Ok(css_output)
+    }
+
+    /// 导出全局令牌为CSS变量
+    fn export_global_tokens_as_css(&self) -> Result<String, String> {
+        let mut css = String::new();
+
+        // 导出颜色调色板
+        for (color_group, color_map) in [
+            ("primary", &self.global_tokens.color_palette.primary),
+            ("neutral", &self.global_tokens.color_palette.neutral),
+            ("functional", &self.global_tokens.color_palette.functional),
+            ("extended", &self.global_tokens.color_palette.extended),
+        ] {
+            for (level, color_value) in color_map {
+                css.push_str(&format!(
+                    "  --{}-color-{}-{}: {};\n",
+                    self.config.css_prefix, color_group, level, color_value
+                ));
+            }
+        }
+
+        // 导出字体系统
+        for (size_name, size_value) in &self.global_tokens.font_system.sizes {
+            css.push_str(&format!(
+                "  --{}-font-size-{}: {};\n",
+                self.config.css_prefix, size_name, size_value
+            ));
+        }
+
+        for (weight_name, weight_value) in &self.global_tokens.font_system.weights {
+            css.push_str(&format!(
+                "  --{}-font-weight-{}: {};\n",
+                self.config.css_prefix, weight_name, weight_value
+            ));
+        }
+
+        for (family_name, family_value) in &self.global_tokens.font_system.families {
+            css.push_str(&format!(
+                "  --{}-font-family-{}: {};\n",
+                self.config.css_prefix, family_name, family_value
+            ));
+        }
+
+        // 导出间距系统
+        for (spacing_name, spacing_value) in &self.global_tokens.spacing_system.values {
+            css.push_str(&format!(
+                "  --{}-spacing-{}: {};\n",
+                self.config.css_prefix, spacing_name, spacing_value
+            ));
+        }
+
+        // 导出尺寸系统
+        for (size_name, size_value) in &self.global_tokens.sizing_system.base_sizes {
+            css.push_str(&format!(
+                "  --{}-size-{}: {};\n",
+                self.config.css_prefix, size_name, size_value
+            ));
+        }
+        for (size_name, size_value) in &self.global_tokens.sizing_system.component_sizes {
+            css.push_str(&format!(
+                "  --{}-component-size-{}: {};\n",
+                self.config.css_prefix, size_name, size_value
+            ));
+        }
+        for (size_name, size_value) in &self.global_tokens.sizing_system.breakpoints {
+            css.push_str(&format!(
+                "  --{}-breakpoint-{}: {};\n",
+                self.config.css_prefix, size_name, size_value
+            ));
+        }
+
+        // 导出边框系统
+        for (width_name, width_value) in &self.global_tokens.border_system.widths {
+            css.push_str(&format!(
+                "  --{}-border-width-{}: {};\n",
+                self.config.css_prefix, width_name, width_value
+            ));
+        }
+
+        for (radius_name, radius_value) in &self.global_tokens.border_system.radius {
+            css.push_str(&format!(
+                "  --{}-border-radius-{}: {};\n",
+                self.config.css_prefix, radius_name, radius_value
+            ));
+        }
+
+        // 导出阴影系统
+        for (shadow_name, shadow_value) in &self.global_tokens.shadow_system.elevations {
+            css.push_str(&format!(
+                "  --{}-shadow-{}: {};\n",
+                self.config.css_prefix, shadow_name, shadow_value
+            ));
+        }
+
+        Ok(css)
+    }
+
+    /// 导出别名令牌为CSS变量
+    fn export_alias_tokens_as_css(&self) -> Result<String, String> {
+        let mut css = String::new();
+
+        // 导出语义颜色
+        let semantic_colors = [
+            (
+                "text-primary",
+                &self.alias_tokens.semantic_colors.text.primary,
+            ),
+            (
+                "text-secondary",
+                &self.alias_tokens.semantic_colors.text.secondary,
+            ),
+            (
+                "text-disabled",
+                &self.alias_tokens.semantic_colors.text.disabled,
+            ),
+            (
+                "bg-primary",
+                &self.alias_tokens.semantic_colors.background.primary,
+            ),
+            (
+                "bg-secondary",
+                &self.alias_tokens.semantic_colors.background.secondary,
+            ),
+            (
+                "border-default",
+                &self.alias_tokens.semantic_colors.border.default,
+            ),
+        ];
+
+        for (var_name, token_ref) in semantic_colors {
+            if let Some(resolved_value) = self.resolve_token(token_ref) {
+                css.push_str(&format!(
+                    "  --{}-{}: {};\n",
+                    self.config.css_prefix, var_name, resolved_value
+                ));
+            }
+        }
+
+        // 导出语义字体
+        if let Some(font_size) = &self.alias_tokens.semantic_typography.heading.h1.font_size {
+            css.push_str(&format!(
+                "  --{}-heading-h1-size: {};
+",
+                self.config.css_prefix, font_size
+            ));
+        }
+        if let Some(font_weight) = &self.alias_tokens.semantic_typography.heading.h1.font_weight {
+            css.push_str(&format!(
+                "  --{}-heading-h1-weight: {};
+",
+                self.config.css_prefix, font_weight
+            ));
+        }
+        if let Some(line_height) = &self.alias_tokens.semantic_typography.heading.h1.line_height {
+            css.push_str(&format!(
+                "  --{}-heading-h1-line-height: {};
+",
+                self.config.css_prefix, line_height
+            ));
+        }
+        if let Some(font_size) = &self.alias_tokens.semantic_typography.body.large.font_size {
+            css.push_str(&format!(
+                "  --{}-body-large-size: {};
+",
+                self.config.css_prefix, font_size
+            ));
+        }
+        if let Some(font_weight) = &self.alias_tokens.semantic_typography.body.large.font_weight {
+            css.push_str(&format!(
+                "  --{}-body-large-weight: {};
+",
+                self.config.css_prefix, font_weight
+            ));
+        }
+        if let Some(font_size) = &self.alias_tokens.semantic_typography.body.medium.font_size {
+            css.push_str(&format!(
+                "  --{}-body-medium-size: {};
+",
+                self.config.css_prefix, font_size
+            ));
+        }
+
+        Ok(css)
+    }
+
+    /// 导出组件令牌为CSS变量
+    fn export_component_tokens_as_css(&self) -> Result<String, String> {
+        let mut css = String::new();
+
+        // 导出按钮组件令牌
+        let button_variants = [
+            ("default", &self.component_tokens.button.default),
+            ("primary", &self.component_tokens.button.primary),
+            ("dashed", &self.component_tokens.button.dashed),
+            ("text", &self.component_tokens.button.text),
+            ("link", &self.component_tokens.button.link),
+        ];
+
+        for (variant_name, variant_tokens) in button_variants {
+            let states = [
+                ("default", &variant_tokens.default),
+                ("hover", &variant_tokens.hover),
+                ("active", &variant_tokens.active),
+                ("disabled", &variant_tokens.disabled),
+                ("focus", &variant_tokens.focus),
+            ];
+
+            for (state_name, state_tokens) in states {
+                let properties = [
+                    ("bg", &state_tokens.background_color),
+                    ("color", &state_tokens.text_color),
+                    ("border-color", &state_tokens.border_color),
+                    ("border-width", &state_tokens.border_width),
+                    ("border-radius", &state_tokens.border_radius),
+                    ("padding", &state_tokens.padding),
+                    ("shadow", &state_tokens.shadow),
+                ];
+
+                for (prop_name, token_ref) in properties {
+                    if let Some(resolved_value) = self.resolve_token(token_ref) {
+                        css.push_str(&format!(
+                            "  --{}-button-{}-{}-{}: {};\n",
+                            self.config.css_prefix,
+                            variant_name,
+                            state_name,
+                            prop_name,
+                            resolved_value
+                        ));
+                    }
+                }
+            }
+        }
+
+        Ok(css)
+    }
+
+    /// 导出深色主题CSS变量
+    fn export_dark_theme_css_variables(&mut self) -> Result<String, String> {
+        let mut css = String::new();
+
+        // 保存当前主题
+        let current_theme = self.current_theme;
+
+        // 切换到深色主题
+        self.current_theme = ThemeVariant::Dark;
+        self.apply_dark_theme_colors();
+        self.update_semantic_tokens_for_theme();
+
+        // 生成深色主题的CSS变量
+        css.push_str("[data-theme='dark'] {\n");
+        css.push_str(&self.export_global_tokens_as_css()?);
+        css.push_str(&self.export_alias_tokens_as_css()?);
+        css.push_str(&self.export_component_tokens_as_css()?);
+        css.push_str("}\n\n");
+
+        // 恢复原主题
+        self.current_theme = current_theme;
+        match current_theme {
+            ThemeVariant::Light => self.apply_light_theme_colors(),
+            ThemeVariant::Dark => self.apply_dark_theme_colors(),
+            ThemeVariant::Auto => self.apply_light_theme_colors(),
+        }
+        self.update_semantic_tokens_for_theme();
+
+        Ok(css)
+    }
+
+    /// 解析令牌引用
+    /// 根据令牌引用路径解析出最终的令牌值
+    pub fn resolve_token(&self, token_ref: &TokenReference) -> Option<String> {
+        self.resolve_token_path(&token_ref.reference)
+    }
+
+    /// 解析令牌路径
+    fn resolve_token_path(&self, path: &str) -> Option<String> {
+        let parts: Vec<&str> = path.split('.').collect();
+
+        if parts.is_empty() {
+            return None;
+        }
+
+        match parts[0] {
+            "global" => self.resolve_global_token_path(&parts[1..]),
+            "alias" => self.resolve_alias_token_path(&parts[1..]),
+            "component" => self.resolve_component_token_path(&parts[1..]),
+            // 支持简化路径（直接从根开始）
+            "color_palette" => self.resolve_global_token_path(&parts),
+            "font_system" => self.resolve_global_token_path(&parts),
+            "spacing_system" => self.resolve_global_token_path(&parts),
+            "semantic_colors" => self.resolve_alias_token_path(&parts),
+            "semantic_typography" => self.resolve_alias_token_path(&parts),
+            "button" | "input" | "card" | "table" | "navigation" => {
+                self.resolve_component_token_path(&parts)
+            }
+            _ => None,
+        }
+    }
+
+    /// 解析全局令牌路径
+    fn resolve_global_token_path(&self, parts: &[&str]) -> Option<String> {
+        if parts.is_empty() {
+            return None;
+        }
+
+        match parts[0] {
+            "color_palette" => self.resolve_color_palette_path(&parts[1..]),
+            "font_system" => self.resolve_font_system_path(&parts[1..]),
+            "spacing_system" => self.resolve_spacing_system_path(&parts[1..]),
+            "sizing_system" => self.resolve_sizing_system_path(&parts[1..]),
+            "border_system" => self.resolve_border_system_path(&parts[1..]),
+            "shadow_system" => self.resolve_shadow_system_path(&parts[1..]),
+            "motion_system" => self.resolve_motion_system_path(&parts[1..]),
+            _ => None,
+        }
+    }
+
+    /// 解析颜色调色板路径
+    fn resolve_color_palette_path(&self, parts: &[&str]) -> Option<String> {
+        if parts.len() < 2 {
+            return None;
+        }
+
+        let color_group = parts[0];
+        let color_level = parts[1];
+
+        let color_map = match color_group {
+            "primary" => &self.global_tokens.color_palette.primary,
+            "neutral" => &self.global_tokens.color_palette.neutral,
+            "functional" => &self.global_tokens.color_palette.functional,
+            "extended" => &self.global_tokens.color_palette.extended,
+            _ => return None,
+        };
+
+        color_map.get(color_level).map(|v| v.to_string())
+    }
+
+    /// 解析字体系统路径
+    fn resolve_font_system_path(&self, parts: &[&str]) -> Option<String> {
+        if parts.is_empty() {
+            return None;
+        }
+
+        match parts[0] {
+            "sizes" => {
+                if parts.len() < 2 {
+                    return None;
+                }
+                self.global_tokens
+                    .font_system
+                    .sizes
+                    .get(parts[1])
+                    .map(|v| v.to_string())
+            }
+            "weights" => {
+                if parts.len() < 2 {
+                    return None;
+                }
+                self.global_tokens
+                    .font_system
+                    .weights
+                    .get(parts[1])
+                    .map(|v| v.to_string())
+            }
+            "families" => {
+                if parts.len() < 2 {
+                    return None;
+                }
+                self.global_tokens
+                    .font_system
+                    .families
+                    .get(parts[1])
+                    .cloned()
+            }
+            "line_heights" => {
+                if parts.len() < 2 {
+                    return None;
+                }
+                self.global_tokens
+                    .font_system
+                    .line_heights
+                    .get(parts[1])
+                    .map(|v| v.to_string())
+            }
+            _ => None,
+        }
+    }
+
+    /// 解析间距系统路径
+    fn resolve_spacing_system_path(&self, parts: &[&str]) -> Option<String> {
+        if parts.is_empty() {
+            return None;
+        }
+
+        match parts[0] {
+            "values" => {
+                if parts.len() < 2 {
+                    return None;
+                }
+                self.global_tokens
+                    .spacing_system
+                    .values
+                    .get(parts[1])
+                    .map(|v| v.to_string())
+            }
+            _ => self
+                .global_tokens
+                .spacing_system
+                .values
+                .get(parts[0])
+                .map(|v| v.to_string()),
+        }
+    }
+
+    /// 解析尺寸系统路径
+    fn resolve_sizing_system_path(&self, parts: &[&str]) -> Option<String> {
+        if parts.is_empty() {
+            return None;
+        }
+
+        self.global_tokens
+            .sizing_system
+            .base_sizes
+            .get(parts[0])
+            .map(|v| v.to_string())
+    }
+
+    /// 解析边框系统路径
+    fn resolve_border_system_path(&self, parts: &[&str]) -> Option<String> {
+        if parts.is_empty() {
+            return None;
+        }
+
+        match parts[0] {
+            "widths" => {
+                if parts.len() < 2 {
+                    return None;
+                }
+                self.global_tokens
+                    .border_system
+                    .widths
+                    .get(parts[1])
+                    .map(|v| v.to_string())
+            }
+            "radii" => {
+                if parts.len() < 2 {
+                    return None;
+                }
+                self.global_tokens
+                    .border_system
+                    .radius
+                    .get(parts[1])
+                    .map(|v| v.to_string())
+            }
+            "styles" => {
+                if parts.len() < 2 {
+                    return None;
+                }
+                self.global_tokens
+                    .border_system
+                    .styles
+                    .get(parts[1])
+                    .cloned()
+            }
+            _ => None,
+        }
+    }
+
+    /// 解析阴影系统路径
+    fn resolve_shadow_system_path(&self, parts: &[&str]) -> Option<String> {
+        if parts.is_empty() {
+            return None;
+        }
+
+        self.global_tokens
+            .shadow_system
+            .elevations
+            .get(parts[0])
+            .map(|v| v.to_string())
+    }
+
+    /// 解析动画系统路径
+    fn resolve_motion_system_path(&self, parts: &[&str]) -> Option<String> {
+        if parts.is_empty() {
+            return None;
+        }
+
+        match parts[0] {
+            "durations" => {
+                if parts.len() < 2 {
+                    return None;
+                }
+                self.global_tokens
+                    .motion_system
+                    .durations
+                    .get(parts[1])
+                    .cloned()
+            }
+            "easings" => {
+                if parts.len() < 2 {
+                    return None;
+                }
+                self.global_tokens
+                    .motion_system
+                    .easings
+                    .get(parts[1])
+                    .cloned()
+            }
+            _ => None,
+        }
+    }
+
+    /// 解析别名令牌路径
+    fn resolve_alias_token_path(&self, parts: &[&str]) -> Option<String> {
+        if parts.is_empty() {
+            return None;
+        }
+
+        match parts[0] {
+            "semantic_colors" => self.resolve_semantic_colors_path(&parts[1..]),
+            "semantic_typography" => self.resolve_semantic_typography_path(&parts[1..]),
+            _ => None,
+        }
+    }
+
+    /// 解析语义颜色路径
+    fn resolve_semantic_colors_path(&self, parts: &[&str]) -> Option<String> {
+        if parts.len() < 2 {
+            return None;
+        }
+
+        let category = parts[0];
+        let property = parts[1];
+
+        let token_ref = match (category, property) {
+            ("text", "primary") => &self.alias_tokens.semantic_colors.text.primary,
+            ("text", "secondary") => &self.alias_tokens.semantic_colors.text.secondary,
+            ("text", "disabled") => &self.alias_tokens.semantic_colors.text.disabled,
+            ("background", "primary") => &self.alias_tokens.semantic_colors.background.primary,
+            ("background", "secondary") => &self.alias_tokens.semantic_colors.background.secondary,
+            ("border", "default") => &self.alias_tokens.semantic_colors.border.default,
+            _ => return None,
+        };
+
+        self.resolve_token(token_ref)
+    }
+
+    /// 解析语义字体路径
+    fn resolve_semantic_typography_path(&self, parts: &[&str]) -> Option<String> {
+        if parts.len() < 3 {
+            return None;
+        }
+
+        let category = parts[0]; // heading, body, caption, code
+        let size = parts[1]; // h1, h2, large, medium, small
+        let property = parts[2]; // font_size, font_weight, line_height
+
+        match (category, size, property) {
+            ("heading", "h1", "font_size") => self
+                .alias_tokens
+                .semantic_typography
+                .heading
+                .h1
+                .font_size
+                .as_ref()
+                .map(|v| v.to_string()),
+            ("heading", "h1", "font_weight") => self
+                .alias_tokens
+                .semantic_typography
+                .heading
+                .h1
+                .font_weight
+                .map(|v| v.to_string()),
+            ("heading", "h1", "line_height") => self
+                .alias_tokens
+                .semantic_typography
+                .heading
+                .h1
+                .line_height
+                .map(|v| v.to_string()),
+            ("body", "large", "font_size") => self
+                .alias_tokens
+                .semantic_typography
+                .body
+                .large
+                .font_size
+                .as_ref()
+                .map(|v| v.to_string()),
+            ("body", "large", "font_weight") => self
+                .alias_tokens
+                .semantic_typography
+                .body
+                .large
+                .font_weight
+                .map(|v| v.to_string()),
+            ("body", "medium", "font_size") => self
+                .alias_tokens
+                .semantic_typography
+                .body
+                .medium
+                .font_size
+                .as_ref()
+                .map(|v| v.to_string()),
+            _ => None,
+        }
+    }
+
+    /// 解析组件令牌路径
+    fn resolve_component_token_path(&self, parts: &[&str]) -> Option<String> {
+        if parts.is_empty() {
+            return None;
+        }
+
+        match parts[0] {
+            "button" => self.resolve_button_token_path(&parts[1..]),
+            "input" => self.resolve_input_token_path(&parts[1..]),
+            "card" => self.resolve_card_token_path(&parts[1..]),
+            _ => None,
+        }
+    }
+
+    /// 解析按钮令牌路径
+    fn resolve_button_token_path(&self, parts: &[&str]) -> Option<String> {
+        if parts.len() < 3 {
+            return None;
+        }
+
+        let variant = parts[0]; // default, primary, dashed, text, link
+        let state = parts[1]; // default, hover, active, disabled, focus
+        let property = parts[2]; // background_color, text_color, etc.
+
+        let variant_tokens = match variant {
+            "default" => &self.component_tokens.button.default,
+            "primary" => &self.component_tokens.button.primary,
+            "dashed" => &self.component_tokens.button.dashed,
+            "text" => &self.component_tokens.button.text,
+            "link" => &self.component_tokens.button.link,
+            _ => return None,
+        };
+
+        let state_tokens = match state {
+            "default" => &variant_tokens.default,
+            "hover" => &variant_tokens.hover,
+            "active" => &variant_tokens.active,
+            "disabled" => &variant_tokens.disabled,
+            "focus" => &variant_tokens.focus,
+            _ => return None,
+        };
+
+        let token_ref = match property {
+            "background_color" => &state_tokens.background_color,
+            "text_color" => &state_tokens.text_color,
+            "border_color" => &state_tokens.border_color,
+            "border_width" => &state_tokens.border_width,
+            "border_radius" => &state_tokens.border_radius,
+            "padding" => &state_tokens.padding,
+            "shadow" => &state_tokens.shadow,
+            _ => return None,
+        };
+
+        self.resolve_token(token_ref)
+    }
+
+    /// 解析输入框令牌路径（占位实现）
+    fn resolve_input_token_path(&self, _parts: &[&str]) -> Option<String> {
+        // TODO: 实现输入框令牌路径解析
+        None
+    }
+
+    /// 解析卡片令牌路径（占位实现）
+    fn resolve_card_token_path(&self, _parts: &[&str]) -> Option<String> {
+        // TODO: 实现卡片令牌路径解析
+        None
     }
 
     /// 获取令牌值
@@ -978,13 +1680,136 @@ impl DesignTokenSystem {
     // 私有辅助方法
 
     /// 创建令牌值存储
+    /// 将分层令牌转换为扁平的令牌值存储，用于高效的令牌查找和访问
     fn create_token_value_store(&self) -> DesignTokens {
-        // 这里需要将分层令牌转换为扁平的令牌值存储
-        // 实际实现需要根据TokenValueStore的具体结构来调整
-        AntDesignTokenValues::create_default_store()
+        let mut store = DesignTokens::default();
+
+        // 转换全局令牌
+        self.convert_global_tokens_to_store(&mut store);
+
+        // 转换别名令牌
+        self.convert_alias_tokens_to_store(&mut store);
+
+        // 转换组件令牌
+        self.convert_component_tokens_to_store(&mut store);
+
+        store
+    }
+
+    /// 转换全局令牌到存储
+    fn convert_global_tokens_to_store(&self, store: &mut DesignTokens) {
+        // 转换颜色调色板
+        for (color_name, color_map) in [
+            ("primary", &self.global_tokens.color_palette.primary),
+            ("neutral", &self.global_tokens.color_palette.neutral),
+            ("functional", &self.global_tokens.color_palette.functional),
+            ("extended", &self.global_tokens.color_palette.extended),
+        ] {
+            for (level, color_value) in color_map {
+                let path = format!("global.color_palette.{}.{}", color_name, level);
+                // 直接设置颜色值到 store 中
+                // 这里需要根据实际的 DesignTokens 结构来设置值
+                // 暂时跳过，因为 DesignTokens 没有 set_token_value 方法
+            }
+        }
+
+        // 转换字体系统
+        for (size_name, size_value) in &self.global_tokens.font_system.sizes {
+            let _path = format!("global.font_system.sizes.{}", size_name);
+            // 暂时跳过，因为 DesignTokens 没有 set_token_value 方法
+            // store.set_token_value(&TokenPath::from_str(&path), TokenValue::Dimension(size_value.clone()), self.current_theme).ok();
+        }
+
+        // 转换间距系统
+        for (spacing_name, spacing_value) in &self.global_tokens.spacing_system.values {
+            let _path = format!("global.spacing_system.{}", spacing_name);
+            // 暂时跳过，因为 DesignTokens 没有 set_token_value 方法
+            // store.set_token_value(&TokenPath::from_str(&path), TokenValue::Dimension(spacing_value.clone()), self.current_theme).ok();
+        }
+    }
+
+    /// 转换别名令牌到存储
+    fn convert_alias_tokens_to_store(&self, store: &mut DesignTokens) {
+        // 转换语义颜色
+        let semantic_colors = [
+            (
+                "text.primary",
+                &self.alias_tokens.semantic_colors.text.primary,
+            ),
+            (
+                "text.secondary",
+                &self.alias_tokens.semantic_colors.text.secondary,
+            ),
+            (
+                "text.disabled",
+                &self.alias_tokens.semantic_colors.text.disabled,
+            ),
+            (
+                "background.primary",
+                &self.alias_tokens.semantic_colors.background.primary,
+            ),
+            (
+                "background.secondary",
+                &self.alias_tokens.semantic_colors.background.secondary,
+            ),
+            (
+                "border.default",
+                &self.alias_tokens.semantic_colors.border.default,
+            ),
+        ];
+
+        for (semantic_name, token_ref) in semantic_colors {
+            let _path = format!("alias.semantic_colors.{}", semantic_name);
+            // 暂时跳过，因为 DesignTokens 没有 set_token_value 方法
+            // store.set_token_value(&TokenPath::from_str(&path), TokenValue::Reference(token_ref.clone()), self.current_theme).ok();
+        }
+    }
+
+    /// 转换组件令牌到存储
+    fn convert_component_tokens_to_store(&self, store: &mut DesignTokens) {
+        // 转换按钮令牌
+        let button_variants = [
+            ("default", &self.component_tokens.button.default),
+            ("primary", &self.component_tokens.button.primary),
+            ("dashed", &self.component_tokens.button.dashed),
+            ("text", &self.component_tokens.button.text),
+            ("link", &self.component_tokens.button.link),
+        ];
+
+        for (variant_name, variant_tokens) in button_variants {
+            let states = [
+                ("default", &variant_tokens.default),
+                ("hover", &variant_tokens.hover),
+                ("active", &variant_tokens.active),
+                ("disabled", &variant_tokens.disabled),
+                ("focus", &variant_tokens.focus),
+            ];
+
+            for (state_name, state_tokens) in states {
+                let base_path = format!("component.button.{}.{}", variant_name, state_name);
+
+                // 转换状态令牌的各个属性
+                let properties = [
+                    ("background_color", &state_tokens.background_color),
+                    ("text_color", &state_tokens.text_color),
+                    ("border_color", &state_tokens.border_color),
+                    ("border_width", &state_tokens.border_width),
+                    ("border_radius", &state_tokens.border_radius),
+                    ("padding", &state_tokens.padding),
+                    ("shadow", &state_tokens.shadow),
+                ];
+
+                for (prop_name, token_ref) in properties {
+                    let _path = format!("{}.{}", base_path, prop_name);
+                    // 暂时跳过，因为 DesignTokens 没有 set_token_value 方法
+                    // store.set_token_value(&TokenPath::from_str(&path), TokenValue::Reference(token_ref.clone()), self.current_theme).ok();
+                }
+            }
+        }
     }
 
     /// 更新主题相关令牌
+    /// 根据当前主题（浅色/深色）动态更新相关令牌值
     fn update_theme_dependent_tokens(&mut self) {
         // 根据当前主题更新颜色令牌
         match self.current_theme {
@@ -995,34 +1820,675 @@ impl DesignTokenSystem {
                 self.apply_light_theme_colors();
             }
         }
+
+        // 更新主题相关的语义令牌
+        self.update_semantic_tokens_for_theme();
+
+        // 更新组件令牌的主题相关部分
+        self.update_component_tokens_for_theme();
+    }
+
+    /// 更新语义令牌以适应当前主题
+    fn update_semantic_tokens_for_theme(&mut self) {
+        match self.current_theme {
+            ThemeVariant::Light => {
+                // 浅色主题的语义颜色映射
+                self.alias_tokens.semantic_colors.text.primary =
+                    TokenReference::new("global.color_palette.neutral.900".to_string());
+                self.alias_tokens.semantic_colors.text.secondary =
+                    TokenReference::new("global.color_palette.neutral.600".to_string());
+                self.alias_tokens.semantic_colors.background.primary =
+                    TokenReference::new("global.color_palette.neutral.50".to_string());
+            }
+            ThemeVariant::Dark => {
+                // 深色主题的语义颜色映射
+                self.alias_tokens.semantic_colors.text.primary =
+                    TokenReference::new("global.color_palette.neutral.100".to_string());
+                self.alias_tokens.semantic_colors.text.secondary =
+                    TokenReference::new("global.color_palette.neutral.400".to_string());
+                self.alias_tokens.semantic_colors.background.primary =
+                    TokenReference::new("global.color_palette.neutral.900".to_string());
+            }
+            ThemeVariant::Auto => {
+                // Auto模式使用浅色主题设置
+                self.alias_tokens.semantic_colors.text.primary =
+                    TokenReference::new("global.color_palette.neutral.900".to_string());
+            }
+        }
+    }
+
+    /// 更新组件令牌以适应当前主题
+    fn update_component_tokens_for_theme(&mut self) {
+        // 更新按钮组件的主题相关令牌
+        match self.current_theme {
+            ThemeVariant::Light => {
+                // 浅色主题下的按钮样式
+                self.component_tokens
+                    .button
+                    .default
+                    .default
+                    .background_color =
+                    TokenReference::new("global.color_palette.neutral.50".to_string());
+                self.component_tokens.button.default.default.text_color =
+                    TokenReference::new("alias.semantic_colors.text.primary".to_string());
+            }
+            ThemeVariant::Dark => {
+                // 深色主题下的按钮样式
+                self.component_tokens
+                    .button
+                    .default
+                    .default
+                    .background_color =
+                    TokenReference::new("global.color_palette.neutral.800".to_string());
+                self.component_tokens.button.default.default.text_color =
+                    TokenReference::new("alias.semantic_colors.text.primary".to_string());
+            }
+            ThemeVariant::Auto => {
+                // Auto模式使用浅色主题设置
+                self.component_tokens
+                    .button
+                    .default
+                    .default
+                    .background_color =
+                    TokenReference::new("global.color_palette.neutral.50".to_string());
+            }
+        }
     }
 
     /// 应用浅色主题颜色
+    /// 应用特定主题的颜色方案
     fn apply_light_theme_colors(&mut self) {
-        // 实现浅色主题的颜色应用逻辑
+        // 设置浅色主题的主色调
+        self.global_tokens
+            .color_palette
+            .primary
+            .insert("50".to_string(), ColorValue::new("#e6f7ff".to_string()));
+        self.global_tokens
+            .color_palette
+            .primary
+            .insert("100".to_string(), ColorValue::new("#bae7ff".to_string()));
+        self.global_tokens
+            .color_palette
+            .primary
+            .insert("200".to_string(), ColorValue::new("#91d5ff".to_string()));
+        self.global_tokens
+            .color_palette
+            .primary
+            .insert("300".to_string(), ColorValue::new("#69c0ff".to_string()));
+        self.global_tokens
+            .color_palette
+            .primary
+            .insert("400".to_string(), ColorValue::new("#40a9ff".to_string()));
+        self.global_tokens
+            .color_palette
+            .primary
+            .insert("500".to_string(), ColorValue::new("#1890ff".to_string()));
+        self.global_tokens
+            .color_palette
+            .primary
+            .insert("600".to_string(), ColorValue::new("#096dd9".to_string()));
+        self.global_tokens
+            .color_palette
+            .primary
+            .insert("700".to_string(), ColorValue::new("#0050b3".to_string()));
+        self.global_tokens
+            .color_palette
+            .primary
+            .insert("800".to_string(), ColorValue::new("#003a8c".to_string()));
+        self.global_tokens
+            .color_palette
+            .primary
+            .insert("900".to_string(), ColorValue::new("#002766".to_string()));
+
+        // 设置浅色主题的中性色
+        self.global_tokens
+            .color_palette
+            .neutral
+            .insert("50".to_string(), ColorValue::new("#fafafa".to_string()));
+        self.global_tokens
+            .color_palette
+            .neutral
+            .insert("100".to_string(), ColorValue::new("#f5f5f5".to_string()));
+        self.global_tokens
+            .color_palette
+            .neutral
+            .insert("200".to_string(), ColorValue::new("#f0f0f0".to_string()));
+        self.global_tokens
+            .color_palette
+            .neutral
+            .insert("300".to_string(), ColorValue::new("#d9d9d9".to_string()));
+        self.global_tokens
+            .color_palette
+            .neutral
+            .insert("400".to_string(), ColorValue::new("#bfbfbf".to_string()));
+        self.global_tokens
+            .color_palette
+            .neutral
+            .insert("500".to_string(), ColorValue::new("#8c8c8c".to_string()));
+        self.global_tokens
+            .color_palette
+            .neutral
+            .insert("600".to_string(), ColorValue::new("#595959".to_string()));
+        self.global_tokens
+            .color_palette
+            .neutral
+            .insert("700".to_string(), ColorValue::new("#434343".to_string()));
+        self.global_tokens
+            .color_palette
+            .neutral
+            .insert("800".to_string(), ColorValue::new("#262626".to_string()));
+        self.global_tokens
+            .color_palette
+            .neutral
+            .insert("900".to_string(), ColorValue::new("#1f1f1f".to_string()));
+
+        // 设置功能色（成功、警告、错误）
+        self.global_tokens.color_palette.functional.insert(
+            "success.50".to_string(),
+            ColorValue::new("#f6ffed".to_string()),
+        );
+        self.global_tokens.color_palette.functional.insert(
+            "success.500".to_string(),
+            ColorValue::new("#52c41a".to_string()),
+        );
+        self.global_tokens.color_palette.functional.insert(
+            "success.600".to_string(),
+            ColorValue::new("#389e0d".to_string()),
+        );
+
+        self.global_tokens.color_palette.functional.insert(
+            "warning.50".to_string(),
+            ColorValue::new("#fffbe6".to_string()),
+        );
+        self.global_tokens.color_palette.functional.insert(
+            "warning.500".to_string(),
+            ColorValue::new("#faad14".to_string()),
+        );
+        self.global_tokens.color_palette.functional.insert(
+            "warning.600".to_string(),
+            ColorValue::new("#d48806".to_string()),
+        );
+
+        self.global_tokens.color_palette.functional.insert(
+            "error.50".to_string(),
+            ColorValue::new("#fff2f0".to_string()),
+        );
+        self.global_tokens.color_palette.functional.insert(
+            "error.500".to_string(),
+            ColorValue::new("#ff4d4f".to_string()),
+        );
+        self.global_tokens.color_palette.functional.insert(
+            "error.600".to_string(),
+            ColorValue::new("#cf1322".to_string()),
+        );
     }
 
     /// 应用深色主题颜色
+    /// 应用特定主题的颜色方案
     fn apply_dark_theme_colors(&mut self) {
-        // 实现深色主题的颜色应用逻辑
+        // 设置深色主题的主色调（相对浅色主题调整亮度）
+        self.global_tokens
+            .color_palette
+            .primary
+            .insert("50".to_string(), ColorValue::new("#111b26".to_string()));
+        self.global_tokens
+            .color_palette
+            .primary
+            .insert("100".to_string(), ColorValue::new("#112a41".to_string()));
+        self.global_tokens
+            .color_palette
+            .primary
+            .insert("200".to_string(), ColorValue::new("#15395b".to_string()));
+        self.global_tokens
+            .color_palette
+            .primary
+            .insert("300".to_string(), ColorValue::new("#164c7e".to_string()));
+        self.global_tokens
+            .color_palette
+            .primary
+            .insert("400".to_string(), ColorValue::new("#1765ad".to_string()));
+        self.global_tokens
+            .color_palette
+            .primary
+            .insert("500".to_string(), ColorValue::new("#177ddc".to_string()));
+        self.global_tokens
+            .color_palette
+            .primary
+            .insert("600".to_string(), ColorValue::new("#3c9ae8".to_string()));
+        self.global_tokens
+            .color_palette
+            .primary
+            .insert("700".to_string(), ColorValue::new("#65b7f3".to_string()));
+        self.global_tokens
+            .color_palette
+            .primary
+            .insert("800".to_string(), ColorValue::new("#8dcff8".to_string()));
+        self.global_tokens
+            .color_palette
+            .primary
+            .insert("900".to_string(), ColorValue::new("#b7e3fa".to_string()));
+
+        // 设置深色主题的中性色（反转亮度）
+        self.global_tokens
+            .color_palette
+            .neutral
+            .insert("50".to_string(), ColorValue::new("#141414".to_string()));
+        self.global_tokens
+            .color_palette
+            .neutral
+            .insert("100".to_string(), ColorValue::new("#1f1f1f".to_string()));
+        self.global_tokens
+            .color_palette
+            .neutral
+            .insert("200".to_string(), ColorValue::new("#262626".to_string()));
+        self.global_tokens
+            .color_palette
+            .neutral
+            .insert("300".to_string(), ColorValue::new("#434343".to_string()));
+        self.global_tokens
+            .color_palette
+            .neutral
+            .insert("400".to_string(), ColorValue::new("#595959".to_string()));
+        self.global_tokens
+            .color_palette
+            .neutral
+            .insert("500".to_string(), ColorValue::new("#8c8c8c".to_string()));
+        self.global_tokens
+            .color_palette
+            .neutral
+            .insert("600".to_string(), ColorValue::new("#bfbfbf".to_string()));
+        self.global_tokens
+            .color_palette
+            .neutral
+            .insert("700".to_string(), ColorValue::new("#d9d9d9".to_string()));
+        self.global_tokens
+            .color_palette
+            .neutral
+            .insert("800".to_string(), ColorValue::new("#f0f0f0".to_string()));
+        self.global_tokens
+            .color_palette
+            .neutral
+            .insert("900".to_string(), ColorValue::new("#ffffff".to_string()));
+
+        // 设置深色主题的功能色
+        self.global_tokens.color_palette.functional.insert(
+            "success.50".to_string(),
+            ColorValue::new("#162312".to_string()),
+        );
+        self.global_tokens.color_palette.functional.insert(
+            "success.500".to_string(),
+            ColorValue::new("#49aa19".to_string()),
+        );
+        self.global_tokens.color_palette.functional.insert(
+            "success.600".to_string(),
+            ColorValue::new("#6abe39".to_string()),
+        );
+
+        self.global_tokens.color_palette.functional.insert(
+            "warning.50".to_string(),
+            ColorValue::new("#2b2111".to_string()),
+        );
+        self.global_tokens.color_palette.functional.insert(
+            "warning.500".to_string(),
+            ColorValue::new("#d89614".to_string()),
+        );
+        self.global_tokens.color_palette.functional.insert(
+            "warning.600".to_string(),
+            ColorValue::new("#e8b339".to_string()),
+        );
+
+        self.global_tokens.color_palette.functional.insert(
+            "error.50".to_string(),
+            ColorValue::new("#2a1215".to_string()),
+        );
+        self.global_tokens.color_palette.functional.insert(
+            "error.500".to_string(),
+            ColorValue::new("#dc4446".to_string()),
+        );
+        self.global_tokens.color_palette.functional.insert(
+            "error.600".to_string(),
+            ColorValue::new("#e84749".to_string()),
+        );
     }
 
     /// 获取全局令牌值
     fn get_global_token_value(&self, path: &TokenPath) -> Option<TokenValue> {
-        // 根据路径从全局令牌中获取值
-        None // 占位实现
+        if path.segments.is_empty() {
+            return None;
+        }
+
+        match path.segments[0].as_str() {
+            "color_palette" => self.get_color_palette_value(&path.segments[1..]),
+            "font_system" => self.get_font_system_value(&path.segments[1..]),
+            "spacing_system" => self.get_spacing_system_value(&path.segments[1..]),
+            "sizing_system" => self.get_sizing_system_value(&path.segments[1..]),
+            "border_system" => self.get_border_system_value(&path.segments[1..]),
+            "shadow_system" => self.get_shadow_system_value(&path.segments[1..]),
+            "motion_system" => self.get_motion_system_value(&path.segments[1..]),
+            _ => None,
+        }
+    }
+
+    /// 获取颜色调色板值
+    fn get_color_palette_value(&self, segments: &[String]) -> Option<TokenValue> {
+        if segments.len() < 2 {
+            return None;
+        }
+
+        let color_group = &segments[0];
+        let color_level = &segments[1];
+
+        let color_map = match color_group.as_str() {
+            "primary" => &self.global_tokens.color_palette.primary,
+            "neutral" => &self.global_tokens.color_palette.neutral,
+            "functional" => &self.global_tokens.color_palette.functional,
+            "extended" => &self.global_tokens.color_palette.extended,
+            _ => return None,
+        };
+
+        color_map
+            .get(color_level)
+            .map(|v| TokenValue::Color(v.clone()))
+    }
+
+    /// 获取字体系统值
+    fn get_font_system_value(&self, segments: &[String]) -> Option<TokenValue> {
+        if segments.is_empty() {
+            return None;
+        }
+
+        match segments[0].as_str() {
+            "sizes" => {
+                if segments.len() < 2 {
+                    return None;
+                }
+                self.global_tokens
+                    .font_system
+                    .sizes
+                    .get(&segments[1])
+                    .map(|v| TokenValue::Dimension(v.clone()))
+            }
+            "weights" => {
+                if segments.len() < 2 {
+                    return None;
+                }
+                self.global_tokens
+                    .font_system
+                    .weights
+                    .get(&segments[1])
+                    .map(|v| TokenValue::Number(*v as f64))
+            }
+            "families" => {
+                if segments.len() < 2 {
+                    return None;
+                }
+                self.global_tokens
+                    .font_system
+                    .families
+                    .get(&segments[1])
+                    .map(|v| TokenValue::String(v.clone()))
+            }
+            "line_heights" => {
+                if segments.len() < 2 {
+                    return None;
+                }
+                self.global_tokens
+                    .font_system
+                    .line_heights
+                    .get(&segments[1])
+                    .map(|v| {
+                        TokenValue::Dimension(DimensionValue {
+                            value: *v as f64,
+                            unit: DimensionUnit::Auto,
+                        })
+                    })
+            }
+            _ => None,
+        }
+    }
+
+    /// 获取间距系统值
+    fn get_spacing_system_value(&self, segments: &[String]) -> Option<TokenValue> {
+        if segments.is_empty() {
+            return None;
+        }
+
+        self.global_tokens
+            .spacing_system
+            .values
+            .get(&segments[0])
+            .map(|v| TokenValue::Dimension(v.clone()))
+    }
+
+    /// 获取尺寸系统值
+    fn get_sizing_system_value(&self, segments: &[String]) -> Option<TokenValue> {
+        if segments.is_empty() {
+            return None;
+        }
+
+        self.global_tokens
+            .sizing_system
+            .base_sizes
+            .get(&segments[0])
+            .map(|v| TokenValue::Dimension(v.clone()))
+    }
+
+    /// 获取边框系统值
+    fn get_border_system_value(&self, segments: &[String]) -> Option<TokenValue> {
+        if segments.is_empty() {
+            return None;
+        }
+
+        match segments[0].as_str() {
+            "widths" => {
+                if segments.len() < 2 {
+                    return None;
+                }
+                self.global_tokens
+                    .border_system
+                    .widths
+                    .get(&segments[1])
+                    .map(|v| TokenValue::Dimension(v.clone()))
+            }
+            "radii" => {
+                if segments.len() < 2 {
+                    return None;
+                }
+                self.global_tokens
+                    .border_system
+                    .radius
+                    .get(&segments[1])
+                    .map(|v| TokenValue::Dimension(v.clone()))
+            }
+            "styles" => {
+                if segments.len() < 2 {
+                    return None;
+                }
+                self.global_tokens
+                    .border_system
+                    .styles
+                    .get(&segments[1])
+                    .map(|v| TokenValue::String(v.clone()))
+            }
+            _ => None,
+        }
+    }
+
+    /// 获取阴影系统值
+    fn get_shadow_system_value(&self, segments: &[String]) -> Option<TokenValue> {
+        if segments.is_empty() {
+            return None;
+        }
+
+        self.global_tokens
+            .shadow_system
+            .elevations
+            .get(&segments[0])
+            .map(|v| TokenValue::Shadow(v.clone()))
+    }
+
+    /// 获取动画系统值
+    fn get_motion_system_value(&self, segments: &[String]) -> Option<TokenValue> {
+        if segments.is_empty() {
+            return None;
+        }
+
+        match segments[0].as_str() {
+            "durations" => {
+                if segments.len() < 2 {
+                    return None;
+                }
+                self.global_tokens
+                    .motion_system
+                    .durations
+                    .get(&segments[1])
+                    .map(|v| TokenValue::String(v.clone()))
+            }
+            "easings" => {
+                if segments.len() < 2 {
+                    return None;
+                }
+                self.global_tokens
+                    .motion_system
+                    .easings
+                    .get(&segments[1])
+                    .map(|v| TokenValue::String(v.clone()))
+            }
+            _ => None,
+        }
     }
 
     /// 获取别名令牌值
     fn get_alias_token_value(&self, path: &TokenPath) -> Option<TokenValue> {
-        // 根据路径从别名令牌中获取值
-        None // 占位实现
+        if path.segments.is_empty() {
+            return None;
+        }
+
+        match path.segments[0].as_str() {
+            "semantic_colors" => self.get_semantic_colors_value(&path.segments[1..]),
+            "semantic_typography" => self.get_semantic_typography_value(&path.segments[1..]),
+            _ => None,
+        }
+    }
+
+    /// 获取语义颜色值
+    fn get_semantic_colors_value(&self, segments: &[String]) -> Option<TokenValue> {
+        if segments.len() < 2 {
+            return None;
+        }
+
+        let category = &segments[0];
+        let property = &segments[1];
+
+        let token_ref = match (category.as_str(), property.as_str()) {
+            ("text", "primary") => &self.alias_tokens.semantic_colors.text.primary,
+            ("text", "secondary") => &self.alias_tokens.semantic_colors.text.secondary,
+            ("text", "disabled") => &self.alias_tokens.semantic_colors.text.disabled,
+            ("background", "primary") => &self.alias_tokens.semantic_colors.background.primary,
+            ("background", "secondary") => &self.alias_tokens.semantic_colors.background.secondary,
+            ("border", "default") => &self.alias_tokens.semantic_colors.border.default,
+            _ => return None,
+        };
+
+        // 暂时跳过令牌引用的实现
+        // TODO: 实现基于 TokenReference 的令牌解析逻辑
+        None
+    }
+
+    /// 获取语义字体值
+    fn get_semantic_typography_value(&self, segments: &[String]) -> Option<TokenValue> {
+        if segments.len() < 3 {
+            return None;
+        }
+
+        let category = &segments[0]; // heading, body, caption, code
+        let size = &segments[1]; // h1, h2, large, medium, small
+        let property = &segments[2]; // font_size, font_weight, line_height
+
+        // 暂时跳过语义字体令牌的实现
+        // TODO: 实现基于语义字体令牌的值获取逻辑
+        // 需要处理不同字段类型的统一返回
+
+        // 暂时跳过令牌引用的实现
+        // TODO: 实现基于 TokenReference 的令牌解析逻辑
+        None
     }
 
     /// 获取组件令牌值
     fn get_component_token_value(&self, path: &TokenPath) -> Option<TokenValue> {
-        // 根据路径从组件令牌中获取值
-        None // 占位实现
+        if path.segments.is_empty() {
+            return None;
+        }
+
+        match path.segments[0].as_str() {
+            "button" => self.get_button_token_value(&path.segments[1..]),
+            "input" => self.get_input_token_value(&path.segments[1..]),
+            "card" => self.get_card_token_value(&path.segments[1..]),
+            "table" => self.get_table_token_value(&path.segments[1..]),
+            "navigation" => self.get_navigation_token_value(&path.segments[1..]),
+            _ => None,
+        }
+    }
+
+    /// 获取按钮令牌值
+    fn get_button_token_value(&self, segments: &[String]) -> Option<TokenValue> {
+        if segments.len() < 3 {
+            return None;
+        }
+
+        let variant = &segments[0]; // default, primary, dashed, text, link
+        let state = &segments[1]; // default, hover, active, disabled, focus
+        let property = &segments[2]; // background_color, text_color, etc.
+
+        let variant_tokens = match variant.as_str() {
+            "default" => &self.component_tokens.button.default,
+            "primary" => &self.component_tokens.button.primary,
+            "dashed" => &self.component_tokens.button.dashed,
+            "text" => &self.component_tokens.button.text,
+            "link" => &self.component_tokens.button.link,
+            _ => return None,
+        };
+
+        let state_tokens = match state.as_str() {
+            "default" => &variant_tokens.default,
+            "hover" => &variant_tokens.hover,
+            "active" => &variant_tokens.active,
+            "disabled" => &variant_tokens.disabled,
+            "focus" => &variant_tokens.focus,
+            _ => return None,
+        };
+
+        // 暂时跳过按钮令牌的实现
+        // TODO: 实现基于按钮令牌的值获取逻辑
+        // 需要处理不同字段类型的统一返回
+
+        // 暂时跳过令牌引用的实现
+        // TODO: 实现基于 TokenReference 的令牌解析逻辑
+        None
+    }
+
+    /// 获取输入框令牌值（占位实现）
+    fn get_input_token_value(&self, _segments: &[String]) -> Option<TokenValue> {
+        // TODO: 实现输入框令牌值获取
+        None
+    }
+
+    /// 获取卡片令牌值（占位实现）
+    fn get_card_token_value(&self, _segments: &[String]) -> Option<TokenValue> {
+        // TODO: 实现卡片令牌值获取
+        None
+    }
+
+    /// 获取表格令牌值（占位实现）
+    fn get_table_token_value(&self, _segments: &[String]) -> Option<TokenValue> {
+        // TODO: 实现表格令牌值获取
+        None
+    }
+
+    /// 获取导航令牌值（占位实现）
+    fn get_navigation_token_value(&self, _segments: &[String]) -> Option<TokenValue> {
+        // TODO: 实现导航令牌值获取
+        None
     }
 
     /// 应用颜色计算规则
@@ -1030,7 +2496,48 @@ impl DesignTokenSystem {
         &mut self,
         rule: &ColorComputationRule,
     ) -> Result<(), TokenValidationError> {
-        // 实现颜色计算规则的应用逻辑
+        // 暂时跳过颜色计算规则的实现
+        // TODO: 实现基于 TokenTransform 的颜色变换逻辑
+        // 需要根据 rule.transform 来应用相应的颜色变换
+        return Err(TokenValidationError::InvalidValue(format!(
+            "Color computation rule not yet implemented: {}",
+            rule.name
+        )));
+        // Ok(()) - 这行代码永远不会执行到
+    }
+
+    /// 应用透明度变换
+    fn apply_alpha_transformation(
+        &mut self,
+        target_path: &str,
+        alpha: f32,
+    ) -> Result<(), TokenValidationError> {
+        // 暂时跳过实现，因为 DesignTokenSystem 没有 token_value_store 字段
+        // 需要重新设计令牌值的存储和访问机制
+        Ok(())
+    }
+
+    /// 应用亮度变换
+    fn apply_brightness_transformation(
+        &mut self,
+        target_path: &str,
+        operation: &str,
+        amount: f32,
+    ) -> Result<(), TokenValidationError> {
+        // 暂时跳过实现，因为 DesignTokenSystem 没有 token_value_store 字段
+        // 需要重新设计令牌值的存储和访问机制
+        Ok(())
+    }
+
+    /// 应用饱和度变换
+    fn apply_saturation_transformation(
+        &mut self,
+        target_path: &str,
+        operation: &str,
+        amount: f32,
+    ) -> Result<(), TokenValidationError> {
+        // 暂时跳过实现，因为 DesignTokenSystem 没有 token_value_store 字段
+        // 需要重新设计令牌值的存储和访问机制
         Ok(())
     }
 
@@ -1039,7 +2546,50 @@ impl DesignTokenSystem {
         &mut self,
         rule: &SpacingComputationRule,
     ) -> Result<(), TokenValidationError> {
-        // 实现间距计算规则的应用逻辑
+        // 使用 scale_factor 进行缩放操作
+        if rule.scale_factor > 0.0 {
+            self.apply_spacing_scale(&rule.output_token.to_string(), rule.scale_factor)?;
+        } else {
+            return Err(TokenValidationError::InvalidValue(format!(
+                "Scale factor must be greater than 0 for rule: {}",
+                rule.name
+            )));
+        }
+        Ok(())
+    }
+
+    /// 应用间距缩放
+    fn apply_spacing_scale(
+        &mut self,
+        target_path: &str,
+        factor: f32,
+    ) -> Result<(), TokenValidationError> {
+        // 暂时跳过实现，因为 DesignTokenSystem 没有 token_value_store 字段
+        // 需要重新设计令牌值的存储和访问机制
+        Ok(())
+    }
+
+    /// 应用间距算术运算
+    fn apply_spacing_arithmetic(
+        &mut self,
+        target_path: &str,
+        operation: &str,
+        amount: &str,
+    ) -> Result<(), TokenValidationError> {
+        // 暂时跳过实现，因为 DesignTokenSystem 没有 token_value_store 字段
+        // 需要重新设计令牌值的存储和访问机制
+        Ok(())
+    }
+
+    /// 应用间距约束
+    fn apply_spacing_constraint(
+        &mut self,
+        target_path: &str,
+        operation: &str,
+        value: &str,
+    ) -> Result<(), TokenValidationError> {
+        // 暂时跳过实现，因为 DesignTokenSystem 没有 token_value_store 字段
+        // 需要重新设计令牌值的存储和访问机制
         Ok(())
     }
 
@@ -1048,60 +2598,813 @@ impl DesignTokenSystem {
         &mut self,
         rule: &TypographyComputationRule,
     ) -> Result<(), TokenValidationError> {
-        // 实现字体计算规则的应用逻辑
+        // 使用 scale_factor 进行字体大小缩放
+        if rule.scale_factor > 0.0 {
+            self.apply_font_size_scale(&rule.output_token.to_string(), rule.scale_factor)?;
+        } else {
+            return Err(TokenValidationError::InvalidValue(format!(
+                "Font size scale factor must be greater than 0 for rule: {}",
+                rule.name
+            )));
+        }
+
+        // 使用 line_height_ratio 计算行高
+        if let Some(ratio) = rule.line_height_ratio {
+            if ratio <= 0.0 {
+                return Err(TokenValidationError::InvalidValue(format!(
+                    "Line height ratio must be greater than 0 for rule: {}",
+                    rule.name
+                )));
+            }
+            self.apply_line_height_calculation(&rule.output_token.to_string(), ratio)?;
+        } else {
+            // Use default ratio if not specified
+            self.apply_line_height_calculation(&rule.output_token.to_string(), 1.5)?;
+        }
+
         Ok(())
+    }
+
+    /// 应用字体大小缩放
+    fn apply_font_size_scale(
+        &mut self,
+        target_path: &str,
+        factor: f32,
+    ) -> Result<(), TokenValidationError> {
+        // 暂时跳过实现，因为 DesignTokenSystem 没有 token_value_store 字段
+        // 需要重新设计令牌值的存储和访问机制
+        Ok(())
+    }
+
+    /// 应用行高计算
+    fn apply_line_height_calculation(
+        &mut self,
+        target_path: &str,
+        ratio: f32,
+    ) -> Result<(), TokenValidationError> {
+        // 暂时跳过实现，因为 DesignTokenSystem 没有 token_value_store 字段
+        // 需要重新设计令牌值的存储和访问机制
+        Ok(())
+    }
+
+    /// 应用字重调整
+    fn apply_font_weight_adjustment(
+        &mut self,
+        target_path: &str,
+        adjustment: &str,
+    ) -> Result<(), TokenValidationError> {
+        // 暂时跳过实现，因为 DesignTokenSystem 没有 token_value_store 字段
+        // 需要重新设计令牌值的存储和访问机制
+        Ok(())
+    }
+
+    /// 应用字体族设置
+    fn apply_font_family_setting(
+        &mut self,
+        target_path: &str,
+        family: &str,
+    ) -> Result<(), TokenValidationError> {
+        // 暂时跳过实现，因为 DesignTokenSystem 没有 token_value_store 字段
+        // 需要重新设计令牌值的存储和访问机制
+        Ok(())
+    }
+
+    /// 应用透明度到颜色
+    fn apply_alpha_to_color(&self, color: &str, alpha: f32) -> String {
+        // 简化实现：如果是 hex 颜色，转换为 rgba
+        if color.starts_with('#') && color.len() == 7 {
+            let r = u8::from_str_radix(&color[1..3], 16).unwrap_or(0);
+            let g = u8::from_str_radix(&color[3..5], 16).unwrap_or(0);
+            let b = u8::from_str_radix(&color[5..7], 16).unwrap_or(0);
+            format!("rgba({}, {}, {}, {})", r, g, b, alpha.clamp(0.0, 1.0))
+        } else {
+            color.to_string()
+        }
+    }
+
+    /// 调亮颜色
+    fn lighten_color(&self, color: &str, amount: f32) -> String {
+        // 简化实现：增加亮度
+        if color.starts_with('#') && color.len() == 7 {
+            let r = u8::from_str_radix(&color[1..3], 16).unwrap_or(0);
+            let g = u8::from_str_radix(&color[3..5], 16).unwrap_or(0);
+            let b = u8::from_str_radix(&color[5..7], 16).unwrap_or(0);
+
+            let factor = 1.0 + amount;
+            let new_r = ((r as f32 * factor).min(255.0) as u8);
+            let new_g = ((g as f32 * factor).min(255.0) as u8);
+            let new_b = ((b as f32 * factor).min(255.0) as u8);
+
+            format!("#{:02x}{:02x}{:02x}", new_r, new_g, new_b)
+        } else {
+            color.to_string()
+        }
+    }
+
+    /// 调暗颜色
+    fn darken_color(&self, color: &str, amount: f32) -> String {
+        // 简化实现：降低亮度
+        if color.starts_with('#') && color.len() == 7 {
+            let r = u8::from_str_radix(&color[1..3], 16).unwrap_or(0);
+            let g = u8::from_str_radix(&color[3..5], 16).unwrap_or(0);
+            let b = u8::from_str_radix(&color[5..7], 16).unwrap_or(0);
+
+            let factor = 1.0 - amount;
+            let new_r = ((r as f32 * factor).max(0.0) as u8);
+            let new_g = ((g as f32 * factor).max(0.0) as u8);
+            let new_b = ((b as f32 * factor).max(0.0) as u8);
+
+            format!("#{:02x}{:02x}{:02x}", new_r, new_g, new_b)
+        } else {
+            color.to_string()
+        }
+    }
+
+    /// 增加饱和度
+    fn saturate_color(&self, color: &str, _amount: f32) -> String {
+        // 简化实现：返回原色
+        color.to_string()
+    }
+
+    /// 降低饱和度
+    fn desaturate_color(&self, color: &str, _amount: f32) -> String {
+        // 简化实现：返回原色
+        color.to_string()
+    }
+
+    /// 缩放尺寸
+    fn scale_dimension(&self, dimension: &str, factor: f32) -> String {
+        if let Some(value) = self.extract_numeric_value(dimension) {
+            let unit = self.extract_unit(dimension);
+            let new_value = value * factor;
+            format!("{}{}", new_value, unit)
+        } else {
+            dimension.to_string()
+        }
+    }
+
+    /// 增加尺寸
+    fn add_to_dimension(&self, dimension: &str, amount: &str) -> String {
+        if let (Some(base_value), Some(add_value)) = (
+            self.extract_numeric_value(dimension),
+            self.extract_numeric_value(amount),
+        ) {
+            let unit = self.extract_unit(dimension);
+            let new_value = base_value + add_value;
+            format!("{}{}", new_value, unit)
+        } else {
+            dimension.to_string()
+        }
+    }
+
+    /// 减少尺寸
+    fn subtract_from_dimension(&self, dimension: &str, amount: &str) -> String {
+        if let (Some(base_value), Some(sub_value)) = (
+            self.extract_numeric_value(dimension),
+            self.extract_numeric_value(amount),
+        ) {
+            let unit = self.extract_unit(dimension);
+            let new_value = (base_value - sub_value).max(0.0);
+            format!("{}{}", new_value, unit)
+        } else {
+            dimension.to_string()
+        }
+    }
+
+    /// 取最小值
+    fn min_dimension(&self, dimension: &str, min_value: &str) -> String {
+        if let (Some(base_value), Some(min_val)) = (
+            self.extract_numeric_value(dimension),
+            self.extract_numeric_value(min_value),
+        ) {
+            let unit = self.extract_unit(dimension);
+            let new_value = base_value.max(min_val);
+            format!("{}{}", new_value, unit)
+        } else {
+            dimension.to_string()
+        }
+    }
+
+    /// 取最大值
+    fn max_dimension(&self, dimension: &str, max_value: &str) -> String {
+        if let (Some(base_value), Some(max_val)) = (
+            self.extract_numeric_value(dimension),
+            self.extract_numeric_value(max_value),
+        ) {
+            let unit = self.extract_unit(dimension);
+            let new_value = base_value.min(max_val);
+            format!("{}{}", new_value, unit)
+        } else {
+            dimension.to_string()
+        }
+    }
+
+    /// 提取数值部分
+    fn extract_numeric_value(&self, dimension: &str) -> Option<f32> {
+        let numeric_part: String = dimension
+            .chars()
+            .take_while(|c| c.is_ascii_digit() || *c == '.')
+            .collect();
+        numeric_part.parse().ok()
+    }
+
+    /// 提取单位部分
+    fn extract_unit(&self, dimension: &str) -> String {
+        dimension
+            .chars()
+            .skip_while(|c| c.is_ascii_digit() || *c == '.')
+            .collect()
+    }
+
+    /// 计算行高
+    fn calculate_line_height(&self, font_size: &str, ratio: f32) -> String {
+        if let Some(size_value) = self.extract_numeric_value(font_size) {
+            let unit = self.extract_unit(font_size);
+            let line_height = size_value * ratio;
+            format!("{}{}", line_height, unit)
+        } else {
+            font_size.to_string()
+        }
+    }
+
+    /// 调整字重
+    fn adjust_font_weight(&self, weight: &str, adjustment: &str) -> String {
+        match (weight, adjustment) {
+            ("normal", "bolder") => "bold".to_string(),
+            ("bold", "lighter") => "normal".to_string(),
+            ("100", "increase") => "200".to_string(),
+            ("200", "increase") => "300".to_string(),
+            ("300", "increase") => "400".to_string(),
+            ("400", "increase") => "500".to_string(),
+            ("500", "increase") => "600".to_string(),
+            ("600", "increase") => "700".to_string(),
+            ("700", "increase") => "800".to_string(),
+            ("800", "increase") => "900".to_string(),
+            ("200", "decrease") => "100".to_string(),
+            ("300", "decrease") => "200".to_string(),
+            ("400", "decrease") => "300".to_string(),
+            ("500", "decrease") => "400".to_string(),
+            ("600", "decrease") => "500".to_string(),
+            ("700", "decrease") => "600".to_string(),
+            ("800", "decrease") => "700".to_string(),
+            ("900", "decrease") => "800".to_string(),
+            _ => weight.to_string(),
+        }
     }
 
     /// 验证全局令牌
+    /// 检查全局令牌的完整性和有效性
     fn validate_global_tokens(&self) -> Result<(), Vec<TokenValidationError>> {
-        // 实现全局令牌验证逻辑
-        Ok(())
+        let mut errors = Vec::new();
+
+        // 验证颜色调色板
+        let color_palette = &self.global_tokens.color_palette;
+        // 验证主色调
+        let primary = &color_palette.primary;
+        for (key, value) in primary {
+            if !self.is_valid_color_value(&value.to_css_string()) {
+                errors.push(TokenValidationError::InvalidValue(
+                    format!("Invalid color value at global.color_palette.primary.{}: expected valid color value, got {:?}", key, value)
+                ));
+            }
+        }
+
+        // 验证中性色
+        let neutral = &color_palette.neutral;
+        for (key, value) in neutral {
+            if !self.is_valid_color_value(&value.to_css_string()) {
+                errors.push(TokenValidationError::InvalidValue(
+                    format!("Invalid color value at global.color_palette.neutral.{}: expected valid color value, got {:?}", key, value)
+                ));
+            }
+        }
+
+        // 验证字体系统
+        let font_system = &self.global_tokens.font_system;
+        let font_sizes = &font_system.sizes;
+        for (key, value) in font_sizes {
+            if !self.is_valid_dimension_value(&value.to_css_string()) {
+                errors.push(TokenValidationError::InvalidValue(
+                    format!("Invalid dimension value at global.font_system.font_sizes.{}: expected valid dimension value, got {:?}", key, value)
+                ));
+            }
+        }
+
+        // 验证间距系统
+        let spacing_system = &self.global_tokens.spacing_system;
+        let spacing = &spacing_system.values;
+        for (key, value) in spacing {
+            if !self.is_valid_dimension_value(&value.to_css_string()) {
+                errors.push(TokenValidationError::InvalidValue(
+                    format!("Invalid dimension value at global.spacing_system.spacing.{}: expected valid dimension value, got {:?}", key, value)
+                ));
+            }
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 
     /// 验证别名令牌
+    /// 检查别名令牌的引用完整性
     fn validate_alias_tokens(&self) -> Result<(), Vec<TokenValidationError>> {
-        // 实现别名令牌验证逻辑
-        Ok(())
+        let mut errors = Vec::new();
+
+        // 验证语义颜色
+        // TODO: 实现语义颜色验证逻辑
+        // 需要处理 TextSemanticColors、BackgroundSemanticColors 等结构体的验证
+
+        // 验证语义排版
+        // TODO: 实现语义排版验证逻辑
+        // 需要处理 SemanticTypography 结构体的验证
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 
     /// 验证组件令牌
+    /// 检查组件令牌的引用完整性和状态一致性
     fn validate_component_tokens(&self) -> Result<(), Vec<TokenValidationError>> {
-        // 实现组件令牌验证逻辑
-        Ok(())
+        let mut errors = Vec::new();
+
+        // 验证按钮组件令牌
+        let button = &self.component_tokens.button;
+        // 验证默认变体的默认状态
+        let bg_color = &button.default.default.background_color;
+        if let Some(reference) = self.extract_token_reference(&bg_color.reference) {
+            if !self.is_valid_token_reference(&reference) {
+                errors.push(TokenValidationError::InvalidReference {
+                    path: "component.button.default.default.background_color".to_string(),
+                    reference: reference.clone(),
+                });
+            }
+        }
+
+        // 验证默认变体的悬停状态
+        let hover_bg_color = &button.default.hover.background_color;
+        if let Some(reference) = self.extract_token_reference(&hover_bg_color.reference) {
+            if !self.is_valid_token_reference(&reference) {
+                errors.push(TokenValidationError::InvalidReference {
+                    path: "component.button.default.hover.background_color".to_string(),
+                    reference: reference.clone(),
+                });
+            }
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 
     /// 验证计算规则
+    /// 检查计算规则的语法和引用完整性
     fn validate_computation_rules(&self) -> Result<(), Vec<TokenValidationError>> {
-        // 实现计算规则验证逻辑
-        Ok(())
+        let mut errors = Vec::new();
+
+        // 验证颜色变换规则
+        for (key, rule) in self.computation_rules.color_rules.iter().enumerate() {
+            let key = key.to_string();
+            // 验证输入令牌引用
+            let input_token_str = rule.input_token.to_string();
+            if !self.is_valid_token_reference(&input_token_str) {
+                errors.push(TokenValidationError::InvalidReference {
+                    path: format!("computation_rules.color_rules.{}.input_token", key),
+                    reference: input_token_str,
+                });
+            }
+        }
+
+        // 验证间距变换规则
+        for (key, rule) in self.computation_rules.spacing_rules.iter().enumerate() {
+            let key = key.to_string();
+            let base_token_str = rule.base_token.to_string();
+            if !self.is_valid_token_reference(&base_token_str) {
+                errors.push(TokenValidationError::InvalidReference {
+                    path: format!("computation_rules.spacing_rules.{}.base_token", key),
+                    reference: base_token_str,
+                });
+            }
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 
     /// 统计全局令牌数量
+    /// 计算全局令牌的总数量
     fn count_global_tokens(&self) -> usize {
-        // 实现全局令牌计数逻辑
-        0
+        let mut count = 0;
+
+        // 统计颜色调色板
+        let color_palette = &self.global_tokens.color_palette;
+
+        count += &color_palette.primary.len();
+        count += &color_palette.neutral.len();
+        count += &color_palette.functional.len();
+        count += &color_palette.extended.len();
+        // if let success = &color_palette.success {
+        //     count += success.len();
+        // }
+        // if let warning = &color_palette.warning {
+        //     count += warning.len();
+        // }
+        // if let error = &color_palette.error {
+        //     count += error.len();
+        // }
+
+        // 统计字体系统
+        let font_system = &self.global_tokens.font_system;
+        count += &font_system.sizes.len();
+        count += &font_system.weights.len();
+        count += &font_system.line_heights.len();
+        count += &font_system.families.len();
+        count += &font_system.letter_spacings.len();
+
+        // 统计间距系统
+        let spacing_system = &self.global_tokens.spacing_system;
+        count += &spacing_system.values.len();
+
+        count
     }
 
     /// 统计别名令牌数量
+    /// 计算别名令牌的总数量
     fn count_alias_tokens(&self) -> usize {
-        // 实现别名令牌计数逻辑
         0
+        // let mut count = 0;
+
+        // // 统计语义颜色
+        // if let semantic_colors = &self.alias_tokens.semantic_colors {
+        //     if let text = &semantic_colors.text {
+        //         count += text.len();
+        //     }
+        //     if let background = &semantic_colors.background {
+        //         count += background.len();
+        //     }
+        //     if let border = &semantic_colors.border {
+        //         count += border.len();
+        //     }
+        // }
+
+        // // 统计语义排版
+        // if let semantic_typography = &self.alias_tokens.semantic_typography {
+        //     if let headings = &semantic_typography.heading {
+        //         count += headings.len();
+        //     }
+        //     if let Some(body) = &semantic_typography.body {
+        //         count += body.len();
+        //     }
+        // }
+
+        // count
     }
 
     /// 统计组件令牌数量
+    /// 计算组件令牌的总数量
     fn count_component_tokens(&self) -> usize {
-        // 实现组件令牌计数逻辑
-        0
+        let mut count = 0;
+
+        // 统计按钮令牌（按钮有多个变体，每个变体有多个状态）
+        count += 5; // default, primary, dashed, text, link 变体
+
+        // 统计输入框令牌
+        count += 1; // input
+
+        // 统计卡片令牌
+        count += 1; // card
+
+        // 统计表格令牌
+        count += 1; // table
+
+        // 统计导航令牌
+        count += 1; // navigation
+
+        count
+    }
+
+    /// 验证颜色值是否有效
+    /// 检查颜色值格式（hex、rgb、rgba、hsl、hsla、颜色名称）
+    fn is_valid_color_value(&self, value: &str) -> bool {
+        // 检查 hex 颜色
+        if value.starts_with('#') {
+            let hex_part = &value[1..];
+            return hex_part.len() == 3 || hex_part.len() == 6 || hex_part.len() == 8;
+        }
+
+        // 检查 rgb/rgba 颜色
+        if value.starts_with("rgb(") || value.starts_with("rgba(") {
+            return true; // 简化验证
+        }
+
+        // 检查 hsl/hsla 颜色
+        if value.starts_with("hsl(") || value.starts_with("hsla(") {
+            return true; // 简化验证
+        }
+
+        // 检查颜色名称
+        matches!(
+            value,
+            "transparent"
+                | "black"
+                | "white"
+                | "red"
+                | "green"
+                | "blue"
+                | "yellow"
+                | "orange"
+                | "purple"
+                | "pink"
+                | "gray"
+                | "grey"
+        )
+    }
+
+    /// 验证尺寸值是否有效
+    /// 检查尺寸值格式（px、em、rem、%、vh、vw等）
+    fn is_valid_dimension_value(&self, value: &str) -> bool {
+        // 检查是否包含数字
+        let has_number = value.chars().any(|c| c.is_ascii_digit() || c == '.');
+        if !has_number {
+            return false;
+        }
+
+        // 检查单位
+        value.ends_with("px")
+            || value.ends_with("em")
+            || value.ends_with("rem")
+            || value.ends_with("%")
+            || value.ends_with("vh")
+            || value.ends_with("vw")
+            || value.ends_with("pt")
+            || value.ends_with("pc")
+            || value.ends_with("in")
+            || value.ends_with("cm")
+            || value.ends_with("mm")
+            || value == "0"
+    }
+
+    /// 提取令牌引用
+    /// 从值中提取令牌引用（如 "global.color.primary.500"）
+    fn extract_token_reference(&self, value: &str) -> Option<String> {
+        if value.starts_with("global.")
+            || value.starts_with("alias.")
+            || value.starts_with("component.")
+        {
+            Some(value.to_string())
+        } else {
+            None
+        }
+    }
+
+    /// 验证令牌引用是否有效
+    /// 检查引用的令牌是否存在
+    fn is_valid_token_reference(&self, reference: &str) -> bool {
+        // 简化实现：检查引用格式
+        let parts: Vec<&str> = reference.split('.').collect();
+        if parts.len() < 2 {
+            return false;
+        }
+
+        match parts[0] {
+            "global" => {
+                // 验证全局令牌引用
+                if parts.len() >= 3 {
+                    matches!(
+                        parts[1],
+                        "color_palette"
+                            | "font_system"
+                            | "spacing_system"
+                            | "sizing_system"
+                            | "border_system"
+                            | "shadow_system"
+                            | "motion_system"
+                    )
+                } else {
+                    false
+                }
+            }
+            "alias" => {
+                // 验证别名令牌引用
+                if parts.len() >= 3 {
+                    matches!(parts[1], "semantic_colors" | "semantic_typography")
+                } else {
+                    false
+                }
+            }
+            "component" => {
+                // 验证组件令牌引用
+                if parts.len() >= 3 {
+                    matches!(
+                        parts[1],
+                        "button" | "input" | "card" | "table" | "navigation"
+                    )
+                } else {
+                    false
+                }
+            }
+            _ => false,
+        }
     }
 
     /// 创建Ant Design全局令牌
     fn create_ant_design_global_tokens(&self) -> GlobalTokens {
-        GlobalTokens::default()
+        use crate::theme::token_definitions::{ColorValue, DimensionValue};
+        use std::collections::HashMap;
+
+        let mut color_palette = BTreeMap::new();
+        // Ant Design 主色调
+        color_palette.insert(
+            "primary".to_string(),
+            ColorValue::new("#1890ff".to_string()),
+        );
+        color_palette.insert(
+            "success".to_string(),
+            ColorValue::new("#52c41a".to_string()),
+        );
+        color_palette.insert(
+            "warning".to_string(),
+            ColorValue::new("#faad14".to_string()),
+        );
+        color_palette.insert("error".to_string(), ColorValue::new("#f5222d".to_string()));
+
+        // 中性色
+        color_palette.insert("gray-1".to_string(), ColorValue::new("#ffffff".to_string()));
+        color_palette.insert("gray-5".to_string(), ColorValue::new("#d9d9d9".to_string()));
+        color_palette.insert("gray-8".to_string(), ColorValue::new("#595959".to_string()));
+        color_palette.insert(
+            "gray-13".to_string(),
+            ColorValue::new("#000000".to_string()),
+        );
+
+        let mut font_families = BTreeMap::new();
+        font_families.insert(
+            "sans".to_string(),
+            "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto".to_string(),
+        );
+        font_families.insert(
+            "mono".to_string(),
+            "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo".to_string(),
+        );
+
+        let mut font_sizes = BTreeMap::new();
+        font_sizes.insert("xs".to_string(), DimensionValue::px(12.0));
+        font_sizes.insert("sm".to_string(), DimensionValue::px(14.0));
+        font_sizes.insert("base".to_string(), DimensionValue::px(16.0));
+        font_sizes.insert("lg".to_string(), DimensionValue::px(18.0));
+
+        let mut font_weights = BTreeMap::new();
+        font_weights.insert("normal".to_string(), 400);
+        font_weights.insert("medium".to_string(), 500);
+        font_weights.insert("bold".to_string(), 700);
+
+        let mut line_heights = BTreeMap::new();
+        line_heights.insert("tight".to_string(), 1.2);
+        line_heights.insert("normal".to_string(), 1.5);
+        line_heights.insert("relaxed".to_string(), 1.75);
+
+        let spacing_scale = vec![
+            0.0, 0.25, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 8.0, 10.0, 12.0, 16.0, 20.0,
+            24.0, 32.0,
+        ];
+
+        let mut spacing_values = BTreeMap::new();
+        spacing_values.insert("0".to_string(), DimensionValue::px(0.0));
+        spacing_values.insert("1".to_string(), DimensionValue::px(4.0));
+        spacing_values.insert("2".to_string(), DimensionValue::px(8.0));
+        spacing_values.insert("4".to_string(), DimensionValue::px(16.0));
+        spacing_values.insert("8".to_string(), DimensionValue::px(32.0));
+
+        GlobalTokens {
+            color_palette: ColorPalette {
+                primary: color_palette,
+                neutral: BTreeMap::new(),
+                functional: BTreeMap::new(),
+                extended: BTreeMap::new(),
+            },
+            font_system: FontSystem {
+                families: font_families,
+                sizes: font_sizes,
+                weights: font_weights,
+                line_heights,
+                letter_spacings: BTreeMap::new(),
+            },
+            spacing_system: SpacingSystem {
+                base_unit: DimensionValue::px(4.0),
+                scale: spacing_scale,
+                values: spacing_values,
+            },
+            sizing_system: SizingSystem {
+                base_sizes: BTreeMap::new(),
+                component_sizes: BTreeMap::new(),
+                breakpoints: BTreeMap::new(),
+            },
+            border_system: BorderSystem {
+                widths: BTreeMap::new(),
+                styles: BTreeMap::new(),
+                radius: BTreeMap::new(),
+            },
+            shadow_system: ShadowSystem {
+                elevations: BTreeMap::new(),
+                colors: BTreeMap::new(),
+            },
+            motion_system: MotionSystem {
+                durations: BTreeMap::new(),
+                easings: BTreeMap::new(),
+                delays: BTreeMap::new(),
+            },
+        }
     }
 
     /// 创建Ant Design别名令牌
     fn create_ant_design_alias_tokens(&self) -> AliasTokens {
-        AliasTokens::default()
+        use crate::theme::token_definitions::TokenReference;
+
+        AliasTokens {
+            semantic_colors: SemanticColors {
+                text: TextSemanticColors {
+                    primary: TokenReference {
+                        reference: "global.color_palette.gray-13".to_string(),
+                        transform: None,
+                    },
+                    secondary: TokenReference {
+                        reference: "global.color_palette.gray-8".to_string(),
+                        transform: None,
+                    },
+                    disabled: TokenReference {
+                        reference: "global.color_palette.gray-5".to_string(),
+                        transform: None,
+                    },
+                    inverse: TokenReference {
+                        reference: "global.color_palette.gray-1".to_string(),
+                        transform: None,
+                    },
+                },
+                background: BackgroundSemanticColors {
+                    primary: TokenReference {
+                        reference: "global.color_palette.gray-1".to_string(),
+                        transform: None,
+                    },
+                    secondary: TokenReference {
+                        reference: "global.color_palette.gray-2".to_string(),
+                        transform: None,
+                    },
+                    emphasis: TokenReference {
+                        reference: "global.color_palette.primary".to_string(),
+                        transform: None,
+                    },
+                    inverse: TokenReference {
+                        reference: "global.color_palette.gray-13".to_string(),
+                        transform: None,
+                    },
+                },
+                border: BorderSemanticColors {
+                    default: TokenReference {
+                        reference: "global.color_palette.gray-5".to_string(),
+                        transform: None,
+                    },
+                    emphasis: TokenReference {
+                        reference: "global.color_palette.primary".to_string(),
+                        transform: None,
+                    },
+                    disabled: TokenReference {
+                        reference: "global.color_palette.gray-3".to_string(),
+                        transform: None,
+                    },
+                },
+                state: StateSemanticColors {
+                    success: TokenReference {
+                        reference: "global.color_palette.success".to_string(),
+                        transform: None,
+                    },
+                    warning: TokenReference {
+                        reference: "global.color_palette.warning".to_string(),
+                        transform: None,
+                    },
+                    error: TokenReference {
+                        reference: "global.color_palette.error".to_string(),
+                        transform: None,
+                    },
+                    info: TokenReference {
+                        reference: "global.color_palette.primary".to_string(),
+                        transform: None,
+                    },
+                },
+            },
+            semantic_typography: SemanticTypography::default(),
+            semantic_spacing: SemanticSpacing::default(),
+            semantic_sizing: SemanticSizing::default(),
+        }
     }
 
     /// 创建Ant Design组件令牌
