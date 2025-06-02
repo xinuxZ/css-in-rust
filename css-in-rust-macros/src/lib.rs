@@ -13,6 +13,7 @@ mod hash_utils;
 mod macro_definitions;
 mod theme_variants;
 mod utility_conversion;
+mod wasm_types;
 
 use macro_definitions::{
     css_class_impl_internal, css_if_impl_internal, css_impl_internal, css_multi_if_impl_internal,

@@ -180,36 +180,46 @@ pub fn css_multi_if_impl_internal(input: TokenStream2) -> Result<TokenStream2> {
                     let class_name = #css_id_literal;
 
                     // Inject CSS into document head (web target only)
-                    #[cfg(target_arch = "wasm32")]
-                    {
-                        use wasm_bindgen::prelude::*;
+                #[cfg(target_arch = "wasm32")]
+                {
+                    use wasm_bindgen::prelude::*;
 
-                        #[wasm_bindgen]
-                        extern "C" {
-                            type Document;
-                            type Element;
-                            type Node;
+                    // Inline wasm_bindgen declarations to ensure proper scope
+                    #[wasm_bindgen]
+                    extern "C" {
+                        type Document;
+                        type Element;
+                        type Node;
 
-                            #[wasm_bindgen(js_name = document, js_namespace = window)]
-                            static DOCUMENT: Document;
+                        #[wasm_bindgen(method, getter, js_name = head)]
+                        fn head(this: &Document) -> Element;
 
-                            #[wasm_bindgen(method, js_name = createElement)]
-                            fn create_element(this: &Document, tag_name: &str) -> Element;
+                        #[wasm_bindgen(method, js_name = createElement)]
+                        fn create_element(this: &Document, tag_name: &str) -> Element;
 
-                            #[wasm_bindgen(method, js_name = appendChild)]
-                            fn append_child(this: &Node, child: &Node);
+                        #[wasm_bindgen(method, js_name = getElementById)]
+                        fn get_element_by_id(this: &Document, id: &str) -> Option<Element>;
 
-                            #[wasm_bindgen(method, setter = innerHTML)]
-                            fn set_inner_html(this: &Element, html: &str);
+                        #[wasm_bindgen(method, js_name = setAttribute)]
+                        fn set_attribute(this: &Element, name: &str, value: &str);
 
-                            #[wasm_bindgen(method, getter = head)]
-                            fn head(this: &Document) -> Element;
+                        #[wasm_bindgen(method, setter, js_name = innerHTML)]
+                        fn set_inner_html(this: &Element, html: &str);
 
-                            #[wasm_bindgen(method, js_name = getElementById)]
-                            fn get_element_by_id(this: &Document, id: &str) -> Option<Element>;
+                        #[wasm_bindgen(method, js_name = appendChild)]
+                        fn append_child(this: &Element, child: &Node);
+
+                        #[wasm_bindgen(js_name = document)]
+                        static DOCUMENT: Document;
+                    }
+
+                    impl From<Element> for Node {
+                        fn from(element: Element) -> Node {
+                            element.unchecked_into()
                         }
+                    }
 
-                        let style_element = DOCUMENT.create_element("style");
+                    let style_element = DOCUMENT.create_element("style");
                         let mut css_rules_vec = Vec::new();
 
                         // Base CSS rule
@@ -244,7 +254,19 @@ pub fn css_multi_if_impl_internal(input: TokenStream2) -> Result<TokenStream2> {
                             deduplicated
                         };
 
-                        let css_rules = crate::css_processing::compress_css(deduplicated_rules.join("\n"));
+                        // let css_rules = crate::css_processing::compress_css(deduplicated_rules.join("\n"));
+                        let css_rules = deduplicated_rules.join("\n")
+                            .lines().map(|line| line.trim())
+                            .filter(|line| !line.is_empty())
+                            .collect::<Vec<_>>()
+                            .join("")
+                            .replace("; ", ";")
+                            .replace(": ", ":")
+                            .replace(" {", "{")
+                            .replace("{ ", "{")
+                            .replace(" }", "}")
+                            .replace("} ", "}")
+                            .replace(",", ", ");
 
                         style_element.set_inner_html(&css_rules);
                         let head = DOCUMENT.head();
@@ -313,36 +335,46 @@ fn process_css_with_cache(css_content: &str, css_id: &str) -> Result<TokenStream
                 {
                     use wasm_bindgen::prelude::*;
 
+                    // Inline wasm_bindgen declarations to ensure proper scope
                     #[wasm_bindgen]
                     extern "C" {
                         type Document;
                         type Element;
                         type Node;
 
-                        #[wasm_bindgen(js_name = document, js_namespace = window)]
-                        static DOCUMENT: Document;
+                        #[wasm_bindgen(method, getter, js_name = head)]
+                        fn head(this: &Document) -> Element;
 
                         #[wasm_bindgen(method, js_name = createElement)]
                         fn create_element(this: &Document, tag_name: &str) -> Element;
 
-                        #[wasm_bindgen(method, js_name = appendChild)]
-                        fn append_child(this: &Node, child: &Node);
-
-                        #[wasm_bindgen(method, setter = innerHTML)]
-                        fn set_inner_html(this: &Element, html: &str);
-
-                        #[wasm_bindgen(method, getter = head)]
-                        fn head(this: &Document) -> Element;
-
                         #[wasm_bindgen(method, js_name = getElementById)]
                         fn get_element_by_id(this: &Document, id: &str) -> Option<Element>;
+
+                        #[wasm_bindgen(method, js_name = setAttribute)]
+                        fn set_attribute(this: &Element, name: &str, value: &str);
+
+                        #[wasm_bindgen(method, setter, js_name = innerHTML)]
+                        fn set_inner_html(this: &Element, html: &str);
+
+                        #[wasm_bindgen(method, js_name = appendChild)]
+                        fn append_child(this: &Element, child: &Node);
+
+                        #[wasm_bindgen(js_name = document)]
+                        static DOCUMENT: Document;
+                    }
+
+                    impl From<Element> for Node {
+                        fn from(element: Element) -> Node {
+                            element.unchecked_into()
+                        }
                     }
 
                     // Check if style element already exists
                     let style_id = format!("css-cache-{}", #css_hash);
                     if DOCUMENT.get_element_by_id(&style_id).is_none() {
                         let style_element = DOCUMENT.create_element("style");
-                        style_element.set_attribute("id", &style_id).ok();
+                        style_element.set_attribute("id", &style_id);
 
                         let mut css_rules_vec = Vec::new();
 
@@ -378,7 +410,19 @@ fn process_css_with_cache(css_content: &str, css_id: &str) -> Result<TokenStream
                             deduplicated
                         };
 
-                        let css_rules = compress_css(deduplicated_rules.join("\n"));
+                        // let css_rules = compress_css(deduplicated_rules.join("\n"));
+                        let css_rules = deduplicated_rules.join("\n")
+                            .lines().map(|line| line.trim())
+                            .filter(|line| !line.is_empty())
+                            .collect::<Vec<_>>()
+                            .join("")
+                            .replace("; ", ";")
+                            .replace(": ", ":")
+                            .replace(" {", "{")
+                            .replace("{ ", "{")
+                            .replace(" }", "}")
+                            .replace("} ", "}")
+                            .replace(",", ", ");
 
                         style_element.set_inner_html(&css_rules);
                         let head = DOCUMENT.head();
