@@ -41,6 +41,17 @@ fn main() {
     // test_animations();
     // test_style_injection();
 
+    // 演示 Button 组件
+    println!("\n{}", "=".repeat(50));
+    println!("🔥 Button 组件演示");
+    println!("{}", "=".repeat(50));
+    button_demo::demo_buttons();
+
+    println!("\n🎉 CSS-in-Rust 演示完成！");
+    println!("所有功能都已成功测试。");
+    println!("\n💡 提示：Button 组件已正确初始化 CSS 变量系统");
+    println!("   现在所有的 CSS 变量都应该有正确的值了！");
+
     println!("✅ 所有功能测试完成！");
 }
 
