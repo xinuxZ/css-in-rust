@@ -417,7 +417,6 @@ impl CssGenerator {
 mod tests {
     use super::super::token_values::DesignTokens;
     use super::*;
-    use crate::theme::token_values::DesignTokens;
 
     #[test]
     fn test_css_variable_generation() {

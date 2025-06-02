@@ -425,37 +425,6 @@ impl TokenResolver {
         }
     }
 
-    /// 应用条件变换
-    fn apply_conditional_transform(
-        &mut self,
-        condition: &str,
-        if_true: &TokenReference,
-        if_false: &TokenReference,
-        theme: ThemeVariant,
-    ) -> Result<TokenValue, TokenValidationError> {
-        let condition_result = self.evaluate_condition(condition, theme)?;
-        let reference = if condition_result { if_true } else { if_false };
-        self.resolve_token_reference(reference, theme)
-    }
-
-    /// 解析令牌引用
-    fn resolve_token_reference(
-        &mut self,
-        reference: &TokenReference,
-        theme: ThemeVariant,
-    ) -> Result<TokenValue, TokenValidationError> {
-        // 解析引用路径
-        let path = TokenPath::from_str(&reference.reference);
-        let mut value = self.resolve_token(&path, theme)?;
-
-        // 应用变换（如果有）
-        if let Some(transform) = &reference.transform {
-            value = self.apply_transform(&value, transform, theme)?;
-        }
-
-        Ok(value)
-    }
-
     /// 评估条件表达式
     fn evaluate_condition(
         &mut self,

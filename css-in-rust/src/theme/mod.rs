@@ -34,8 +34,7 @@ pub use token_values::{
     LetterSpacing, LineHeight, Motion, Shadows, Spacing, TextColors, Typography,
 };
 
-// 类型别名
-pub type DesignTokens = token_values::DesignTokens;
+// 类型别名（已通过 pub use token_values::DesignTokens 导出）
 
 // 重新导出主要类型
 pub use css_generator::CssGenerator;
