@@ -90,7 +90,7 @@ impl AnimationManager {
         Self {
             animations: HashMap::new(),
             engine: AnimationEngine::new(),
-            presets: AnimationPresets::ant_design(),
+            presets: AnimationPresets::standard(),
         }
     }
 

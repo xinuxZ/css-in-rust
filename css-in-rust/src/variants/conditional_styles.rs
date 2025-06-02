@@ -687,7 +687,7 @@ mod tests {
         });
 
         let style = conditional_style(condition)
-            .property("background-color", "#1890ff")
+            .property("background-color", "#0066cc")
             .property("color", "white")
             .priority(10)
             .build();
@@ -705,7 +705,7 @@ mod tests {
         assert!(result.matched);
         assert_eq!(
             result.applied_styles.get("background-color"),
-            Some(&"#1890ff".to_string())
+            Some(&"#0066cc".to_string())
         );
     }
 }

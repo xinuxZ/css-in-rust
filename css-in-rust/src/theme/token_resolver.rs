@@ -4,8 +4,8 @@
 //! 职责：令牌解析逻辑、引用处理、值计算
 
 use super::token_definitions::{
-    ColorValue, DimensionValue, MathOperation, ShadowValue, ThemeVariant, TokenDefinitions,
-    TokenPath, TokenReference, TokenTransform, TokenValidationError, TokenValue, TypographyValue,
+    MathOperation, ThemeVariant, TokenDefinitions, TokenPath, TokenReference, TokenTransform,
+    TokenValidationError, TokenValue,
 };
 use super::token_values::DesignTokens;
 use std::collections::{HashMap, HashSet};
@@ -742,13 +742,13 @@ impl TokenDefinitions for TokenResolver {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::theme::token_values::AntDesignTokenValues;
+    use crate::theme::token_values::DesignTokens;
 
     #[test]
     fn test_token_resolver_basic() {
         let mut store = DesignTokens::default();
         // 添加测试令牌
-        let light_values = AntDesignTokenValues::get_light_theme_values();
+        let light_values = DesignTokens::new().get_light_theme_values();
         for (path, value) in light_values {
             store.set_value(&path.to_string(), value.to_string());
         }
@@ -759,7 +759,7 @@ mod tests {
 
         assert!(result.is_ok());
         if let Ok(TokenValue::String(color)) = result {
-            assert_eq!(color, "#1677ff");
+            assert_eq!(color, "#0066cc");
         }
     }
 
@@ -768,7 +768,7 @@ mod tests {
         let mut store = DesignTokens::default();
 
         // 设置基础值
-        store.set_value("base.color", "#1677ff".to_string());
+        store.set_value("base.color", "#0066cc".to_string());
 
         // 设置引用值
         store.set_value("primary.color", "base.color".to_string());
@@ -779,7 +779,7 @@ mod tests {
 
         assert!(result.is_ok());
         if let Ok(TokenValue::String(color)) = result {
-            assert_eq!(color, "#1677ff");
+            assert_eq!(color, "#0066cc");
         }
     }
 

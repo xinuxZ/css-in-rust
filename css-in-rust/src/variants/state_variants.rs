@@ -194,7 +194,7 @@ impl StateVariantManager {
                 state_type: StateType::Focus,
                 style: VariantStyle {
                     properties: HashMap::from([
-                        ("outline".to_string(), "2px solid #1890ff".to_string()),
+                        ("outline".to_string(), "2px solid #0066cc".to_string()),
                         ("outline-offset".to_string(), "2px".to_string()),
                     ]),
                     pseudo_classes: HashMap::new(),

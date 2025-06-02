@@ -417,13 +417,13 @@ impl CssGenerator {
 mod tests {
     use super::super::token_values::DesignTokens;
     use super::*;
-    use crate::theme::token_values::AntDesignTokenValues;
+    use crate::theme::token_values::DesignTokens;
 
     #[test]
     fn test_css_variable_generation() {
         let mut store = DesignTokens::default();
         // 添加一些测试令牌
-        let light_values = AntDesignTokenValues::get_light_theme_values();
+        let light_values = DesignTokens::new().get_light_theme_values();
         for (path, value) in light_values {
             store.set_value(&path.to_string(), value.to_string());
         }
@@ -440,7 +440,7 @@ mod tests {
 
     #[test]
     fn test_theme_css_generation() {
-        let store = AntDesignTokenValues::create_default_store();
+        let store = DesignTokens::new().create_store();
         let resolver = TokenResolver::new(store);
         let mut generator = CssGenerator::new(resolver);
 
@@ -455,7 +455,7 @@ mod tests {
 
     #[test]
     fn test_utility_classes_generation() {
-        let store = AntDesignTokenValues::create_default_store();
+        let store = DesignTokens::new().create_store();
         let resolver = TokenResolver::new(store);
         let mut generator = CssGenerator::new(resolver);
 

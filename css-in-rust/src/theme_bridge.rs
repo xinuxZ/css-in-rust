@@ -38,7 +38,7 @@ impl ThemeBridge {
     /// use css_in_rust::backup::theme_v2::{Theme, InjectionStrategy};
     ///
     /// let bridge = ThemeBridge::new(
-    ///     Theme::ant_design_default(),
+    ///     Theme::default(),
     ///     InjectionStrategy::Replace,
     ///     true
     /// );
@@ -104,11 +104,7 @@ impl ThemeBridge {
     ///
     /// 将当前主题的设计令牌转换为 CSS 变量并注入到文档中
     pub fn sync_theme_variables(&mut self) -> Result<(), ThemeBridgeError> {
-        let design_tokens = match self.current_theme.mode {
-            ThemeMode::Light => DesignTokens::ant_design_default(),
-            ThemeMode::Dark => DesignTokens::ant_design_dark(),
-            ThemeMode::Auto => DesignTokens::ant_design_default(),
-        };
+        let design_tokens = DesignTokens::new();
 
         let css_variables = self
             .current_theme
@@ -128,11 +124,7 @@ impl ThemeBridge {
 
     /// 获取当前主题的 CSS 变量
     pub fn get_css_variables(&self) -> String {
-        let design_tokens = match self.current_theme.mode {
-            ThemeMode::Light => DesignTokens::ant_design_default(),
-            ThemeMode::Dark => DesignTokens::ant_design_dark(),
-            ThemeMode::Auto => DesignTokens::ant_design_default(),
-        };
+        let design_tokens = DesignTokens::new();
 
         let variables = self
             .current_theme
@@ -356,7 +348,7 @@ static GLOBAL_THEME_BRIDGE: GlobalThemeBridge = GlobalThemeBridge::new();
 /// use css_in_rust::backup::theme_v2::{Theme, InjectionStrategy};
 ///
 /// init_global_theme_bridge(
-///     Theme::ant_design_default(),
+///     Theme::default(),
 ///     InjectionStrategy::Replace,
 ///     true
 /// ).unwrap();

@@ -322,7 +322,7 @@ mod tests {
         let config = AnimationConfig {
             name: "test".to_string(),
             duration: Duration::from_millis(300),
-            easing: EasingFunction::Linear,
+            easing: EasingFunction::Css("linear".to_string()),
             delay: Duration::from_millis(0),
             iteration_count: AnimationIterationCount::Count(1),
             direction: AnimationDirection::Normal,
@@ -354,7 +354,7 @@ mod tests {
         let config = AnimationConfig {
             name: "test".to_string(),
             duration: Duration::from_millis(300),
-            easing: EasingFunction::Linear,
+            easing: EasingFunction::Css("linear".to_string()),
             delay: Duration::from_millis(0),
             iteration_count: AnimationIterationCount::Count(1),
             direction: AnimationDirection::Normal,

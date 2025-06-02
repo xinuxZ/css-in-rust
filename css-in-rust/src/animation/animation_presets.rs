@@ -2,7 +2,10 @@
 //!
 //! 提供 Ant Design 标准动画预设，包括淡入淡出、滑动、缩放等常用动画效果。
 
-use super::*;
+use crate::animation::{
+    AnimationConfig, AnimationDirection, AnimationFillMode, AnimationIterationCount,
+    AnimationPlayState, EasingFactory, EasingFunction,
+};
 use std::collections::HashMap;
 use std::time::Duration;
 
@@ -13,8 +16,8 @@ pub struct AnimationPresets {
 }
 
 impl AnimationPresets {
-    /// 创建 Ant Design 标准预设
-    pub fn ant_design() -> Self {
+    /// 创建标准预设
+    pub fn standard() -> Self {
         let mut presets = HashMap::new();
 
         // 淡入淡出动画
@@ -23,7 +26,7 @@ impl AnimationPresets {
             AnimationConfig {
                 name: "fade-in".to_string(),
                 duration: Duration::from_millis(200),
-                easing: EasingFunction::AntDesign(AntDesignEasing::Decelerated),
+                easing: EasingFactory::exit(),
                 delay: Duration::from_millis(0),
                 iteration_count: AnimationIterationCount::Count(1),
                 direction: AnimationDirection::Normal,
@@ -37,7 +40,7 @@ impl AnimationPresets {
             AnimationConfig {
                 name: "fade-out".to_string(),
                 duration: Duration::from_millis(150),
-                easing: EasingFunction::AntDesign(AntDesignEasing::Accelerated),
+                easing: EasingFactory::enter(),
                 delay: Duration::from_millis(0),
                 iteration_count: AnimationIterationCount::Count(1),
                 direction: AnimationDirection::Normal,
@@ -52,7 +55,7 @@ impl AnimationPresets {
             AnimationConfig {
                 name: "slide-up".to_string(),
                 duration: Duration::from_millis(300),
-                easing: EasingFunction::AntDesign(AntDesignEasing::Standard),
+                easing: EasingFactory::standard(),
                 delay: Duration::from_millis(0),
                 iteration_count: AnimationIterationCount::Count(1),
                 direction: AnimationDirection::Normal,
@@ -66,7 +69,7 @@ impl AnimationPresets {
             AnimationConfig {
                 name: "slide-down".to_string(),
                 duration: Duration::from_millis(300),
-                easing: EasingFunction::AntDesign(AntDesignEasing::Standard),
+                easing: EasingFactory::standard(),
                 delay: Duration::from_millis(0),
                 iteration_count: AnimationIterationCount::Count(1),
                 direction: AnimationDirection::Normal,
@@ -80,7 +83,7 @@ impl AnimationPresets {
             AnimationConfig {
                 name: "slide-left".to_string(),
                 duration: Duration::from_millis(300),
-                easing: EasingFunction::AntDesign(AntDesignEasing::Standard),
+                easing: EasingFactory::standard(),
                 delay: Duration::from_millis(0),
                 iteration_count: AnimationIterationCount::Count(1),
                 direction: AnimationDirection::Normal,
@@ -94,7 +97,7 @@ impl AnimationPresets {
             AnimationConfig {
                 name: "slide-right".to_string(),
                 duration: Duration::from_millis(300),
-                easing: EasingFunction::AntDesign(AntDesignEasing::Standard),
+                easing: EasingFactory::standard(),
                 delay: Duration::from_millis(0),
                 iteration_count: AnimationIterationCount::Count(1),
                 direction: AnimationDirection::Normal,
@@ -109,7 +112,7 @@ impl AnimationPresets {
             AnimationConfig {
                 name: "zoom-in".to_string(),
                 duration: Duration::from_millis(200),
-                easing: EasingFunction::AntDesign(AntDesignEasing::Decelerated),
+                easing: EasingFactory::exit(),
                 delay: Duration::from_millis(0),
                 iteration_count: AnimationIterationCount::Count(1),
                 direction: AnimationDirection::Normal,
@@ -123,7 +126,7 @@ impl AnimationPresets {
             AnimationConfig {
                 name: "zoom-out".to_string(),
                 duration: Duration::from_millis(150),
-                easing: EasingFunction::AntDesign(AntDesignEasing::Accelerated),
+                easing: EasingFactory::enter(),
                 delay: Duration::from_millis(0),
                 iteration_count: AnimationIterationCount::Count(1),
                 direction: AnimationDirection::Normal,
@@ -138,7 +141,7 @@ impl AnimationPresets {
             AnimationConfig {
                 name: "bounce-in".to_string(),
                 duration: Duration::from_millis(400),
-                easing: EasingFunction::AntDesign(AntDesignEasing::Bounce),
+                easing: EasingFactory::bounce(),
                 delay: Duration::from_millis(0),
                 iteration_count: AnimationIterationCount::Count(1),
                 direction: AnimationDirection::Normal,
@@ -153,7 +156,7 @@ impl AnimationPresets {
             AnimationConfig {
                 name: "shake".to_string(),
                 duration: Duration::from_millis(500),
-                easing: EasingFunction::EaseInOut,
+                easing: EasingFactory::standard(),
                 delay: Duration::from_millis(0),
                 iteration_count: AnimationIterationCount::Count(1),
                 direction: AnimationDirection::Normal,
@@ -168,7 +171,7 @@ impl AnimationPresets {
             AnimationConfig {
                 name: "pulse".to_string(),
                 duration: Duration::from_millis(1000),
-                easing: EasingFunction::EaseInOut,
+                easing: EasingFactory::standard(),
                 delay: Duration::from_millis(0),
                 iteration_count: AnimationIterationCount::Infinite,
                 direction: AnimationDirection::Alternate,
@@ -183,7 +186,7 @@ impl AnimationPresets {
             AnimationConfig {
                 name: "rotate".to_string(),
                 duration: Duration::from_millis(1000),
-                easing: EasingFunction::Linear,
+                easing: EasingFunction::Css("linear".to_string()),
                 delay: Duration::from_millis(0),
                 iteration_count: AnimationIterationCount::Infinite,
                 direction: AnimationDirection::Normal,
@@ -277,17 +280,21 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_ant_design_presets() {
-        let presets = AnimationPresets::ant_design();
+    fn test_standard_presets() {
+        let presets = AnimationPresets::standard();
         assert!(presets.has_preset("fade-in"));
+        assert!(presets.has_preset("fade-out"));
         assert!(presets.has_preset("slide-up"));
-        assert!(presets.has_preset("zoom-in"));
-        assert!(!presets.has_preset("non-existent"));
+        assert!(presets.has_preset("slide-down"));
+        assert!(presets.has_preset("scale-in"));
+        assert!(presets.has_preset("scale-out"));
+        assert!(presets.has_preset("bounce"));
+        assert!(presets.has_preset("zoom"));
     }
 
     #[test]
     fn test_get_preset() {
-        let presets = AnimationPresets::ant_design();
+        let presets = AnimationPresets::standard();
         let fade_in = presets.get("fade-in").unwrap();
         assert_eq!(fade_in.name, "fade-in");
         assert_eq!(fade_in.duration, Duration::from_millis(200));

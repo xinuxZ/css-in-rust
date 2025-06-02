@@ -11,8 +11,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
+use super::token_definitions::TokenValue;
 use super::token_system::DesignTokenSystem;
-use super::{DesignTokens, Theme, ThemeMode, TokenValue};
+use super::{DesignTokens, Theme, ThemeMode};
 
 /// 主题历史记录管理器
 #[derive(Debug, Clone)]
@@ -221,7 +222,7 @@ impl Default for ThemeManagerConfig {
             enable_transitions: true,
             transition_duration: 300,
             enable_caching: true,
-            default_theme: "ant-design".to_string(),
+            default_theme: "default".to_string(),
             default_mode: ThemeMode::Light,
         }
     }
@@ -238,7 +239,7 @@ impl ThemeManager {
         Self {
             current_theme: Arc::new(RwLock::new(default_theme)),
             registered_themes: Arc::new(RwLock::new(registered_themes)),
-            token_system: Arc::new(RwLock::new(DesignTokenSystem::ant_design_default())),
+            token_system: Arc::new(RwLock::new(DesignTokenSystem::default_tokens())),
             listeners: Arc::new(RwLock::new(Vec::new())),
             theme_history: ThemeHistory::new(),
             config,
@@ -450,7 +451,7 @@ impl ThemeManager {
     fn create_default_theme(name: &str, mode: ThemeMode) -> Theme {
         Theme {
             name: name.to_string(),
-            tokens: DesignTokens::ant_design_default(),
+            tokens: DesignTokens::new(),
             custom_variables: HashMap::new(),
             mode,
         }
@@ -552,9 +553,7 @@ impl ThemeBuilder {
     /// 构建主题
     pub fn build(self) -> Result<Theme, ThemeError> {
         let name = self.name.ok_or(ThemeError::MissingThemeName)?;
-        let design_tokens = self
-            .design_tokens
-            .unwrap_or_else(DesignTokens::ant_design_default);
+        let design_tokens = self.design_tokens.unwrap_or_else(|| DesignTokens::new());
         let mode = self.mode.unwrap_or(ThemeMode::Light);
 
         Ok(Theme {
@@ -616,7 +615,7 @@ mod tests {
     fn test_theme_manager_creation() {
         let manager = ThemeManager::default();
         let current = manager.current_theme();
-        assert_eq!(current.name, "ant-design");
+        assert_eq!(current.name, "default");
         assert_eq!(current.mode, ThemeMode::Light);
     }
 
@@ -667,7 +666,7 @@ mod tests {
         let theme = ThemeManager::theme_builder()
             .name("test-theme")
             .mode(ThemeMode::Dark)
-            .custom_variable("primary-color", "#1890ff")
+            .custom_variable("primary-color", "#0066cc")
             .build()
             .unwrap();
 
@@ -675,7 +674,7 @@ mod tests {
         assert_eq!(theme.mode, ThemeMode::Dark);
         assert_eq!(
             theme.custom_variables.get("primary-color"),
-            Some(&"#1890ff".to_string())
+            Some(&"#0066cc".to_string())
         );
     }
 

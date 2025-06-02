@@ -820,7 +820,7 @@ mod tests {
     #[test]
     fn test_variable_generation_from_theme() {
         let mut manager = CssVariableManager::new();
-        let theme = Theme::ant_design();
+        let theme = Theme::default();
 
         assert!(manager.generate_from_theme(&theme).is_ok());
         assert!(!manager.is_empty());
@@ -866,7 +866,7 @@ mod tests {
             .with_naming_strategy(VariableNamingStrategy::CustomPrefix("custom".to_string()))
             .with_output_format(OutputFormat::Minified);
 
-        let theme = Theme::ant_design();
+        let theme = Theme::default();
         let css = generator.generate(&theme).unwrap();
 
         assert!(css.contains("--custom-"));
@@ -887,8 +887,8 @@ mod tests {
         let ref1 = CssVariableUtils::var_reference("--color-primary", None);
         assert_eq!(ref1, "var(--color-primary)");
 
-        let ref2 = CssVariableUtils::var_reference("--color-primary", Some("#1890ff"));
-        assert_eq!(ref2, "var(--color-primary, #1890ff)");
+        let ref2 = CssVariableUtils::var_reference("--color-primary", Some("#0066cc"));
+        assert_eq!(ref2, "var(--color-primary, #0066cc)");
     }
 
     #[test]

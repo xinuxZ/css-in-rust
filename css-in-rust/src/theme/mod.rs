@@ -1,7 +1,7 @@
 //! 主题系统模块
 //!
 //! 提供完整的主题管理功能，包括设计令牌、主题上下文、CSS 变量管理等。
-//! 支持 Ant Design 设计体系和动态主题切换。
+//! 支持通用设计体系和动态主题切换。
 
 // 子模块声明
 pub mod css_variables;
@@ -19,27 +19,40 @@ pub mod token_values;
 pub use css_variables::*;
 
 // 令牌解析相关
-pub use token_definitions::*;
+pub use token_definitions::{
+    ColorValue, DimensionUnit, DimensionValue, MathOperation, ShadowValue, ThemeVariant,
+    TokenCategory, TokenDefinitions, TokenMetadata, TokenPath, TokenReference, TokenTier,
+    TokenTransform, TokenType, TokenValidationError, TokenValue, TypographyValue,
+};
 pub use token_resolver::*;
 
 // 设计令牌系统
 pub use token_system::*;
-pub use token_values::*;
+pub use token_values::{
+    BackgroundColors, BorderColors, BorderRadius, BorderWidth, Borders, Breakpoints, ColorScale,
+    ColorTokens, Colors, DesignTokens, Duration, Easing, FontFamily, FontSize, FontWeight,
+    LetterSpacing, LineHeight, Motion, Shadows, Spacing, TextColors, Typography,
+};
 
 // 类型别名
 pub type DesignTokens = token_values::DesignTokens;
 
 // 重新导出主要类型
 pub use css_generator::CssGenerator;
-pub use theme_manager::*;
-pub use theme_provider::*;
+pub use theme_manager::{
+    ThemeBuilder, ThemeChangeEvent, ThemeChangeEventType, ThemeChangeListener, ThemeChangeReason,
+    ThemeError, ThemeHistory, ThemeManager, ThemeManagerConfig, ThemeOverride, ThemeScope,
+};
+pub use theme_provider::{
+    ThemePreset, ThemeProvider, ThemeProviderBuilder, ThemeProviderConfig, ThemeSwitchResult,
+};
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// 主题配置结构体
 ///
-/// 包含完整的 Ant Design 设计令牌和自定义主题配置
+/// 包含完整的设计令牌和自定义主题配置
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Theme {
     /// 主题名称
@@ -77,11 +90,11 @@ impl std::fmt::Display for ThemeMode {
 }
 
 impl Default for Theme {
-    /// 创建默认的 Ant Design 主题
+    /// 创建默认主题
     fn default() -> Self {
         Self {
             name: "default".to_string(),
-            tokens: DesignTokens::ant_design_default(),
+            tokens: DesignTokens::new(),
             custom_variables: HashMap::new(),
             mode: ThemeMode::Light,
         }
@@ -156,21 +169,21 @@ impl Theme {
         css
     }
 
-    /// 创建 Ant Design 默认主题
-    pub fn ant_design() -> Self {
+    /// 创建默认主题
+    pub fn default_theme() -> Self {
         Self {
-            name: "ant-design".to_string(),
-            tokens: DesignTokens::ant_design_default(),
+            name: "default".to_string(),
+            tokens: DesignTokens::new(),
             custom_variables: HashMap::new(),
             mode: ThemeMode::Light,
         }
     }
 
-    /// 创建 Ant Design 暗色主题
-    pub fn ant_design_dark() -> Self {
+    /// 创建暗色主题
+    pub fn dark_theme() -> Self {
         Self {
-            name: "ant-design-dark".to_string(),
-            tokens: DesignTokens::ant_design_dark(),
+            name: "dark".to_string(),
+            tokens: DesignTokens::new(),
             custom_variables: HashMap::new(),
             mode: ThemeMode::Dark,
         }
@@ -428,7 +441,7 @@ mod tests {
 
     #[test]
     fn test_css_variables_generation() {
-        let theme = Theme::ant_design().with_custom_variable("test-var", "test-value");
+        let theme = Theme::default().with_custom_variable("test-var", "test-value");
 
         let css = theme.to_css_variables();
         assert!(css.contains("--test-var: test-value;"));
@@ -436,7 +449,7 @@ mod tests {
 
     #[test]
     fn test_token_access() {
-        let theme = Theme::ant_design();
+        let theme = Theme::default();
 
         // 测试获取主色调
         let primary = theme.get_token("colors.primary");

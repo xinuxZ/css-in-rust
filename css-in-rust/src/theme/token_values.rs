@@ -19,8 +19,8 @@ pub struct BorderColors {
 impl Default for BorderColors {
     fn default() -> Self {
         Self {
-            primary: "#d9d9d9".to_string(),
-            secondary: "#f0f0f0".to_string(),
+            primary: "#dddddd".to_string(),
+            secondary: "#eeeeee".to_string(),
             inverse: "#434343".to_string(),
         }
     }
@@ -68,19 +68,19 @@ impl Default for ColorScale {
 }
 
 impl ColorScale {
-    /// 蓝色色阶
+    /// 蓝色色阶（通用蓝色方案）
     pub fn blue() -> Self {
         Self {
-            c1: "#e6f7ff".to_string(),
-            c2: "#bae7ff".to_string(),
-            c3: "#91d5ff".to_string(),
-            c4: "#69c0ff".to_string(),
-            c5: "#40a9ff".to_string(),
-            c6: "#1890ff".to_string(),
-            c7: "#096dd9".to_string(),
-            c8: "#0050b3".to_string(),
-            c9: "#003a8c".to_string(),
-            c10: "#002766".to_string(),
+            c1: "#e6f3ff".to_string(),
+            c2: "#b3d9ff".to_string(),
+            c3: "#80bfff".to_string(),
+            c4: "#4da6ff".to_string(),
+            c5: "#1a8cff".to_string(),
+            c6: "#0066cc".to_string(),
+            c7: "#0052a3".to_string(),
+            c8: "#003d7a".to_string(),
+            c9: "#002952".to_string(),
+            c10: "#001429".to_string(),
         }
     }
 
@@ -132,14 +132,14 @@ impl ColorScale {
         }
     }
 
-    /// 灰色色阶（亮色主题）
+    /// 灰色色阶（通用灰色方案）
     pub fn gray() -> Self {
         Self {
             c1: "#ffffff".to_string(),
             c2: "#fafafa".to_string(),
             c3: "#f5f5f5".to_string(),
-            c4: "#f0f0f0".to_string(),
-            c5: "#d9d9d9".to_string(),
+            c4: "#eeeeee".to_string(),
+            c5: "#dddddd".to_string(),
             c6: "#bfbfbf".to_string(),
             c7: "#8c8c8c".to_string(),
             c8: "#595959".to_string(),
@@ -159,8 +159,8 @@ impl ColorScale {
             c6: "#595959".to_string(),
             c7: "#8c8c8c".to_string(),
             c8: "#bfbfbf".to_string(),
-            c9: "#d9d9d9".to_string(),
-            c10: "#f0f0f0".to_string(),
+            c9: "#dddddd".to_string(),
+            c10: "#eeeeee".to_string(),
         }
     }
 
@@ -321,72 +321,6 @@ pub struct ColorTokens {
 }
 
 impl ColorTokens {
-    /// Ant Design 亮色主题颜色
-    pub fn ant_design_light() -> Self {
-        Self {
-            primary: "#1890ff".to_string(),
-            success: "#52c41a".to_string(),
-            warning: "#faad14".to_string(),
-            error: "#f5222d".to_string(),
-            info: "#1890ff".to_string(),
-            text: TextColors {
-                primary: "rgba(0, 0, 0, 0.88)".to_string(),
-                secondary: "rgba(0, 0, 0, 0.65)".to_string(),
-                disabled: "rgba(0, 0, 0, 0.25)".to_string(),
-                inverse: "#ffffff".to_string(),
-            },
-            background: BackgroundColors {
-                primary: "#ffffff".to_string(),
-                secondary: "#fafafa".to_string(),
-                tertiary: "#f5f5f5".to_string(),
-                inverse: "#001529".to_string(),
-            },
-            border: BorderColors {
-                primary: "#d9d9d9".to_string(),
-                secondary: "#f0f0f0".to_string(),
-                inverse: "#434343".to_string(),
-            },
-            blue: ColorScale::blue(),
-            green: ColorScale::green(),
-            red: ColorScale::red(),
-            orange: ColorScale::orange(),
-            gray: ColorScale::gray(),
-        }
-    }
-
-    /// Ant Design 暗色主题颜色
-    pub fn ant_design_dark() -> Self {
-        Self {
-            primary: "#1890ff".to_string(),
-            success: "#52c41a".to_string(),
-            warning: "#faad14".to_string(),
-            error: "#f5222d".to_string(),
-            info: "#1890ff".to_string(),
-            text: TextColors {
-                primary: "rgba(255, 255, 255, 0.88)".to_string(),
-                secondary: "rgba(255, 255, 255, 0.65)".to_string(),
-                disabled: "rgba(255, 255, 255, 0.25)".to_string(),
-                inverse: "rgba(0, 0, 0, 0.88)".to_string(),
-            },
-            background: BackgroundColors {
-                primary: "#141414".to_string(),
-                secondary: "#1f1f1f".to_string(),
-                tertiary: "#262626".to_string(),
-                inverse: "#ffffff".to_string(),
-            },
-            border: BorderColors {
-                primary: "#434343".to_string(),
-                secondary: "#303030".to_string(),
-                inverse: "#d9d9d9".to_string(),
-            },
-            blue: ColorScale::blue(),
-            green: ColorScale::green(),
-            red: ColorScale::red(),
-            orange: ColorScale::orange(),
-            gray: ColorScale::gray_dark(),
-        }
-    }
-
     /// 根据路径获取颜色值
     pub fn get_value(&self, path: &str) -> Option<String> {
         match path {
@@ -459,7 +393,7 @@ impl ColorTokens {
 
 /// 设计令牌集合
 ///
-/// 包含 Ant Design 设计体系的所有令牌定义
+/// 包含通用设计体系的所有令牌定义
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct DesignTokens {
     /// 颜色令牌
@@ -480,39 +414,13 @@ pub struct DesignTokens {
 
 impl Default for DesignTokens {
     fn default() -> Self {
-        Self::ant_design_default()
+        Self::new()
     }
 }
 
 impl DesignTokens {
-    /// 创建 Ant Design 默认设计令牌
-    pub fn ant_design_default() -> Self {
-        Self {
-            colors: Colors::default(),
-            typography: Typography::default(),
-            spacing: Spacing::default(),
-            borders: Borders::default(),
-            shadows: Shadows::default(),
-            motion: Motion::default(),
-            breakpoints: Breakpoints::default(),
-        }
-    }
-
-    /// 创建 Ant Design 暗色主题设计令牌
-    pub fn ant_design_dark() -> Self {
-        Self {
-            colors: Colors::default(),
-            typography: Typography::default(),
-            spacing: Spacing::default(),
-            borders: Borders::default(),
-            shadows: Shadows::default(),
-            motion: Motion::default(),
-            breakpoints: Breakpoints::default(),
-        }
-    }
-
-    /// 创建 Ant Design 亮色主题设计令牌
-    pub fn ant_design_light() -> Self {
+    /// 创建新的设计令牌集合
+    pub fn new() -> Self {
         Self {
             colors: Colors::default(),
             typography: Typography::default(),
@@ -556,6 +464,12 @@ impl DesignTokens {
         ]
     }
 
+    /// 获取亮色主题的令牌值
+    pub fn get_light_theme_values(&self) -> Self {
+        // 返回当前实例的克隆，因为默认就是亮色主题
+        self.clone()
+    }
+
     /// 生成 CSS 变量声明
     pub fn to_css_variables(&self) -> String {
         let mut css = String::new();
@@ -569,6 +483,11 @@ impl DesignTokens {
         css.push_str(&self.breakpoints.to_css_variables());
 
         css
+    }
+
+    /// 创建令牌存储
+    pub fn create_store(self) -> Self {
+        self
     }
 
     /// 获取支持的主题列表
@@ -632,6 +551,58 @@ impl DesignTokens {
     pub fn copy_theme(&mut self, _base_theme: ThemeVariant, _new_theme: ThemeVariant) {
         // 简单实现，实际应该复制主题相关的令牌值
         // 这里暂时留空，后续可以根据需要实现具体逻辑
+    }
+}
+
+/// 为 DesignTokens 实现 Iterator trait
+/// 允许遍历所有的设计令牌
+impl IntoIterator for DesignTokens {
+    type Item = (String, String);
+    type IntoIter = std::vec::IntoIter<(String, String)>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let mut items = Vec::new();
+
+        // 添加基础颜色
+        items.push(("colors.primary".to_string(), self.colors.primary));
+        items.push(("colors.success".to_string(), self.colors.success));
+        items.push(("colors.warning".to_string(), self.colors.warning));
+        items.push(("colors.error".to_string(), self.colors.error));
+        items.push(("colors.info".to_string(), self.colors.info));
+
+        // 添加间距
+        items.push(("spacing.xs".to_string(), self.spacing.xs));
+        items.push(("spacing.sm".to_string(), self.spacing.sm));
+        items.push(("spacing.md".to_string(), self.spacing.md));
+        items.push(("spacing.lg".to_string(), self.spacing.lg));
+        items.push(("spacing.xl".to_string(), self.spacing.xl));
+
+        items.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a DesignTokens {
+    type Item = (String, String);
+    type IntoIter = std::vec::IntoIter<(String, String)>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let mut items = Vec::new();
+
+        // 添加基础颜色
+        items.push(("colors.primary".to_string(), self.colors.primary.clone()));
+        items.push(("colors.success".to_string(), self.colors.success.clone()));
+        items.push(("colors.warning".to_string(), self.colors.warning.clone()));
+        items.push(("colors.error".to_string(), self.colors.error.clone()));
+        items.push(("colors.info".to_string(), self.colors.info.clone()));
+
+        // 添加间距
+        items.push(("spacing.xs".to_string(), self.spacing.xs.clone()));
+        items.push(("spacing.sm".to_string(), self.spacing.sm.clone()));
+        items.push(("spacing.md".to_string(), self.spacing.md.clone()));
+        items.push(("spacing.lg".to_string(), self.spacing.lg.clone()));
+        items.push(("spacing.xl".to_string(), self.spacing.xl.clone()));
+
+        items.into_iter()
     }
 }
 
@@ -1313,11 +1284,11 @@ pub struct Colors {
 impl Default for Colors {
     fn default() -> Self {
         Self {
-            primary: "#1677ff".to_string(),
-            success: "#52c41a".to_string(),
-            warning: "#faad14".to_string(),
-            error: "#ff4d4f".to_string(),
-            info: "#1677ff".to_string(),
+            primary: "#0066cc".to_string(),
+            success: "#00aa00".to_string(),
+            warning: "#ff9900".to_string(),
+            error: "#cc0000".to_string(),
+            info: "#0066cc".to_string(),
             text: TextColors::default(),
             background: BackgroundColors::default(),
             border: BorderColors::default(),
@@ -1402,304 +1373,3 @@ impl Colors {
 }
 
 // TokenValueStore 已合并到 DesignTokens 中
-
-/// Ant Design 默认令牌值
-pub struct AntDesignTokenValues;
-
-impl AntDesignTokenValues {
-    /// 创建默认的设计令牌存储
-    pub fn create_default_store() -> DesignTokens {
-        DesignTokens::ant_design_default()
-    }
-
-    /// 获取默认的浅色主题令牌值
-    pub fn get_light_theme_values() -> HashMap<TokenPath, TokenValue> {
-        let mut values = HashMap::new();
-
-        // 基础颜色
-        values.insert(
-            TokenPath::from_str("color.primary.50"),
-            TokenValue::String("#e6f4ff".to_string()),
-        );
-        values.insert(
-            TokenPath::from_str("color.primary.100"),
-            TokenValue::String("#bae0ff".to_string()),
-        );
-        values.insert(
-            TokenPath::from_str("color.primary.200"),
-            TokenValue::String("#91caff".to_string()),
-        );
-        values.insert(
-            TokenPath::from_str("color.primary.300"),
-            TokenValue::String("#69b1ff".to_string()),
-        );
-        values.insert(
-            TokenPath::from_str("color.primary.400"),
-            TokenValue::String("#4096ff".to_string()),
-        );
-        values.insert(
-            TokenPath::from_str("color.primary.500"),
-            TokenValue::String("#1677ff".to_string()),
-        );
-        values.insert(
-            TokenPath::from_str("color.primary.600"),
-            TokenValue::String("#0958d9".to_string()),
-        );
-        values.insert(
-            TokenPath::from_str("color.primary.700"),
-            TokenValue::String("#003eb3".to_string()),
-        );
-        values.insert(
-            TokenPath::from_str("color.primary.800"),
-            TokenValue::String("#002c8c".to_string()),
-        );
-        values.insert(
-            TokenPath::from_str("color.primary.900"),
-            TokenValue::String("#001d66".to_string()),
-        );
-
-        // 成功色
-        values.insert(
-            TokenPath::from_str("color.success.500"),
-            TokenValue::String("#52c41a".to_string()),
-        );
-
-        // 警告色
-        values.insert(
-            TokenPath::from_str("color.warning.500"),
-            TokenValue::String("#faad14".to_string()),
-        );
-
-        // 错误色
-        values.insert(
-            TokenPath::from_str("color.error.500"),
-            TokenValue::String("#ff4d4f".to_string()),
-        );
-
-        // 信息色
-        values.insert(
-            TokenPath::from_str("color.info.500"),
-            TokenValue::String("#1677ff".to_string()),
-        );
-
-        // 文本颜色
-        values.insert(
-            TokenPath::from_str("color.text.primary"),
-            TokenValue::String("rgba(0, 0, 0, 0.88)".to_string()),
-        );
-        values.insert(
-            TokenPath::from_str("color.text.secondary"),
-            TokenValue::String("rgba(0, 0, 0, 0.65)".to_string()),
-        );
-        values.insert(
-            TokenPath::from_str("color.text.tertiary"),
-            TokenValue::String("rgba(0, 0, 0, 0.45)".to_string()),
-        );
-        values.insert(
-            TokenPath::from_str("color.text.quaternary"),
-            TokenValue::String("rgba(0, 0, 0, 0.25)".to_string()),
-        );
-
-        // 背景颜色
-        values.insert(
-            TokenPath::from_str("color.background.default"),
-            TokenValue::String("#ffffff".to_string()),
-        );
-        values.insert(
-            TokenPath::from_str("color.background.container"),
-            TokenValue::String("#ffffff".to_string()),
-        );
-        values.insert(
-            TokenPath::from_str("color.background.elevated"),
-            TokenValue::String("#ffffff".to_string()),
-        );
-        values.insert(
-            TokenPath::from_str("color.background.layout"),
-            TokenValue::String("#f5f5f5".to_string()),
-        );
-
-        // 边框颜色
-        values.insert(
-            TokenPath::from_str("color.border.default"),
-            TokenValue::String("#d9d9d9".to_string()),
-        );
-        values.insert(
-            TokenPath::from_str("color.border.secondary"),
-            TokenValue::String("#f0f0f0".to_string()),
-        );
-
-        // 字体大小
-        values.insert(
-            TokenPath::from_str("typography.fontSize.xs"),
-            TokenValue::Number(12.0),
-        );
-        values.insert(
-            TokenPath::from_str("typography.fontSize.sm"),
-            TokenValue::Number(14.0),
-        );
-        values.insert(
-            TokenPath::from_str("typography.fontSize.base"),
-            TokenValue::Number(14.0),
-        );
-        values.insert(
-            TokenPath::from_str("typography.fontSize.lg"),
-            TokenValue::Number(16.0),
-        );
-        values.insert(
-            TokenPath::from_str("typography.fontSize.xl"),
-            TokenValue::Number(20.0),
-        );
-        values.insert(
-            TokenPath::from_str("typography.fontSize.2xl"),
-            TokenValue::Number(24.0),
-        );
-        values.insert(
-            TokenPath::from_str("typography.fontSize.3xl"),
-            TokenValue::Number(30.0),
-        );
-        values.insert(
-            TokenPath::from_str("typography.fontSize.4xl"),
-            TokenValue::Number(38.0),
-        );
-
-        // 字体权重
-        values.insert(
-            TokenPath::from_str("typography.fontWeight.normal"),
-            TokenValue::Number(400.0),
-        );
-        values.insert(
-            TokenPath::from_str("typography.fontWeight.medium"),
-            TokenValue::Number(500.0),
-        );
-        values.insert(
-            TokenPath::from_str("typography.fontWeight.semibold"),
-            TokenValue::Number(600.0),
-        );
-        values.insert(
-            TokenPath::from_str("typography.fontWeight.bold"),
-            TokenValue::Number(700.0),
-        );
-
-        // 行高
-        values.insert(
-            TokenPath::from_str("typography.lineHeight.tight"),
-            TokenValue::Number(1.2),
-        );
-        values.insert(
-            TokenPath::from_str("typography.lineHeight.normal"),
-            TokenValue::Number(1.5),
-        );
-        values.insert(
-            TokenPath::from_str("typography.lineHeight.relaxed"),
-            TokenValue::Number(1.75),
-        );
-
-        // 间距
-        values.insert(TokenPath::from_str("spacing.xs"), TokenValue::Number(4.0));
-        values.insert(TokenPath::from_str("spacing.sm"), TokenValue::Number(8.0));
-        values.insert(TokenPath::from_str("spacing.md"), TokenValue::Number(16.0));
-        values.insert(TokenPath::from_str("spacing.lg"), TokenValue::Number(24.0));
-        values.insert(TokenPath::from_str("spacing.xl"), TokenValue::Number(32.0));
-        values.insert(TokenPath::from_str("spacing.2xl"), TokenValue::Number(48.0));
-        values.insert(TokenPath::from_str("spacing.3xl"), TokenValue::Number(64.0));
-
-        // 边框半径
-        values.insert(
-            TokenPath::from_str("border.radius.none"),
-            TokenValue::Number(0.0),
-        );
-        values.insert(
-            TokenPath::from_str("border.radius.sm"),
-            TokenValue::Number(2.0),
-        );
-        values.insert(
-            TokenPath::from_str("border.radius.base"),
-            TokenValue::Number(6.0),
-        );
-        values.insert(
-            TokenPath::from_str("border.radius.lg"),
-            TokenValue::Number(8.0),
-        );
-        values.insert(
-            TokenPath::from_str("border.radius.xl"),
-            TokenValue::Number(12.0),
-        );
-        values.insert(
-            TokenPath::from_str("border.radius.full"),
-            TokenValue::String("50%".to_string()),
-        );
-
-        // 边框宽度
-        values.insert(
-            TokenPath::from_str("border.width.none"),
-            TokenValue::Number(0.0),
-        );
-        values.insert(
-            TokenPath::from_str("border.width.thin"),
-            TokenValue::Number(1.0),
-        );
-        values.insert(
-            TokenPath::from_str("border.width.thick"),
-            TokenValue::Number(2.0),
-        );
-
-        values
-    }
-
-    /// 获取默认的深色主题令牌值
-    pub fn get_dark_theme_values() -> HashMap<TokenPath, TokenValue> {
-        let mut values = HashMap::new();
-
-        // 覆盖深色主题特定的值
-
-        // 文本颜色
-        values.insert(
-            TokenPath::from_str("color.text.primary"),
-            TokenValue::String("rgba(255, 255, 255, 0.85)".to_string()),
-        );
-        values.insert(
-            TokenPath::from_str("color.text.secondary"),
-            TokenValue::String("rgba(255, 255, 255, 0.65)".to_string()),
-        );
-        values.insert(
-            TokenPath::from_str("color.text.tertiary"),
-            TokenValue::String("rgba(255, 255, 255, 0.45)".to_string()),
-        );
-        values.insert(
-            TokenPath::from_str("color.text.quaternary"),
-            TokenValue::String("rgba(255, 255, 255, 0.25)".to_string()),
-        );
-
-        // 背景颜色
-        values.insert(
-            TokenPath::from_str("color.background.default"),
-            TokenValue::String("#141414".to_string()),
-        );
-        values.insert(
-            TokenPath::from_str("color.background.container"),
-            TokenValue::String("#1f1f1f".to_string()),
-        );
-        values.insert(
-            TokenPath::from_str("color.background.elevated"),
-            TokenValue::String("#262626".to_string()),
-        );
-        values.insert(
-            TokenPath::from_str("color.background.layout"),
-            TokenValue::String("#000000".to_string()),
-        );
-
-        // 边框颜色
-        values.insert(
-            TokenPath::from_str("color.border.default"),
-            TokenValue::String("#434343".to_string()),
-        );
-        values.insert(
-            TokenPath::from_str("color.border.secondary"),
-            TokenValue::String("#303030".to_string()),
-        );
-
-        values
-    }
-
-    // TokenValueStore 相关功能已合并到 DesignTokens 中
-}
