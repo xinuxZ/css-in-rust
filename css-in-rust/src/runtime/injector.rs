@@ -5,6 +5,7 @@
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use web_sys::wasm_bindgen::JsCast;
 
 /// Style injection error
 #[derive(Debug)]

@@ -72,6 +72,8 @@ use css_in_rust_macros as _;
 use lazy_static as _;
 #[allow(unused_imports)]
 use tempfile as _;
+// #[allow(unused_imports)]
+// use wasm_bindgen as _;
 
 // Provide fallback implementations when proc-macro feature is disabled
 #[cfg(not(feature = "proc-macro"))]

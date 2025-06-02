@@ -23,6 +23,7 @@ use sha1 as _;
 use sha2 as _;
 use syn as _;
 use tempfile as _;
+use web_sys as _;
 
 #[cfg(test)]
 mod tests {
