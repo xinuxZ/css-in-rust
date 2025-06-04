@@ -11,6 +11,8 @@ use chrono as _;
 use console_error_panic_hook as _;
 #[allow(unused_imports)]
 use css_in_rust_macros as _;
+#[warn(unused_imports)]
+use dioxus as _;
 use dioxus_web as _;
 use lazy_static as _;
 #[allow(unused_imports)]

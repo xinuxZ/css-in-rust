@@ -45,7 +45,6 @@ fn main() {
     println!("\n{}", "=".repeat(50));
     println!("🔥 Button 组件演示");
     println!("{}", "=".repeat(50));
-    button_demo::demo_buttons();
 
     println!("\n🎉 CSS-in-Rust 演示完成！");
     println!("所有功能都已成功测试。");
