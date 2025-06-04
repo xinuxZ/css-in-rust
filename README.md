@@ -24,13 +24,6 @@ Add this to your `Cargo.toml`:
 css-in-rust = "0.1.0"
 ```
 
-For Dioxus integration:
-
-```toml
-[dependencies]
-css-in-rust = { version = "0.1.0", features = ["dioxus"] }
-```
-
 ### Basic Usage
 
 ```rust
@@ -204,13 +197,6 @@ cargo test
 ```bash
 cargo run --example basic
 ```
-
-### Benchmarks
-
-```bash
-cargo bench
-```
-
 ## Roadmap
 
 ### Phase 1 (Current) ✅
@@ -222,15 +208,13 @@ cargo bench
 - [x] Documentation and examples
 
 ### Phase 2 (Planned)
-- [ ] Theme system with CSS variables
-- [ ] Variant system (hover, focus, etc.)
-- [ ] Style optimization engine
-- [ ] Hot reload support
-- [ ] Advanced caching
+- [x] Theme system with CSS variables
+- [x] Variant system (hover, focus, etc.)
+- [x] Style optimization engine
+- [x] Hot reload support
+- [·] Advanced caching
 
 ### Phase 3 (Planned)
-- [ ] Dioxus adapter
-- [ ] ant-design-dioxus integration
 - [ ] SSR/SSG support
 - [ ] Critical CSS extraction
 
@@ -248,7 +232,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-org/css-in-rust.git
+   git clone https://github.com/xinuxZ/css-in-rust.git
    cd css-in-rust
    ```
 
@@ -272,7 +256,6 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
-
 - [lightningcss](https://github.com/parcel-bundler/lightningcss) - Fast CSS parser and transformer
 - [stylers](https://github.com/abishekatp/stylers) - Original inspiration for CSS-in-Rust
 - [Dioxus](https://github.com/DioxusLabs/dioxus) - Modern Rust web framework
@@ -281,10 +264,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Support
 
 If you have any questions or need help, please:
-
-1. Check the [documentation](https://docs.rs/css-in-rust)
-2. Search [existing issues](https://github.com/your-org/css-in-rust/issues)
-3. Create a [new issue](https://github.com/your-org/css-in-rust/issues/new)
+1. Create a [new issue](https://github.com/xinuxZ/css-in-rust/issues/new)
 
 ---
 
