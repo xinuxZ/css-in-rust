@@ -2,7 +2,7 @@
 //!
 //! 提供基于 props 的动态样式生成系统，支持条件逻辑和动态样式计算。
 
-use super::{VariantConfig, VariantStyle};
+use super::VariantStyle;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

@@ -1,333 +1,154 @@
-# 设计令牌系统重构文档
+# Theme 系统
 
-## 概述
+Theme 系统是 css-in-rust 的核心组件，提供完整的主题管理功能，包括设计令牌、主题上下文、CSS 变量管理等。
 
-本文档描述了设计令牌系统的重构方案，该重构基于**单一职责原则**对原有的 `design_token_system.rs` 和 `design_tokens.rs` 进行了模块化拆分和优化。
+## 架构概述
 
-## 重构目标
+Theme 系统采用分层架构设计，分为三层：
 
-### 问题分析
+1. **核心层 (core)**：提供基础的 Token 系统、CSS 生成、缓存机制等核心功能
+2. **适配层 (adapter)**：连接核心层和框架层，提供通用的适配接口
+3. **系统层 (systems)**：提供特定领域的系统实现，如颜色系统、排版系统等
 
-原有系统存在以下问题：
+## 核心层 (core)
 
-1. **职责混乱**：`design_token_system.rs` 和 `design_tokens.rs` 存在功能重叠
-2. **代码重复**：令牌定义、值获取、CSS生成等功能在两个文件中都有实现
-3. **耦合度高**：模块间依赖关系复杂，难以独立测试和维护
-4. **扩展性差**：添加新功能需要修改多个文件
-5. **缺乏抽象**：没有清晰的接口定义
+核心层包含以下模块：
 
-### 重构原则
+- **token**：Token 系统的核心实现
+  - `definitions.rs`：Token 的基础类型和接口
+  - `values.rs`：Token 值的存储和管理
+  - `resolver.rs`：Token 解析和引用处理
+  - `css_generator.rs`：Token 到 CSS 的转换
+  - `system.rs`：Token 系统的基础实现
+  - `simple_system.rs`：简化版 Token 系统
 
-- **单一职责原则 (SRP)**：每个模块只负责一个明确的功能
-- **开闭原则 (OCP)**：对扩展开放，对修改封闭
-- **依赖倒置原则 (DIP)**：依赖抽象而非具体实现
-- **接口隔离原则 (ISP)**：使用专门的接口而非大而全的接口
+- **css**：CSS 生成和管理
+  - `generator.rs`：CSS 生成和样式输出
+  - `variables.rs`：CSS 变量管理
+  - `dependency.rs`：样式依赖追踪
 
-## 新架构设计
+- **cache**：缓存系统
+  - `component_cache.rs`：组件级样式缓存
 
-### 模块结构
+- **optimize**：优化引擎
+  - `mod.rs`：样式优化配置和实现
 
-```
-src/theme/
-├── token_definitions.rs    # 令牌定义和抽象接口
-├── token_values.rs         # 令牌值存储和管理
-├── token_resolver.rs       # 令牌解析和引用处理
-├── css_generator.rs        # CSS生成和样式输出
-├── token_system.rs         # 系统级API和高级功能
-└── mod.rs                  # 模块导出和公共API
-```
+- **manager**：主题管理
+  - `mod.rs`：主题管理器
+  - `theme_history.rs`：主题历史记录
 
-### 职责分工
+- **provider**：主题提供者
+  - `mod.rs`：主题提供者实现
 
-#### 1. `token_definitions.rs` - 令牌定义层
+## 适配层 (adapter)
 
-**职责**：定义令牌的基础类型和抽象接口
+适配层包含以下模块：
 
-- `TokenValue` 枚举：令牌值类型定义
-- `TokenPath` 结构：令牌路径表示
-- `ThemeVariant` 枚举：主题变体定义
-- `TokenDefinitions` trait：令牌操作抽象接口
-- `TokenValidationError` 枚举：验证错误类型
+- **provider**：主题提供者适配器
+  - `mod.rs`：扩展核心主题提供者，添加高级功能
 
-```rust
-pub enum TokenValue {
-    String(String),
-    Number(f64),
-    Boolean(bool),
-    Reference(String),
-    Array(Vec<TokenValue>),
-    Object(HashMap<String, TokenValue>),
-}
+- **injection**：样式注入
+  - `mod.rs`：样式注入器，负责将生成的CSS注入到不同平台
 
-pub trait TokenDefinitions {
-    fn get_token_value(&self, path: &TokenPath, theme: ThemeVariant) -> Result<TokenValue, TokenValidationError>;
-    fn set_token_value(&mut self, path: &TokenPath, value: TokenValue, theme: ThemeVariant) -> Result<(), String>;
-    // ... 其他方法
-}
-```
+- **ssr**：服务端渲染支持
+  - `mod.rs`：SSR 支持
+  - `hydration.rs`：客户端水合
 
-#### 2. `token_values.rs` - 令牌值存储层
+- **frameworks**：框架适配器
+  - `dioxus`：Dioxus 框架适配器
+  - `react`：React 框架适配器
 
-**职责**：管理令牌值的存储和主题变体
+## 系统层 (systems)
 
-- `TokenValueStore`：令牌值存储容器
-- `AntDesignTokenValues`：Ant Design 默认令牌值
-- 主题管理：支持多主题切换和自定义主题
+系统层包含以下模块：
 
-```rust
-pub struct TokenValueStore {
-    values: HashMap<ThemeVariant, HashMap<String, TokenValue>>,
-    metadata: HashMap<String, TokenMetadata>,
-}
+- **color**：颜色系统
+  - `mod.rs`：颜色系统实现
 
-pub struct AntDesignTokenValues;
+- **typography**：排版系统
+  - `mod.rs`：排版系统实现
 
-impl AntDesignTokenValues {
-    pub fn create_default_store() -> TokenValueStore {
-        // 创建包含默认 Ant Design 令牌的存储
-    }
-}
-```
+- **spacing**：间距系统
+  - `mod.rs`：间距系统实现
 
-#### 3. `token_resolver.rs` - 令牌解析层
+- **semantic**：语义系统
+  - `mod.rs`：语义系统实现
 
-**职责**：处理令牌引用解析和值计算
+## 使用示例
 
-- 引用解析：处理 `{color.primary.500}` 形式的引用
-- 循环引用检测：防止无限递归
-- 表达式计算：支持基础数学运算
-- 缓存机制：提高解析性能
+### 基础使用
 
 ```rust
-pub struct TokenResolver {
-    store: TokenValueStore,
-    cache: HashMap<String, TokenValue>,
-    resolution_stack: Vec<String>,
-}
+use css_in_rust::theme::{Theme, ThemeMode, ThemeManager};
 
-impl TokenResolver {
-    pub fn resolve_token(&mut self, path: &TokenPath, theme: ThemeVariant) -> Result<TokenValue, TokenValidationError> {
-        // 解析令牌，处理引用和计算
-    }
-}
+// 创建主题管理器
+let manager = ThemeManager::default();
+
+// 创建主题
+let mut theme = Theme::default();
+theme.name = "my-theme".to_string();
+theme.mode = ThemeMode::Dark;
+
+// 设置主题
+manager.set_theme(theme).unwrap();
+
+// 获取当前主题
+let current_theme = manager.get_current_theme().unwrap();
 ```
 
-#### 4. `css_generator.rs` - CSS生成层
-
-**职责**：将令牌转换为CSS变量和样式
-
-- CSS变量生成：`--ant-color-primary-500: #1890ff`
-- 主题CSS生成：完整的主题样式表
-- 组件样式类：特定组件的样式类
-- 实用工具类：通用的工具样式类
+### 使用框架适配器
 
 ```rust
-pub struct CssGenerator {
-    resolver: TokenResolver,
-    prefix: String,
-    minify: bool,
-}
-
-impl CssGenerator {
-    pub fn generate_css_variables(&mut self, theme: ThemeVariant) -> Result<String, String> {
-        // 生成CSS变量
-    }
-
-    pub fn generate_theme_css(&mut self) -> Result<String, String> {
-        // 生成完整主题CSS
-    }
-}
-```
-
-#### 5. `token_system.rs` - 系统集成层
-
-**职责**：提供高级API和系统级功能
-
-- 系统配置管理
-- 全局令牌系统
-- 批量操作
-- 主题变体创建
-- JSON导入导出
-
-```rust
-pub struct DesignTokenSystem {
-    css_generator: CssGenerator,
-    current_theme: ThemeVariant,
-    config: TokenSystemConfig,
-}
-
-impl DesignTokenSystem {
-    pub fn new() -> Self { /* ... */ }
-    pub fn get_token(&mut self, path: &str) -> Result<TokenValue, TokenValidationError> { /* ... */ }
-    pub fn generate_css_variables(&mut self) -> Result<String, String> { /* ... */ }
-    // ... 其他高级API
-}
-```
-
-## 使用方式
-
-### 基本使用
-
-```rust
-use ant_design_dioxus::theme::{
-    DesignTokenSystem, ThemeVariant, TokenValue
+use css_in_rust::theme::{
+    adapter::{ThemeProviderAdapter, DioxusAdapter},
+    Theme, ThemeMode,
 };
 
-// 创建令牌系统
-let mut system = DesignTokenSystem::new();
+// 创建主题提供者适配器
+let provider = ThemeProviderAdapter::new();
 
-// 获取令牌值
-let primary_color = system.get_token("color.primary.500")?;
+// 创建 Dioxus 适配器
+let dioxus_adapter = DioxusAdapter::new(provider);
 
-// 设置自定义令牌
-system.set_token("custom.brand.color", TokenValue::String("#1890ff".to_string()))?;
-
-// 切换主题
-system.switch_theme(ThemeVariant::Dark);
-
-// 生成CSS
-let css = system.generate_css_variables()?;
+// 生成组件样式
+let style = dioxus_adapter.style_component("button", "color: blue;");
 ```
 
-### 全局令牌系统
+### 使用 SSR 支持
 
 ```rust
-use ant_design_dioxus::theme::{
-    init_global_token_system, get_global_token_system, TokenSystemConfig
-};
+use css_in_rust::theme::adapter::ssr::SsrSupport;
+use std::collections::HashMap;
 
-// 初始化全局系统
-let config = TokenSystemConfig {
-    css_prefix: "my-app".to_string(),
-    enable_cache: true,
-    minify_css: true,
-    strict_mode: false,
-};
-init_global_token_system(config);
+// 创建 SSR 支持
+let ssr = SsrSupport::new();
 
-// 使用全局系统
-let system = get_global_token_system();
-let token_value = system.get_token("color.primary.500")?;
+// 创建样式
+let mut styles = HashMap::new();
+styles.insert("button".to_string(), ".button { color: blue; }".to_string());
+styles.insert("input".to_string(), ".input { border: 1px solid gray; }".to_string());
+
+// 渲染样式
+let result = ssr.render_styles(styles);
+
+// 生成样式标签
+let tag = ssr.generate_style_tag(&result);
 ```
 
-### 便捷宏
+## 性能优化
 
-```rust
-use ant_design_dioxus::{token, css_var};
+Theme 系统提供了多种性能优化机制：
 
-// 获取令牌值
-let primary_color = token!("color.primary.500")?;
+1. **组件级样式缓存**：使用 `ComponentStyleCache` 缓存组件样式
+2. **样式依赖追踪**：使用 `DependencyTracker` 追踪样式依赖关系
+3. **样式优化**：使用 `StyleOptimizer` 优化生成的 CSS
+4. **SSR 支持**：使用 `SsrSupport` 和 `HydrationEngine` 优化服务端渲染
 
-// 获取CSS变量名
-let css_var_name = css_var!("color.primary.500"); // "--ant-color-primary-500"
-```
+## 扩展
 
-## 优势
+Theme 系统设计为易于扩展，可以通过以下方式进行扩展：
 
-### 1. 清晰的职责分离
-
-- 每个模块都有明确的单一职责
-- 模块间依赖关系清晰
-- 易于理解和维护
-
-### 2. 高度可扩展
-
-- 新功能可以通过实现trait来添加
-- 支持自定义令牌存储后端
-- 支持自定义CSS生成策略
-
-### 3. 强类型安全
-
-- 使用Rust的类型系统确保安全性
-- 编译时错误检查
-- 清晰的错误处理
-
-### 4. 高性能
-
-- 智能缓存机制
-- 惰性计算
-- 最小化重复计算
-
-### 5. 易于测试
-
-- 每个模块可以独立测试
-- 清晰的接口便于mock
-- 全面的单元测试覆盖
-
-## 迁移指南
-
-### 从旧系统迁移
-
-1. **更新导入**：
-   ```rust
-   // 旧的导入
-   use crate::theme::{DesignTokens, DesignTokenSystem};
-
-   // 新的导入
-   use crate::theme::{
-       DesignTokenSystem, TokenValue, ThemeVariant
-   };
-   ```
-
-2. **API变更**：
-   ```rust
-   // 旧的API
-   let color = design_tokens.get_color("primary");
-
-   // 新的API
-   let color = system.get_token("color.primary.500")?;
-   ```
-
-3. **配置更新**：
-   ```rust
-   // 新的配置方式
-   let config = TokenSystemConfig {
-       css_prefix: "ant".to_string(),
-       enable_cache: true,
-       minify_css: false,
-       strict_mode: false,
-   };
-   let system = DesignTokenSystem::with_config(config);
-   ```
-
-## 最佳实践
-
-### 1. 令牌命名规范
-
-使用层次化的命名结构：
-```
-color.primary.500
-color.background.default
-spacing.margin.large
-typography.font.size.heading1
-```
-
-### 2. 主题管理
-
-- 为每个主题变体提供完整的令牌定义
-- 使用引用来保持一致性
-- 避免硬编码值
-
-### 3. 性能优化
-
-- 启用缓存以提高性能
-- 批量操作而非单个操作
-- 在生产环境中启用CSS压缩
-
-### 4. 错误处理
-
-- 始终处理令牌解析错误
-- 提供有意义的错误信息
-- 使用验证功能检查令牌完整性
-
-## 总结
-
-通过这次重构，我们实现了：
-
-1. **模块化设计**：清晰的职责分离和模块边界
-2. **类型安全**：强类型系统和编译时检查
-3. **高性能**：智能缓存和优化的算法
-4. **易扩展**：基于trait的设计支持自定义扩展
-5. **易测试**：独立的模块便于单元测试
-
-新的设计令牌系统为Ant Design Dioxus提供了强大、灵活、高性能的主题管理能力，同时保持了简洁易用的API。
+1. 实现自定义 Token 系统
+2. 添加新的框架适配器
+3. 扩展现有系统（如颜色系统、排版系统等）
+4. 添加新的优化策略

@@ -4,15 +4,11 @@
 //! 提供主题变量注入、动态切换和类型安全的主题 API
 
 use super::theme::{
-    core::{
-        css::generator::CssGenerator, css::variables::InjectionStrategy, css::CssVariableInjector,
-        token::values::DesignTokens,
-    },
+    core::css::variables::{CssVariableInjector, InjectionStrategy},
     theme_types::ThemeMode,
     Theme,
 };
 use std::collections::HashMap;
-use std::sync::Arc;
 
 /// 主题桥接器
 ///

@@ -200,7 +200,7 @@ impl DevExperienceManager {
     /// 停止开发服务
     pub fn stop_dev_services(&mut self) {
         self.diagnostic_manager.stop_live_diagnostics();
-        self.ide_integration.stop_language_server();
+        let _ = self.ide_integration.stop_language_server();
     }
 
     /// 处理CSS代码

@@ -1,6 +1,14 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
+pub mod component_cache;
+
+// Re-exports
+pub use component_cache::{
+    compute_props_hash, compute_style_hash, compute_theme_hash, CacheStats, CachedComponentStyle,
+    ComponentCacheKey, ComponentStyleCache,
+};
+
 /// 样式缓存键
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct StyleCacheKey {

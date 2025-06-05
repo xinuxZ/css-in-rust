@@ -2,7 +2,6 @@ pub mod cache;
 pub mod css;
 pub mod manager;
 pub mod optimize;
-pub mod provider;
 pub mod token;
 
 // Re-exports
@@ -19,4 +18,3 @@ pub use cache::StyleCache;
 
 pub use manager::ThemeManager;
 pub use optimize::{OptimizeConfig, StyleOptimizer};
-pub use provider::ThemeProvider;

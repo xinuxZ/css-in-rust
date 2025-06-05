@@ -276,7 +276,7 @@ impl HotReloadManager {
         // 启动WebSocket服务器
         if self.config.auto_refresh_browser || self.config.enable_css_injection {
             let mut websocket_server = WebSocketServer::new(WebSocketConfig::default());
-            websocket_server.start();
+            let _ = websocket_server.start();
             self.websocket_server = Some(websocket_server);
         }
 
@@ -375,7 +375,7 @@ impl HotReloadManager {
         }
 
         if let Some(server) = &mut self.websocket_server {
-            server
+            let _ = server
                 .broadcast(WebSocketMessage::CssHotReload {
                     files: vec!["gloable.css".to_string()],
                     css_content: css_content.clone(),
