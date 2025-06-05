@@ -4,7 +4,32 @@
 //! 这些系统将基础令牌映射为具有语义意义的设计令牌。
 
 use super::token_system::TokenReference;
+use crate::theme::core::token::{TokenSystem, TokenValue};
 use serde::{Deserialize, Serialize};
+
+/// 语义系统
+pub struct SemanticSystem {
+    token_system: TokenSystem,
+}
+
+impl SemanticSystem {
+    /// 创建新的语义系统
+    pub fn new(token_system: TokenSystem) -> Self {
+        Self { token_system }
+    }
+
+    /// 获取语义值
+    pub fn get_value(&self, path: &str) -> Option<String> {
+        self.token_system
+            .get_value(path)
+            .map(|value| value.to_string())
+    }
+
+    /// 设置语义值
+    pub fn set_value(&mut self, path: String, value: TokenValue) {
+        self.token_system.set_value(path, value);
+    }
+}
 
 /// 语义间距系统
 #[derive(Debug, Clone, Serialize, Deserialize)]

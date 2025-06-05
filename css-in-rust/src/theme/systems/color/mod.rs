@@ -2,9 +2,111 @@
 //!
 //! 提供通用的颜色管理功能，包括颜色调色板、语义颜色映射等。
 
-use super::token_definitions::{ColorValue, ThemeVariant, TokenReference};
+use crate::theme::core::token::definitions::{ColorValue, ThemeVariant, TokenReference};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+
+/// 颜色系统
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ColorSystem {
+    /// 主色调
+    pub primary: BTreeMap<String, String>,
+    /// 中性色
+    pub neutral: BTreeMap<String, String>,
+    /// 功能色
+    pub functional: BTreeMap<String, String>,
+    /// 扩展色
+    pub extended: BTreeMap<String, String>,
+}
+
+impl Default for ColorSystem {
+    fn default() -> Self {
+        let mut primary = BTreeMap::new();
+        primary.insert("50".to_string(), "#e6f3ff".to_string());
+        primary.insert("100".to_string(), "#b3d9ff".to_string());
+        primary.insert("200".to_string(), "#80bfff".to_string());
+        primary.insert("300".to_string(), "#4da6ff".to_string());
+        primary.insert("400".to_string(), "#1a8cff".to_string());
+        primary.insert("500".to_string(), "#0066cc".to_string());
+        primary.insert("600".to_string(), "#0052a3".to_string());
+        primary.insert("700".to_string(), "#003d7a".to_string());
+        primary.insert("800".to_string(), "#002952".to_string());
+        primary.insert("900".to_string(), "#001429".to_string());
+
+        let mut neutral = BTreeMap::new();
+        neutral.insert("50".to_string(), "#fafafa".to_string());
+        neutral.insert("100".to_string(), "#f5f5f5".to_string());
+        neutral.insert("200".to_string(), "#eeeeee".to_string());
+        neutral.insert("300".to_string(), "#dddddd".to_string());
+        neutral.insert("400".to_string(), "#bfbfbf".to_string());
+        neutral.insert("500".to_string(), "#8c8c8c".to_string());
+        neutral.insert("600".to_string(), "#595959".to_string());
+        neutral.insert("700".to_string(), "#434343".to_string());
+        neutral.insert("800".to_string(), "#262626".to_string());
+        neutral.insert("900".to_string(), "#1f1f1f".to_string());
+
+        let mut functional = BTreeMap::new();
+        functional.insert("success.50".to_string(), "#f6ffed".to_string());
+        functional.insert("success.500".to_string(), "#52c41a".to_string());
+        functional.insert("success.600".to_string(), "#389e0d".to_string());
+        functional.insert("warning.50".to_string(), "#fffbe6".to_string());
+        functional.insert("warning.500".to_string(), "#faad14".to_string());
+        functional.insert("warning.600".to_string(), "#d48806".to_string());
+        functional.insert("error.50".to_string(), "#fff2f0".to_string());
+        functional.insert("error.500".to_string(), "#ff4d4f".to_string());
+        functional.insert("error.600".to_string(), "#cf1322".to_string());
+
+        Self {
+            primary,
+            neutral,
+            functional,
+            extended: BTreeMap::new(),
+        }
+    }
+}
+
+impl ColorSystem {
+    /// 创建新的颜色系统
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// 获取颜色值
+    pub fn get_color(&self, path: &str) -> Option<&String> {
+        let parts: Vec<&str> = path.split('.').collect();
+        match parts.as_slice() {
+            ["primary", level] => self.primary.get(*level),
+            ["neutral", level] => self.neutral.get(*level),
+            ["functional", rest @ ..] => self.functional.get(&rest.join(".")),
+            ["extended", rest @ ..] => self.extended.get(&rest.join(".")),
+            _ => None,
+        }
+    }
+
+    /// 设置颜色值
+    pub fn set_color(&mut self, path: &str, value: String) -> Result<(), String> {
+        let parts: Vec<&str> = path.split('.').collect();
+        match parts.as_slice() {
+            ["primary", level] => {
+                self.primary.insert(level.to_string(), value);
+                Ok(())
+            }
+            ["neutral", level] => {
+                self.neutral.insert(level.to_string(), value);
+                Ok(())
+            }
+            ["functional", rest @ ..] => {
+                self.functional.insert(rest.join("."), value);
+                Ok(())
+            }
+            ["extended", rest @ ..] => {
+                self.extended.insert(rest.join("."), value);
+                Ok(())
+            }
+            _ => Err(format!("Invalid color path: {}", path)),
+        }
+    }
+}
 
 /// 颜色调色板
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -115,10 +217,10 @@ impl Default for SemanticColors {
 impl Default for TextColors {
     fn default() -> Self {
         Self {
-            primary: TokenReference::new("global.color_palette.neutral.900".to_string()),
-            secondary: TokenReference::new("global.color_palette.neutral.600".to_string()),
-            disabled: TokenReference::new("global.color_palette.neutral.400".to_string()),
-            placeholder: TokenReference::new("global.color_palette.neutral.500".to_string()),
+            primary: TokenReference::create("global.color_palette.neutral.900".to_string()),
+            secondary: TokenReference::create("global.color_palette.neutral.600".to_string()),
+            disabled: TokenReference::create("global.color_palette.neutral.400".to_string()),
+            placeholder: TokenReference::create("global.color_palette.neutral.500".to_string()),
         }
     }
 }
@@ -126,10 +228,10 @@ impl Default for TextColors {
 impl Default for BackgroundColors {
     fn default() -> Self {
         Self {
-            primary: TokenReference::new("global.color_palette.neutral.50".to_string()),
-            secondary: TokenReference::new("global.color_palette.neutral.100".to_string()),
-            hover: TokenReference::new("global.color_palette.neutral.200".to_string()),
-            active: TokenReference::new("global.color_palette.neutral.300".to_string()),
+            primary: TokenReference::create("global.color_palette.neutral.50".to_string()),
+            secondary: TokenReference::create("global.color_palette.neutral.100".to_string()),
+            hover: TokenReference::create("global.color_palette.neutral.200".to_string()),
+            active: TokenReference::create("global.color_palette.neutral.300".to_string()),
         }
     }
 }
@@ -137,10 +239,10 @@ impl Default for BackgroundColors {
 impl Default for BorderColors {
     fn default() -> Self {
         Self {
-            default: TokenReference::new("global.color_palette.neutral.300".to_string()),
-            hover: TokenReference::new("global.color_palette.neutral.400".to_string()),
-            focus: TokenReference::new("global.color_palette.primary.500".to_string()),
-            error: TokenReference::new("global.color_palette.error.500".to_string()),
+            default: TokenReference::create("global.color_palette.neutral.300".to_string()),
+            hover: TokenReference::create("global.color_palette.neutral.400".to_string()),
+            focus: TokenReference::create("global.color_palette.primary.500".to_string()),
+            error: TokenReference::create("global.color_palette.error.500".to_string()),
         }
     }
 }
@@ -148,10 +250,10 @@ impl Default for BorderColors {
 impl Default for StatusColors {
     fn default() -> Self {
         Self {
-            success: TokenReference::new("global.color_palette.success.500".to_string()),
-            warning: TokenReference::new("global.color_palette.warning.500".to_string()),
-            error: TokenReference::new("global.color_palette.error.500".to_string()),
-            info: TokenReference::new("global.color_palette.info.500".to_string()),
+            success: TokenReference::create("global.color_palette.success.500".to_string()),
+            warning: TokenReference::create("global.color_palette.warning.500".to_string()),
+            error: TokenReference::create("global.color_palette.error.500".to_string()),
+            info: TokenReference::create("global.color_palette.info.500".to_string()),
         }
     }
 }
@@ -259,26 +361,26 @@ impl SemanticColors {
         match theme {
             ThemeVariant::Light => {
                 self.text.primary =
-                    TokenReference::new("global.color_palette.neutral.900".to_string());
+                    TokenReference::create("global.color_palette.neutral.900".to_string());
                 self.text.secondary =
-                    TokenReference::new("global.color_palette.neutral.600".to_string());
+                    TokenReference::create("global.color_palette.neutral.600".to_string());
                 self.background.primary =
-                    TokenReference::new("global.color_palette.neutral.50".to_string());
+                    TokenReference::create("global.color_palette.neutral.50".to_string());
             }
             ThemeVariant::Dark => {
                 self.text.primary =
-                    TokenReference::new("global.color_palette.neutral.100".to_string());
+                    TokenReference::create("global.color_palette.neutral.100".to_string());
                 self.text.secondary =
-                    TokenReference::new("global.color_palette.neutral.400".to_string());
+                    TokenReference::create("global.color_palette.neutral.400".to_string());
                 self.background.primary =
-                    TokenReference::new("global.color_palette.neutral.900".to_string());
+                    TokenReference::create("global.color_palette.neutral.900".to_string());
             }
             ThemeVariant::Auto => {
                 // Auto模式使用浅色主题设置
                 self.text.primary =
-                    TokenReference::new("global.color_palette.neutral.900".to_string());
+                    TokenReference::create("global.color_palette.neutral.900".to_string());
                 self.background.primary =
-                    TokenReference::new("global.color_palette.neutral.50".to_string());
+                    TokenReference::create("global.color_palette.neutral.50".to_string());
             }
         }
     }

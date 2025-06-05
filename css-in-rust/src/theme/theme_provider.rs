@@ -432,7 +432,7 @@ impl ThemeProvider {
     }
 
     /// 获取当前 CSS 变量
-    pub fn get_css_variables(&self) -> Result<String, String> {
+    pub fn get_css_variables(&mut self) -> Result<String, String> {
         let inner = self
             .inner
             .read()

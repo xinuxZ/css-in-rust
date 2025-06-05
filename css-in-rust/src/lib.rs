@@ -59,6 +59,21 @@ pub use theme::*;
 pub use theme_bridge::*;
 pub use variants::*;
 
+// 从 theme 模块导出关键类型
+pub use theme::core::token::css_generator::CssGenerator;
+pub use theme::core::token::definitions::{
+    DimensionUnit, DimensionValue, ThemeVariant, TokenMetadata, TokenPath, TokenReference,
+    TokenValidationError, TokenValue,
+};
+pub use theme::core::token::resolver::TokenResolver;
+pub use theme::core::token::values::DesignTokens;
+
+pub use theme::systems::{
+    BodyTypography, CodeTypography, ColorSystem, ComponentSpacing, ContentSpacing, FontSystem,
+    HeadingTypography, LabelTypography, LayoutSpacing, SemanticSpacing, SemanticTypography,
+    SpacingSystem,
+};
+
 // Re-export macros when proc-macro feature is enabled
 #[cfg(feature = "proc-macro")]
 pub use css_in_rust_macros::{css, css_class, css_if};

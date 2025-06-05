@@ -10,7 +10,7 @@
 //! - 令牌引用和变换系统
 
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 use std::fmt;
 
 /// 令牌值类型
@@ -38,6 +38,8 @@ pub enum TokenValue {
     Typography(TypographyValue),
     /// 阴影值
     Shadow(ShadowValue),
+    /// 空值
+    Null,
 }
 
 /// 颜色值
@@ -98,6 +100,20 @@ pub enum DimensionUnit {
     Vh,
     Vw,
     Auto,
+}
+
+impl std::fmt::Display for DimensionUnit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Px => write!(f, "px"),
+            Self::Rem => write!(f, "rem"),
+            Self::Em => write!(f, "em"),
+            Self::Percent => write!(f, "%"),
+            Self::Vh => write!(f, "vh"),
+            Self::Vw => write!(f, "vw"),
+            Self::Auto => write!(f, "auto"),
+        }
+    }
 }
 
 /// 字体值
@@ -193,56 +209,193 @@ pub enum MathOperation {
     Clamp(f32, f32, f32), // min, value, max
 }
 
+/// CSS字符串转换特征
+pub trait CssString {
+    fn to_css_string(&self) -> String;
+}
+
+impl CssString for ColorValue {
+    fn to_css_string(&self) -> String {
+        if let Some(alpha) = self.alpha {
+            if alpha < 1.0 {
+                if let Some((r, g, b)) = self.rgb {
+                    format!("rgba({}, {}, {}, {})", r, g, b, alpha)
+                } else {
+                    format!("{}{}%", self.hex, (alpha * 100.0) as u8)
+                }
+            } else {
+                self.hex.clone()
+            }
+        } else {
+            self.hex.clone()
+        }
+    }
+}
+
+impl CssString for DimensionValue {
+    fn to_css_string(&self) -> String {
+        format!("{}{}", self.value, self.unit)
+    }
+}
+
+impl CssString for TypographyValue {
+    fn to_css_string(&self) -> String {
+        let mut parts = Vec::new();
+
+        if let Some(weight) = self.font_weight {
+            parts.push(weight.to_string());
+        }
+
+        if let Some(ref size) = self.font_size {
+            let mut size_part = size.to_css_string();
+            if let Some(line_height) = self.line_height {
+                size_part.push_str(&format!("/{}", line_height));
+            }
+            parts.push(size_part);
+        }
+
+        if let Some(ref family) = self.font_family {
+            parts.push(family.clone());
+        }
+
+        if parts.is_empty() {
+            "inherit".to_string()
+        } else {
+            parts.join(" ")
+        }
+    }
+}
+
+impl CssString for ShadowValue {
+    fn to_css_string(&self) -> String {
+        let mut parts = Vec::new();
+
+        if self.inset {
+            parts.push("inset".to_string());
+        }
+
+        parts.push(self.x.to_css_string());
+        parts.push(self.y.to_css_string());
+        parts.push(self.blur.to_css_string());
+
+        if let Some(ref spread) = self.spread {
+            parts.push(spread.to_css_string());
+        }
+
+        parts.push(self.color.to_css_string());
+
+        parts.join(" ")
+    }
+}
+
 impl TokenValue {
+    /// 创建字符串值
+    pub fn string(value: String) -> Self {
+        TokenValue::String(value)
+    }
+
+    /// 创建数字值
+    pub fn number(value: f64) -> Self {
+        TokenValue::Number(value)
+    }
+
+    /// 创建布尔值
+    pub fn boolean(value: bool) -> Self {
+        TokenValue::Boolean(value)
+    }
+
+    /// 创建颜色值
+    pub fn color(value: ColorValue) -> Self {
+        TokenValue::Color(value)
+    }
+
+    /// 创建维度值
+    pub fn dimension(value: DimensionValue) -> Self {
+        TokenValue::Dimension(value)
+    }
+
+    /// 创建引用值
+    pub fn reference(value: TokenReference) -> Self {
+        TokenValue::TokenReference(value)
+    }
+
+    /// 获取值类型
+    pub fn value_type(&self) -> &'static str {
+        match self {
+            TokenValue::String(_) => "string",
+            TokenValue::Number(_) => "number",
+            TokenValue::Boolean(_) => "boolean",
+            TokenValue::Color(_) => "color",
+            TokenValue::Dimension(_) => "dimension",
+            TokenValue::Reference(_) => "reference",
+            TokenValue::Array(_) => "array",
+            TokenValue::Object(_) => "object",
+            TokenValue::TokenReference(_) => "token_reference",
+            TokenValue::Typography(_) => "typography",
+            TokenValue::Shadow(_) => "shadow",
+            TokenValue::Null => "null",
+        }
+    }
+
     /// 转换为字符串表示
     pub fn to_string(&self) -> String {
         match self {
             TokenValue::String(s) => s.clone(),
             TokenValue::Number(n) => n.to_string(),
             TokenValue::Boolean(b) => b.to_string(),
-            TokenValue::Reference(r) => format!("var(--{})", r.replace(".", "-")),
-            TokenValue::Array(arr) => arr
-                .iter()
-                .map(|v| v.to_string())
-                .collect::<Vec<_>>()
-                .join(", "),
-            TokenValue::Object(_) => "[object]".to_string(),
-            TokenValue::TokenReference(tr) => {
-                format!("var(--{})", tr.reference.replace(".", "-"))
-            }
+            TokenValue::Reference(r) => format!("var(--{})", r.replace('.', "-")),
+            TokenValue::Array(arr) => format!(
+                "[{}]",
+                arr.iter()
+                    .map(|v| v.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            TokenValue::Object(obj) => format!(
+                "{{{}}}",
+                obj.iter()
+                    .map(|(k, v)| format!("{}: {}", k, v.to_string()))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            TokenValue::TokenReference(r) => r.get_reference().to_string(),
             TokenValue::Color(c) => c.to_css_string(),
             TokenValue::Dimension(d) => d.to_css_string(),
             TokenValue::Typography(t) => t.to_css_string(),
             TokenValue::Shadow(s) => s.to_css_string(),
+            TokenValue::Null => "null".to_string(),
         }
     }
 
     /// 转换为CSS值
     pub fn to_css_value(&self) -> String {
         match self {
-            TokenValue::String(s) => s.clone(),
-            TokenValue::Number(n) => {
-                if n.fract() == 0.0 {
-                    format!("{}", *n as i64)
-                } else {
-                    format!("{}", n)
-                }
-            }
-            TokenValue::Boolean(b) => if *b { "1" } else { "0" }.to_string(),
-            TokenValue::Reference(r) => format!("var(--{})", r.replace(".", "-")),
-            TokenValue::Array(arr) => arr
-                .iter()
-                .map(|v| v.to_css_value())
-                .collect::<Vec<_>>()
-                .join(", "),
-            TokenValue::Object(_) => "initial".to_string(),
-            TokenValue::TokenReference(tr) => {
-                format!("var(--{})", tr.reference.replace(".", "-"))
+            TokenValue::String(s) => format!("\"{}\"", s),
+            TokenValue::Number(n) => n.to_string(),
+            TokenValue::Boolean(b) => b.to_string(),
+            TokenValue::Reference(r) => format!("var(--{})", r.replace('.', "-")),
+            TokenValue::Array(arr) => format!(
+                "[{}]",
+                arr.iter()
+                    .map(|v| v.to_css_value())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            TokenValue::Object(obj) => format!(
+                "{{{}}}",
+                obj.iter()
+                    .map(|(k, v)| format!("{}: {}", k, v.to_css_value()))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            TokenValue::TokenReference(r) => {
+                format!("var(--{})", r.get_reference().replace('.', "-"))
             }
             TokenValue::Color(c) => c.to_css_string(),
             TokenValue::Dimension(d) => d.to_css_string(),
             TokenValue::Typography(t) => t.to_css_string(),
             TokenValue::Shadow(s) => s.to_css_string(),
+            TokenValue::Null => "null".to_string(),
         }
     }
 
@@ -309,6 +462,7 @@ impl TokenValue {
             TokenValue::Dimension(_) => TokenType::Dimension,
             TokenValue::Typography(_) => TokenType::Typography,
             TokenValue::Shadow(_) => TokenType::Shadow,
+            TokenValue::Null => TokenType::Null,
         }
     }
 }
@@ -328,6 +482,7 @@ pub enum TokenType {
     Dimension,
     Typography,
     Shadow,
+    Null,
 }
 
 impl std::fmt::Display for TokenType {
@@ -344,6 +499,7 @@ impl std::fmt::Display for TokenType {
             TokenType::Dimension => write!(f, "Dimension"),
             TokenType::Typography => write!(f, "Typography"),
             TokenType::Shadow => write!(f, "Shadow"),
+            TokenType::Null => write!(f, "Null"),
         }
     }
 }
@@ -435,7 +591,7 @@ pub enum TokenTier {
 }
 
 /// 主题变体
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ThemeVariant {
     Light,
     Dark,
@@ -559,96 +715,33 @@ impl ColorValue {
 
 impl DimensionValue {
     /// 创建新的尺寸值
-    pub fn new(value: f64, unit: DimensionUnit) -> Self {
+    pub fn create(value: f64, unit: DimensionUnit) -> Self {
         Self { value, unit }
     }
 
     /// 创建像素值
     pub fn px(value: f64) -> Self {
-        Self::new(value, DimensionUnit::Px)
+        Self::create(value, DimensionUnit::Px)
     }
 
     /// 创建rem值
     pub fn rem(value: f64) -> Self {
-        Self::new(value, DimensionUnit::Rem)
+        Self::create(value, DimensionUnit::Rem)
     }
 
     /// 创建em值
     pub fn em(value: f64) -> Self {
-        Self::new(value, DimensionUnit::Em)
+        Self::create(value, DimensionUnit::Em)
     }
 
     /// 创建百分比值
     pub fn percent(value: f64) -> Self {
-        Self::new(value, DimensionUnit::Percent)
+        Self::create(value, DimensionUnit::Percent)
     }
 
-    /// 转换为CSS字符串
-    pub fn to_css_string(&self) -> String {
-        match self.unit {
-            DimensionUnit::Px => format!("{}px", self.value),
-            DimensionUnit::Rem => format!("{}rem", self.value),
-            DimensionUnit::Em => format!("{}em", self.value),
-            DimensionUnit::Percent => format!("{}%", self.value),
-            DimensionUnit::Vh => format!("{}vh", self.value),
-            DimensionUnit::Vw => format!("{}vw", self.value),
-            DimensionUnit::Auto => "auto".to_string(),
-        }
-    }
-
-    /// 加法运算
-    pub fn add(&self, other: &DimensionValue) -> Result<DimensionValue, String> {
-        if self.unit != other.unit {
-            return Err(format!(
-                "Cannot add different units: {:?} and {:?}",
-                self.unit, other.unit
-            ));
-        }
-        Ok(DimensionValue {
-            value: self.value + other.value,
-            unit: self.unit.clone(),
-        })
-    }
-
-    /// 减法运算
-    pub fn subtract(&self, other: &DimensionValue) -> Result<DimensionValue, String> {
-        if self.unit != other.unit {
-            return Err(format!(
-                "Cannot subtract different units: {:?} and {:?}",
-                self.unit, other.unit
-            ));
-        }
-        Ok(DimensionValue {
-            value: self.value - other.value,
-            unit: self.unit.clone(),
-        })
-    }
-
-    /// 乘法运算（与数值相乘）
-    pub fn multiply(&self, factor: f64) -> DimensionValue {
-        DimensionValue {
-            value: self.value * factor,
-            unit: self.unit.clone(),
-        }
-    }
-
-    /// 除法运算（除以数值）
-    pub fn divide(&self, divisor: f64) -> Result<DimensionValue, String> {
-        if divisor == 0.0 {
-            return Err("Cannot divide by zero".to_string());
-        }
-        Ok(DimensionValue {
-            value: self.value / divisor,
-            unit: self.unit.clone(),
-        })
-    }
-
-    /// 缩放尺寸值
+    /// 缩放值
     pub fn scale(&self, factor: f32) -> Self {
-        DimensionValue {
-            value: self.value * factor as f64,
-            unit: self.unit.clone(),
-        }
+        Self::create(self.value * factor as f64, self.unit.clone())
     }
 }
 
@@ -764,7 +857,7 @@ impl ShadowValue {
 
 impl TokenReference {
     /// 创建新的令牌引用
-    pub fn new(reference: String) -> Self {
+    pub fn create(reference: String) -> Self {
         Self {
             reference,
             transform: None,
@@ -772,14 +865,24 @@ impl TokenReference {
     }
 
     /// 创建带变换的令牌引用
-    pub fn with_transform(reference: String, transform: TokenTransform) -> Self {
+    pub fn create_with_transform(reference: String, transform: TokenTransform) -> Self {
         Self {
             reference,
             transform: Some(transform),
         }
     }
 
-    /// 获取CSS变量名
+    /// 获取引用路径
+    pub fn get_reference(&self) -> &str {
+        &self.reference
+    }
+
+    /// 获取变换
+    pub fn get_transform(&self) -> Option<&TokenTransform> {
+        self.transform.as_ref()
+    }
+
+    /// 转换为CSS变量引用
     pub fn to_css_var(&self) -> String {
         format!("var(--{})", self.reference.replace(".", "-"))
     }
@@ -812,34 +915,38 @@ impl Default for TokenMetadata {
     }
 }
 
-/// 令牌定义的基础trait
 pub trait TokenDefinitions {
-    /// 获取令牌值
-    fn get_token_value(&self, path: &TokenPath, theme: ThemeVariant) -> Option<TokenValue>;
+    fn get_token_value(&self, path: &str) -> Option<TokenValue>;
+    fn set_token_value(&mut self, path: &str, value: TokenValue);
+    fn get_metadata(&self, path: &str) -> Option<TokenMetadata>;
+}
 
-    /// 设置令牌值
-    fn set_token_value(
-        &mut self,
-        path: &TokenPath,
-        value: TokenValue,
-        theme: ThemeVariant,
-    ) -> Result<(), String>;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TokenDefinitionsImpl {
+    values: HashMap<String, TokenValue>,
+    metadata: HashMap<String, TokenMetadata>,
+}
 
-    /// 获取令牌元数据
-    fn get_token_metadata(&self, path: &TokenPath) -> Option<TokenMetadata>;
+impl Default for TokenDefinitionsImpl {
+    fn default() -> Self {
+        Self {
+            values: HashMap::new(),
+            metadata: HashMap::new(),
+        }
+    }
+}
 
-    /// 列出所有令牌路径
-    fn list_token_paths(&self, theme: ThemeVariant) -> Vec<TokenPath>;
-
-    /// 检查令牌是否存在
-    fn has_token(&self, path: &TokenPath, theme: ThemeVariant) -> bool {
-        self.get_token_value(path, theme).is_some()
+impl TokenDefinitions for TokenDefinitionsImpl {
+    fn get_token_value(&self, path: &str) -> Option<TokenValue> {
+        self.values.get(path).cloned()
     }
 
-    /// 解析令牌引用
-    fn resolve_reference(&self, reference: &str, theme: ThemeVariant) -> Option<TokenValue> {
-        let path = TokenPath::from_str(reference);
-        self.get_token_value(&path, theme)
+    fn set_token_value(&mut self, path: &str, value: TokenValue) {
+        self.values.insert(path.to_string(), value);
+    }
+
+    fn get_metadata(&self, path: &str) -> Option<TokenMetadata> {
+        self.metadata.get(path).cloned()
     }
 }
 

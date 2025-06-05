@@ -3,7 +3,7 @@
 //! 提供完整的响应式设计支持，包括断点管理、媒体查询生成和运行时变体选择。
 
 use super::{VariantConfig, VariantStyle};
-use crate::theme::Breakpoints;
+use crate::theme::core::token::values::Breakpoints;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -389,7 +389,7 @@ impl Default for ResponsiveVariantBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::theme::Breakpoints;
+    use crate::theme::core::token::values::Breakpoints;
 
     #[test]
     fn test_responsive_manager_creation() {

@@ -4,9 +4,84 @@
 //! 职责：令牌值的存储、检索和主题切换
 
 // 移除对design_tokens的依赖，将相关类型定义在本文件中
-use super::token_definitions::{ThemeVariant, TokenMetadata, TokenPath, TokenValue};
+use super::definitions::{DimensionUnit, DimensionValue, ThemeVariant, TokenMetadata, TokenValue};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt;
+
+/// 令牌值特征
+pub trait TokenValues: fmt::Display + Clone {
+    /// 转换为字符串
+    fn to_string(&self) -> String;
+    /// 获取值类型
+    fn value_type(&self) -> &'static str;
+}
+
+impl TokenValues for TokenValue {
+    fn to_string(&self) -> String {
+        match self {
+            Self::String(s) => s.clone(),
+            Self::Number(n) => n.to_string(),
+            Self::Boolean(b) => b.to_string(),
+            Self::Reference(r) => r.clone(),
+            Self::Array(arr) => format!(
+                "[{}]",
+                arr.iter()
+                    .map(|v| v.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            Self::Object(obj) => format!(
+                "{{{}}}",
+                obj.iter()
+                    .map(|(k, v)| format!("{}: {}", k, v.to_string()))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            Self::TokenReference(r) => r.get_reference().to_string(),
+            Self::Color(c) => c.to_css_string(),
+            Self::Dimension(d) => d.to_css_string(),
+            Self::Typography(t) => t.to_css_string(),
+            Self::Shadow(s) => s.to_css_string(),
+            Self::Null => "null".to_string(),
+        }
+    }
+
+    fn value_type(&self) -> &'static str {
+        match self {
+            Self::String(_) => "string",
+            Self::Number(_) => "number",
+            Self::Boolean(_) => "boolean",
+            Self::Reference(_) => "reference",
+            Self::Array(_) => "array",
+            Self::Object(_) => "object",
+            Self::TokenReference(_) => "token_reference",
+            Self::Color(_) => "color",
+            Self::Dimension(_) => "dimension",
+            Self::Typography(_) => "typography",
+            Self::Shadow(_) => "shadow",
+            Self::Null => "null",
+        }
+    }
+}
+
+impl fmt::Display for TokenValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.to_string())
+    }
+}
+
+impl DimensionValue {
+    /// 创建新的尺寸值
+    pub fn new(value: f64, unit: DimensionUnit) -> Self {
+        Self { value, unit }
+    }
+
+    /// 转换为CSS字符串
+    pub fn to_css_string(&self) -> String {
+        format!("{}{}", self.value, self.unit)
+    }
+}
 
 /// 边框颜色
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -391,218 +466,73 @@ impl ColorTokens {
     }
 }
 
-/// 设计令牌集合
-///
-/// 包含通用设计体系的所有令牌定义
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+/// 设计令牌存储
+#[derive(Debug, Default, Clone)]
 pub struct DesignTokens {
-    /// 颜色令牌
-    pub colors: Colors,
-    /// 字体令牌
-    pub typography: Typography,
-    /// 间距令牌
-    pub spacing: Spacing,
-    /// 边框令牌
-    pub borders: Borders,
-    /// 阴影令牌
-    pub shadows: Shadows,
-    /// 动画令牌
-    pub motion: Motion,
-    /// 断点令牌
-    pub breakpoints: Breakpoints,
+    values: HashMap<String, HashMap<ThemeVariant, TokenValue>>,
 }
 
-impl Default for DesignTokens {
-    fn default() -> Self {
-        Self::new()
+impl PartialEq for DesignTokens {
+    fn eq(&self, other: &Self) -> bool {
+        self.values == other.values
     }
 }
 
 impl DesignTokens {
-    /// 创建新的设计令牌集合
+    /// 创建新的设计令牌存储
     pub fn new() -> Self {
         Self {
-            colors: Colors::default(),
-            typography: Typography::default(),
-            spacing: Spacing::default(),
-            borders: Borders::default(),
-            shadows: Shadows::default(),
-            motion: Motion::default(),
-            breakpoints: Breakpoints::default(),
+            values: HashMap::new(),
         }
     }
 
-    /// 根据路径获取令牌值
-    ///
-    /// 支持点分路径，如 "colors.primary"、"spacing.md"、"typography.font_size.lg"
-    pub fn get_value(&self, path: &str) -> Option<String> {
-        let parts: Vec<&str> = path.split('.').collect();
-
-        match parts.as_slice() {
-            ["colors", color_path @ ..] => self.colors.get_value(&color_path.join(".")),
-            ["typography", typo_path @ ..] => self.typography.get_value(&typo_path.join(".")),
-            ["spacing", spacing] => self.spacing.get_value(spacing),
-            ["borders", border_path @ ..] => self.borders.get_value(&border_path.join(".")),
-            ["shadows", shadow] => self.shadows.get_value(shadow),
-            ["motion", motion_path @ ..] => self.motion.get_value(&motion_path.join(".")),
-            ["breakpoints", breakpoint] => self.breakpoints.get_value(breakpoint),
-            _ => None,
-        }
-    }
-
-    /// 列出所有可用的令牌路径
-    pub fn list_paths(&self, _theme: &str) -> Vec<String> {
-        vec![
-            "colors.primary".to_string(),
-            "colors.secondary".to_string(),
-            "typography.font_size.md".to_string(),
-            "spacing.md".to_string(),
-            "borders.width.thin".to_string(),
-            "shadows.sm".to_string(),
-            "motion.duration.fast".to_string(),
-            "breakpoints.md".to_string(),
-        ]
-    }
-
-    /// 获取亮色主题的令牌值
-    pub fn get_light_theme_values(&self) -> Self {
-        // 返回当前实例的克隆，因为默认就是亮色主题
-        self.clone()
-    }
-
-    /// 生成 CSS 变量声明
-    pub fn to_css_variables(&self) -> String {
-        let mut css = String::new();
-
-        css.push_str(&self.colors.to_css_variables());
-        css.push_str(&self.typography.to_css_variables());
-        css.push_str(&self.spacing.to_css_variables());
-        css.push_str(&self.borders.to_css_variables());
-        css.push_str(&self.shadows.to_css_variables());
-        css.push_str(&self.motion.to_css_variables());
-        css.push_str(&self.breakpoints.to_css_variables());
-
-        css
-    }
-
-    /// 创建令牌存储
+    /// 创建存储
     pub fn create_store(self) -> Self {
         self
     }
 
-    /// 获取支持的主题列表
-    pub fn get_supported_themes(&self) -> Vec<crate::theme::ThemeVariant> {
-        vec![
-            crate::theme::ThemeVariant::Light,
-            crate::theme::ThemeVariant::Dark,
-        ]
-    }
-
-    /// 清空指定主题的令牌（重置为默认值）
-    pub fn clear_theme(&mut self, _theme: crate::theme::ThemeVariant) {
-        *self = Self::default();
+    /// 获取令牌值
+    pub fn get_value(&self, path: &str, theme: ThemeVariant) -> Option<&TokenValue> {
+        self.values
+            .get(path)
+            .and_then(|theme_values| theme_values.get(&theme))
     }
 
     /// 设置令牌值
-    pub fn set_value(&mut self, path: &str, value: String) -> Result<(), String> {
-        let parts: Vec<&str> = path.split('.').collect();
-
-        match parts.as_slice() {
-            ["colors", "primary"] => {
-                self.colors.primary = value;
-                Ok(())
-            }
-            ["colors", "success"] => {
-                self.colors.success = value;
-                Ok(())
-            }
-            ["colors", "warning"] => {
-                self.colors.warning = value;
-                Ok(())
-            }
-            ["colors", "error"] => {
-                self.colors.error = value;
-                Ok(())
-            }
-            ["colors", "info"] => {
-                self.colors.info = value;
-                Ok(())
-            }
-            _ => Err(format!("Unsupported token path: {}", path)),
-        }
-    }
-
-    /// 获取令牌的元数据
-    pub fn get_metadata(&self, path: &str) -> Option<super::token_definitions::TokenMetadata> {
-        if self.get_value(path).is_some() {
-            Some(super::token_definitions::TokenMetadata {
-                description: Some(format!("Design token at path: {}", path)),
-                token_type: "token".to_string(),
-                deprecated: false,
-                aliases: Vec::new(),
-                tags: Vec::new(),
-            })
-        } else {
-            None
-        }
+    pub fn set_value(&mut self, path: String, theme: ThemeVariant, value: TokenValue) {
+        self.values
+            .entry(path)
+            .or_insert_with(HashMap::new)
+            .insert(theme, value);
     }
 
     /// 复制主题
-    pub fn copy_theme(&mut self, _base_theme: ThemeVariant, _new_theme: ThemeVariant) {
-        // 简单实现，实际应该复制主题相关的令牌值
-        // 这里暂时留空，后续可以根据需要实现具体逻辑
+    pub fn copy_theme(&mut self, from: ThemeVariant, to: ThemeVariant) {
+        for theme_values in self.values.values_mut() {
+            if let Some(value) = theme_values.get(&from).cloned() {
+                theme_values.insert(to.clone(), value);
+            }
+        }
     }
-}
 
-/// 为 DesignTokens 实现 Iterator trait
-/// 允许遍历所有的设计令牌
-impl IntoIterator for DesignTokens {
-    type Item = (String, String);
-    type IntoIter = std::vec::IntoIter<(String, String)>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        let mut items = Vec::new();
-
-        // 添加基础颜色
-        items.push(("colors.primary".to_string(), self.colors.primary));
-        items.push(("colors.success".to_string(), self.colors.success));
-        items.push(("colors.warning".to_string(), self.colors.warning));
-        items.push(("colors.error".to_string(), self.colors.error));
-        items.push(("colors.info".to_string(), self.colors.info));
-
-        // 添加间距
-        items.push(("spacing.xs".to_string(), self.spacing.xs));
-        items.push(("spacing.sm".to_string(), self.spacing.sm));
-        items.push(("spacing.md".to_string(), self.spacing.md));
-        items.push(("spacing.lg".to_string(), self.spacing.lg));
-        items.push(("spacing.xl".to_string(), self.spacing.xl));
-
-        items.into_iter()
+    /// 获取支持的主题
+    pub fn get_supported_themes(&self) -> Vec<ThemeVariant> {
+        let mut themes = Vec::new();
+        for theme_values in self.values.values() {
+            for theme in theme_values.keys() {
+                if !themes.contains(theme) {
+                    themes.push(theme.clone());
+                }
+            }
+        }
+        themes
     }
-}
 
-impl<'a> IntoIterator for &'a DesignTokens {
-    type Item = (String, String);
-    type IntoIter = std::vec::IntoIter<(String, String)>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        let mut items = Vec::new();
-
-        // 添加基础颜色
-        items.push(("colors.primary".to_string(), self.colors.primary.clone()));
-        items.push(("colors.success".to_string(), self.colors.success.clone()));
-        items.push(("colors.warning".to_string(), self.colors.warning.clone()));
-        items.push(("colors.error".to_string(), self.colors.error.clone()));
-        items.push(("colors.info".to_string(), self.colors.info.clone()));
-
-        // 添加间距
-        items.push(("spacing.xs".to_string(), self.spacing.xs.clone()));
-        items.push(("spacing.sm".to_string(), self.spacing.sm.clone()));
-        items.push(("spacing.md".to_string(), self.spacing.md.clone()));
-        items.push(("spacing.lg".to_string(), self.spacing.lg.clone()));
-        items.push(("spacing.xl".to_string(), self.spacing.xl.clone()));
-
-        items.into_iter()
+    /// 清除主题
+    pub fn clear_theme(&mut self, theme: ThemeVariant) {
+        for theme_values in self.values.values_mut() {
+            theme_values.remove(&theme);
+        }
     }
 }
 
@@ -1372,4 +1302,78 @@ impl Colors {
     }
 }
 
-// TokenValueStore 已合并到 DesignTokens 中
+/// 令牌值存储特征
+pub trait TokenStore: fmt::Display + Clone {
+    fn get(&self, key: &str) -> Option<&TokenValue>;
+    fn set(&mut self, key: &str, value: TokenValue);
+    fn get_dimension(&self, key: &str) -> Option<&DimensionValue>;
+    fn get_metadata(&self, key: &str) -> Option<&TokenMetadata>;
+    fn set_metadata(&mut self, key: &str, metadata: TokenMetadata);
+    fn to_string(&self) -> String;
+    fn value_type(&self) -> &'static str;
+}
+
+/// 令牌值存储实现
+#[derive(Default)]
+pub struct TokenValuesImpl {
+    values: HashMap<String, TokenValue>,
+    metadata: HashMap<String, TokenMetadata>,
+}
+
+impl TokenStore for TokenValuesImpl {
+    fn get(&self, key: &str) -> Option<&TokenValue> {
+        self.values.get(key)
+    }
+
+    fn set(&mut self, key: &str, value: TokenValue) {
+        self.values.insert(key.to_string(), value);
+    }
+
+    fn get_dimension(&self, key: &str) -> Option<&DimensionValue> {
+        match self.get(key) {
+            Some(TokenValue::Dimension(dim)) => Some(dim),
+            _ => None,
+        }
+    }
+
+    fn get_metadata(&self, key: &str) -> Option<&TokenMetadata> {
+        self.metadata.get(key)
+    }
+
+    fn set_metadata(&mut self, key: &str, metadata: TokenMetadata) {
+        self.metadata.insert(key.to_string(), metadata);
+    }
+
+    fn to_string(&self) -> String {
+        format!("{}", self)
+    }
+
+    fn value_type(&self) -> &'static str {
+        "token_store"
+    }
+}
+
+impl fmt::Display for TokenValuesImpl {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "TokenValuesImpl")
+    }
+}
+
+impl Clone for TokenValuesImpl {
+    fn clone(&self) -> Self {
+        Self {
+            values: self.values.clone(),
+            metadata: self.metadata.clone(),
+        }
+    }
+}
+
+impl TokenValues for TokenValuesImpl {
+    fn to_string(&self) -> String {
+        format!("{}", self)
+    }
+
+    fn value_type(&self) -> &'static str {
+        "token_store"
+    }
+}
