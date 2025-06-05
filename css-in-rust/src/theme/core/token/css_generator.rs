@@ -169,49 +169,107 @@ impl CssGenerator {
 
     /// 压缩 CSS
     fn minify_css(&self, css: &str) -> String {
-        // 简单实现：移除所有注释和多余空白
-        let mut result = String::new();
+        // 使用更高效的 CSS 压缩算法，而不是简单实现
+        let mut result = String::with_capacity(css.len());
         let mut in_comment = false;
+        let mut in_string = false;
+        let mut string_quote = '\0';
         let mut last_char = '\0';
+        let mut last_non_space = '\0';
 
         for c in css.chars() {
+            // 处理字符串
+            if in_string {
+                result.push(c);
+                if c == string_quote && last_char != '\\' {
+                    in_string = false;
+                }
+                last_char = c;
+                continue;
+            }
+
             // 处理注释
             if in_comment {
                 if last_char == '*' && c == '/' {
                     in_comment = false;
                 }
+                last_char = c;
+                continue;
             } else if last_char == '/' && c == '*' {
                 in_comment = true;
                 // 移除上一个添加的 '/'
                 if !result.is_empty() {
                     result.pop();
                 }
-            } else if !in_comment {
-                // 处理空白字符
-                if c.is_whitespace() {
-                    // 只在特定情况下保留空格
-                    if c == ' ' && !result.is_empty() {
-                        let last = result.chars().last().unwrap();
-                        if last != '{' && last != '}' && last != ':' && last != ';' && last != ',' {
-                            // 查看下一个非空白字符
-                            let mut next_chars =
-                                css.chars().skip_while(|&x| x == c || x.is_whitespace());
-                            if let Some(next) = next_chars.next() {
-                                if next != '{'
-                                    && next != '}'
-                                    && next != ':'
-                                    && next != ';'
-                                    && next != ','
-                                {
-                                    result.push(' ');
-                                }
-                            }
+                last_char = c;
+                continue;
+            } else if last_char == '/' && c == '/' {
+                // 单行注释，跳过直到行尾
+                if !result.is_empty() {
+                    result.pop(); // 移除上一个添加的 '/'
+                }
+                // 继续处理下一个字符，但不添加到结果中
+                last_char = c;
+                continue;
+            }
+
+            // 处理字符串开始
+            if (c == '\'' || c == '"') && last_char != '\\' {
+                in_string = true;
+                string_quote = c;
+                result.push(c);
+                last_char = c;
+                last_non_space = c;
+                continue;
+            }
+
+            // 处理空白字符
+            if c.is_whitespace() {
+                // 保留必要的空格
+                if c == ' ' {
+                    // 只在某些情况下保留空格
+                    // 例如：在属性值之间，但不在选择器、冒号、分号等之后
+                    if !result.is_empty()
+                        && !":;{},>+~[]()".contains(last_non_space)
+                        && last_non_space != '\0'
+                    {
+                        // 查看下一个非空白字符
+                        let next_non_space =
+                            match css.chars().skip_while(|&x| x.is_whitespace()).next() {
+                                Some(ch) => ch,
+                                None => '\0',
+                            };
+
+                        if !":;{},>+~[]()".contains(next_non_space) && next_non_space != '\0' {
+                            result.push(' ');
                         }
                     }
-                } else {
-                    // 非空白字符直接添加
-                    result.push(c);
                 }
+            } else {
+                // 压缩连续的分号和逗号
+                if (c == ';' || c == ',') && last_non_space == c {
+                    last_char = c;
+                    continue;
+                }
+
+                // 优化属性值中的小数点
+                if c == '0' && last_non_space == '.' && result.ends_with('.') {
+                    // 例如：将 0.5 优化为 .5
+                    result.pop(); // 移除 '0'
+                }
+
+                // 优化零值单位
+                if result.ends_with('0')
+                    && ((c == 'p' && css.contains("px"))
+                        || (c == 'e' && css.contains("em"))
+                        || (c == 'r' && css.contains("rem")))
+                {
+                    // 例如：将 0px, 0em, 0rem 优化为 0
+                    continue;
+                }
+
+                result.push(c);
+                last_non_space = c;
             }
 
             last_char = c;

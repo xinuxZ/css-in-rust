@@ -3,11 +3,10 @@
 //! 本模块负责将设计令牌转换为CSS变量和样式声明。
 //! 职责：CSS变量生成、样式类生成、主题切换支持
 
-use super::super::token::resolver::TokenResolver;
-use super::super::token::{
-    definitions::{DimensionValue, TokenValue},
-    ThemeVariant,
+use crate::theme::core::token::definitions::{
+    DimensionUnit, DimensionValue, ThemeVariant, TokenValue,
 };
+use crate::theme::core::token::resolver::TokenResolver;
 use std::fmt::Write;
 
 /// CSS 生成器
@@ -19,6 +18,8 @@ pub struct CssGenerator {
     prefix: String,
     /// 是否启用压缩
     minify: bool,
+    /// 令牌解析器
+    resolver: TokenResolver,
 }
 
 impl CssGenerator {
@@ -27,14 +28,16 @@ impl CssGenerator {
         Self {
             prefix: "css-in-rust".to_string(),
             minify: false,
+            resolver: TokenResolver::default(),
         }
     }
 
-    /// 创建新的 CSS 生成器，带前缀
+    /// 创建带前缀的 CSS 生成器
     pub fn with_prefix(prefix: impl Into<String>) -> Self {
         Self {
             prefix: prefix.into(),
             minify: false,
+            resolver: TokenResolver::default(),
         }
     }
 
@@ -208,20 +211,25 @@ impl CssGenerator {
 
     /// 将维度值转换为 CSS 字符串
     fn dimension_to_css(&self, dim: &DimensionValue) -> String {
-        // 简化实现，直接返回值和单位的组合
-        format!("{}{}", dim.value, dim.unit)
+        match dim.unit {
+            DimensionUnit::Px => format!("{}px", dim.value),
+            DimensionUnit::Em => format!("{}em", dim.value),
+            DimensionUnit::Rem => format!("{}rem", dim.value),
+            DimensionUnit::Percent => format!("{}%", dim.value),
+            DimensionUnit::Vh => format!("{}vh", dim.value),
+            DimensionUnit::Vw => format!("{}vw", dim.value),
+            DimensionUnit::Auto => "auto".to_string(),
+        }
     }
 
-    /// 获取令牌解析器的可变引用 (简化实现)
+    /// 获取令牌解析器的可变引用
     pub fn get_resolver_mut(&mut self) -> &mut TokenResolver {
-        // 简化实现，仅为编译通过，实际使用时会出错
-        panic!("Not implemented")
+        &mut self.resolver
     }
 
-    /// 获取令牌解析器的引用 (简化实现)
+    /// 获取令牌解析器的引用
     pub fn get_resolver(&self) -> &TokenResolver {
-        // 简化实现，仅为编译通过，实际使用时会出错
-        panic!("Not implemented")
+        &self.resolver
     }
 }
 

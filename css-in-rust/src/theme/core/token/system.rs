@@ -16,7 +16,6 @@ use super::definitions::{
     ColorValue, DimensionValue, ThemeVariant, TokenPath, TokenValue, TypographyValue,
 };
 use std::collections::HashMap;
-use std::str::FromStr;
 
 /// 设计令牌系统配置
 #[derive(Debug, Clone, Default)]
