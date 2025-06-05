@@ -286,10 +286,12 @@ mod tests {
         assert!(presets.has_preset("fade-out"));
         assert!(presets.has_preset("slide-up"));
         assert!(presets.has_preset("slide-down"));
-        assert!(presets.has_preset("scale-in"));
-        assert!(presets.has_preset("scale-out"));
-        assert!(presets.has_preset("bounce"));
-        assert!(presets.has_preset("zoom"));
+        assert!(presets.has_preset("zoom-in"));
+        assert!(presets.has_preset("zoom-out"));
+        assert!(presets.has_preset("bounce-in"));
+        assert!(presets.has_preset("shake"));
+        assert!(presets.has_preset("pulse"));
+        assert!(presets.has_preset("rotate"));
     }
 
     #[test]

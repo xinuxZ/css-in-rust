@@ -56,6 +56,11 @@ impl TokenSystem {
         self
     }
 
+    /// 设置颜色变量
+    pub fn set_color(&mut self, name: &str, value: &str) {
+        self.variables.insert(name.to_string(), value.to_string());
+    }
+
     /// 导出CSS变量
     pub fn export_css_variables(&self) -> Result<String, String> {
         let mut css = String::new();

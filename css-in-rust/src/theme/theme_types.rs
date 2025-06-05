@@ -72,6 +72,20 @@ impl Theme {
         self
     }
 
+    /// 添加颜色变量
+    pub fn add_color(&mut self, name: impl Into<String>, value: impl Into<String>) {
+        let name = name.into();
+        let value = value.into();
+
+        // 添加到自定义变量
+        self.custom_variables
+            .insert(format!("color-{}", name), value.clone());
+
+        // 同时添加到令牌系统中
+        self.token_system
+            .set_color(&format!("color.{}", name), &value);
+    }
+
     /// 生成 CSS 变量
     pub fn to_css_variables(&mut self) -> String {
         let mut css = String::new();

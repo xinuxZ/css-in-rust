@@ -169,7 +169,7 @@ impl CssGenerator {
 
     /// 压缩 CSS
     fn minify_css(&self, css: &str) -> String {
-        // 使用更高效的 CSS 压缩算法，而不是简单实现
+        // 使用更高效的 CSS 压缩算法
         let mut result = String::with_capacity(css.len());
         let mut in_comment = false;
         let mut in_string = false;
@@ -764,6 +764,11 @@ mod tests {
             "color.success".to_string(),
             ThemeVariant::Light,
             TokenValue::Color(ColorValue::new("#52c41a".to_string())),
+        );
+        store.set_value(
+            "color.background".to_string(),
+            ThemeVariant::Light,
+            TokenValue::Color(ColorValue::new("#ffffff".to_string())),
         );
 
         store.set_value(

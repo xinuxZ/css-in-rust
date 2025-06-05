@@ -671,38 +671,34 @@ impl ColorValue {
 
     /// 变亮颜色
     pub fn lighten(&self, amount: f32) -> ColorValue {
-        // 简单实现：返回当前颜色的副本
-        // 在实际应用中，这里应该实现真正的颜色变亮逻辑
-        let mut result = self.clone();
-        result.hex = format!("{}/* lightened by {} */", self.hex, amount);
-        result
+        // 将颜色转换为HSL，增加亮度，然后转回原格式
+        let (h, s, l) = self.to_hsl();
+        let new_l = (l + amount).clamp(0.0, 1.0);
+        self.from_hsl(h, s, new_l)
     }
 
     /// 变暗颜色
     pub fn darken(&self, amount: f32) -> ColorValue {
-        // 简单实现：返回当前颜色的副本
-        // 在实际应用中，这里应该实现真正的颜色变暗逻辑
-        let mut result = self.clone();
-        result.hex = format!("{}/* darkened by {} */", self.hex, amount);
-        result
+        // 将颜色转换为HSL，降低亮度，然后转回原格式
+        let (h, s, l) = self.to_hsl();
+        let new_l = (l - amount).clamp(0.0, 1.0);
+        self.from_hsl(h, s, new_l)
     }
 
     /// 增加饱和度
     pub fn saturate(&self, amount: f32) -> ColorValue {
-        // 简单实现：返回当前颜色的副本
-        // 在实际应用中，这里应该实现真正的饱和度调整逻辑
-        let mut result = self.clone();
-        result.hex = format!("{}/* saturated by {} */", self.hex, amount);
-        result
+        // 将颜色转换为HSL，增加饱和度，然后转回原格式
+        let (h, s, l) = self.to_hsl();
+        let new_s = (s + amount).clamp(0.0, 1.0);
+        self.from_hsl(h, new_s, l)
     }
 
     /// 降低饱和度
     pub fn desaturate(&self, amount: f32) -> ColorValue {
-        // 简单实现：返回当前颜色的副本
-        // 在实际应用中，这里应该实现真正的去饱和逻辑
-        let mut result = self.clone();
-        result.hex = format!("{}/* desaturated by {} */", self.hex, amount);
-        result
+        // 将颜色转换为HSL，降低饱和度，然后转回原格式
+        let (h, s, l) = self.to_hsl();
+        let new_s = (s - amount).clamp(0.0, 1.0);
+        self.from_hsl(h, new_s, l)
     }
 
     /// 调整透明度
@@ -710,6 +706,133 @@ impl ColorValue {
         let mut result = self.clone();
         result.alpha = Some(alpha.clamp(0.0, 1.0));
         result
+    }
+
+    /// 将颜色转换为HSL格式
+    fn to_hsl(&self) -> (f32, f32, f32) {
+        // 如果已经有HSL值，直接返回
+        if let Some(hsl) = self.hsl {
+            return hsl;
+        }
+
+        // 从RGB转换为HSL
+        if let Some((r, g, b)) = self.rgb {
+            return Self::rgb_to_hsl(r, g, b);
+        }
+
+        // 从HEX转换为HSL
+        let hex = self.hex.trim_start_matches('#');
+        if hex.len() == 6 {
+            if let (Ok(r), Ok(g), Ok(b)) = (
+                u8::from_str_radix(&hex[0..2], 16),
+                u8::from_str_radix(&hex[2..4], 16),
+                u8::from_str_radix(&hex[4..6], 16),
+            ) {
+                return Self::rgb_to_hsl(r, g, b);
+            }
+        }
+
+        // 默认返回黑色的HSL值
+        (0.0, 0.0, 0.0)
+    }
+
+    /// 从HSL创建颜色
+    fn from_hsl(&self, h: f32, s: f32, l: f32) -> ColorValue {
+        // 从HSL转换为RGB
+        let (r, g, b) = Self::hsl_to_rgb(h, s, l);
+
+        // 创建新的颜色值
+        let mut result = self.clone();
+        result.rgb = Some((r, g, b));
+        result.hsl = Some((h, s, l));
+
+        // 更新HEX值
+        result.hex = format!("#{:02x}{:02x}{:02x}", r, g, b);
+
+        result
+    }
+
+    /// RGB转HSL的辅助方法
+    fn rgb_to_hsl(r: u8, g: u8, b: u8) -> (f32, f32, f32) {
+        let r_f = r as f32 / 255.0;
+        let g_f = g as f32 / 255.0;
+        let b_f = b as f32 / 255.0;
+
+        let max = r_f.max(g_f).max(b_f);
+        let min = r_f.min(g_f).min(b_f);
+        let delta = max - min;
+
+        // 计算亮度
+        let l = (max + min) / 2.0;
+
+        // 灰度没有饱和度和色相
+        if delta.abs() < 0.00001 {
+            return (0.0, 0.0, l);
+        }
+
+        // 计算饱和度
+        let s = if l > 0.5 {
+            delta / (2.0 - max - min)
+        } else {
+            delta / (max + min)
+        };
+
+        // 计算色相
+        let h = if r_f == max {
+            (g_f - b_f) / delta + (if g_f < b_f { 6.0 } else { 0.0 })
+        } else if g_f == max {
+            (b_f - r_f) / delta + 2.0
+        } else {
+            (r_f - g_f) / delta + 4.0
+        };
+
+        (h * 60.0 / 360.0, s, l)
+    }
+
+    /// HSL转RGB的辅助方法
+    fn hsl_to_rgb(h: f32, s: f32, l: f32) -> (u8, u8, u8) {
+        // 无饱和度时为灰度
+        if s.abs() < 0.00001 {
+            let value = (l * 255.0) as u8;
+            return (value, value, value);
+        }
+
+        let h = h * 360.0; // 转换为0-360度
+
+        let q = if l < 0.5 {
+            l * (1.0 + s)
+        } else {
+            l + s - l * s
+        };
+
+        let p = 2.0 * l - q;
+
+        let r = Self::hue_to_rgb(p, q, h + 120.0);
+        let g = Self::hue_to_rgb(p, q, h);
+        let b = Self::hue_to_rgb(p, q, h - 120.0);
+
+        ((r * 255.0) as u8, (g * 255.0) as u8, (b * 255.0) as u8)
+    }
+
+    /// 色相转RGB分量的辅助方法
+    fn hue_to_rgb(p: f32, q: f32, mut h: f32) -> f32 {
+        // 确保h在0-360范围内
+        while h < 0.0 {
+            h += 360.0;
+        }
+        while h >= 360.0 {
+            h -= 360.0;
+        }
+
+        if h < 60.0 {
+            p + (q - p) * h / 60.0
+        } else if h < 180.0 {
+            q
+        } else if h < 240.0 {
+            p + (q - p) * (240.0 - h) / 60.0
+        } else {
+            p
+        }
     }
 }
 
