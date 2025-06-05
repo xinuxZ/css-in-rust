@@ -231,11 +231,6 @@ impl Default for CssGenerator {
     }
 }
 
-// 简化新建解析器实现
-fn new_resolver() -> TokenResolver {
-    TokenResolver::default()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

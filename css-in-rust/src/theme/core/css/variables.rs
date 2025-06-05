@@ -5,7 +5,6 @@
 
 use crate::theme::{core::token::TokenSystem, Theme};
 use std::collections::HashMap;
-use std::fmt::Write;
 
 /// CSS 变量特征
 pub trait CssVariables {

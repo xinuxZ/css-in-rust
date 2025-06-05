@@ -986,8 +986,16 @@ pub enum TokenValidationError {
     InvalidValue(String),
     CircularReference(String),
     MissingReference(String),
-    TypeMismatch { expected: String, actual: String },
-    InvalidReference { path: String, reference: String },
+    TypeMismatch {
+        expected: String,
+        actual: String,
+    },
+    InvalidReference {
+        path: String,
+        reference: String,
+    },
+    /// 无效的表达式
+    InvalidExpression(String),
 }
 
 impl std::fmt::Display for TokenValidationError {
@@ -1008,6 +1016,9 @@ impl std::fmt::Display for TokenValidationError {
             }
             TokenValidationError::InvalidReference { path, reference } => {
                 write!(f, "Invalid reference: {} in {}", reference, path)
+            }
+            TokenValidationError::InvalidExpression(expression) => {
+                write!(f, "Invalid expression: {}", expression)
             }
         }
     }

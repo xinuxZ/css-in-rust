@@ -506,6 +506,11 @@ impl DesignTokens {
             .insert(theme, value);
     }
 
+    /// 获取所有令牌路径
+    pub fn get_all_paths(&self) -> Vec<String> {
+        self.values.keys().cloned().collect()
+    }
+
     /// 复制主题
     pub fn copy_theme(&mut self, from: ThemeVariant, to: ThemeVariant) {
         for theme_values in self.values.values_mut() {

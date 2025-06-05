@@ -1,4 +1,4 @@
-use crate::theme::core::token::{DimensionUnit, DimensionValue, TokenReference};
+use crate::theme::core::token::{DimensionUnit, DimensionValue};
 use crate::theme::systems::semantic_system::SemanticSpacing;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
