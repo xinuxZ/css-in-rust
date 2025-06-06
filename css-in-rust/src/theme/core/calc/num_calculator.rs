@@ -91,6 +91,10 @@ impl NumCalculator {
 
     /// 转换为带单位的字符串
     pub fn to_string_with_unit(&self, unit: &str) -> String {
+        // 如果值是整数，则不显示小数点
+        if self.value == (self.value as i64) as f64 {
+            return format!("{}{}", self.value as i64, unit);
+        }
         format!("{}{}", self.value, unit)
     }
 }
@@ -132,6 +136,6 @@ mod tests {
     fn test_unit_conversion() {
         let calc = NumCalculator::new(10.0).multiply(1.5).precision(1);
 
-        assert_eq!(calc.to_string_with_unit("px"), "15.0px");
+        assert_eq!(calc.to_string_with_unit("px"), "15px");
     }
 }

@@ -5,29 +5,17 @@
 
 use css_in_rust::css;
 
+// 使用所有依赖，避免未使用的依赖警告
 #[allow(unused_imports)]
-use css_in_rust_macros as _;
+use {
+    base64 as _, chrono as _, css_in_rust_macros as _, hex as _, lazy_static as _, num_cpus as _,
+    proc_macro2 as _, quote as _, regex as _, serde as _, serde_json as _, sha1 as _, sha2 as _,
+    syn as _, tempfile as _, web_sys as _,
+};
 
-use base64 as _;
-use chrono as _;
-use css_in_rust_macros as _;
-use hex as _;
-use lazy_static as _;
 #[cfg(feature = "optimizer")]
+#[allow(unused_imports)]
 use lightningcss as _;
-use num_cpus as _;
-use proc_macro2 as _;
-use quote as _;
-use regex as _;
-use serde as _;
-use serde_json as _;
-use sha1 as _;
-#[cfg(feature = "optimizer")]
-use sha2 as _;
-use sha2 as _;
-use syn as _;
-use tempfile as _;
-use web_sys as _;
 
 #[cfg(test)]
 mod tests {
