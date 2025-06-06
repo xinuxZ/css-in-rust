@@ -4,10 +4,11 @@
 //! This module provides CSS optimization capabilities leveraging lightningcss
 //! for high-performance minification and optimization.
 
-use crate::core::parser::{ParseError, StyleSheet};
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
+
+use super::parser::{ParseError, StyleSheet};
 
 #[cfg(feature = "optimizer")]
 use lightningcss::{
@@ -531,8 +532,8 @@ impl Default for CssOptimizer {
 
 #[cfg(test)]
 mod tests {
+    use super::super::parser::{StyleSheet, StyleSheetMetadata};
     use super::*;
-    use crate::core::parser::{StyleSheet, StyleSheetMetadata};
 
     #[test]
     fn test_optimizer_creation() {
