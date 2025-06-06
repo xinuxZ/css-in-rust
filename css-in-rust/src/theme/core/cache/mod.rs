@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
+pub mod cache_entity;
+pub mod cache_manager;
 pub mod component_cache;
 
 // Re-exports
@@ -8,6 +10,13 @@ pub use component_cache::{
     compute_props_hash, compute_style_hash, compute_theme_hash, CacheStats, CachedComponentStyle,
     ComponentCacheKey, ComponentStyleCache,
 };
+
+pub use cache_entity::{
+    CacheEntity, CacheValue, CssVarCacheValue, StyleCacheValue, TokenCacheValue, CSS_VAR_PREFIX,
+    STYLE_PREFIX, TOKEN_PREFIX,
+};
+
+pub use cache_manager::{CacheManager, MemoryUsage};
 
 /// 样式缓存键
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]

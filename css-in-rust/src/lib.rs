@@ -76,7 +76,9 @@ pub use variants::*;
 
 // Re-export macros when proc-macro feature is enabled
 #[cfg(feature = "proc-macro")]
-pub use css_in_rust_macros::{css, css_class, css_if};
+pub use css_in_rust_macros::{
+    css, css_if, styled_component, styled_component_with_props, themed_style,
+};
 
 // Suppress unused dependency warning
 #[cfg(feature = "proc-macro")]
@@ -134,9 +136,14 @@ pub use fallback_macros::*;
 ///
 /// This function should be called once at the start of your application
 /// to set up the style management system.
-pub fn init() {
+pub fn init() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize the style manager with default configuration
     let _manager = runtime::StyleManager::new();
+
+    // Initialize the theme system
+    theme::ThemeSystem::initialize();
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -149,3 +156,41 @@ mod tests {
         // This is a compile-time test
     }
 }
+
+#[cfg(feature = "dioxus")]
+pub use theme::dioxus::{
+    use_style, use_theme, use_theme_toggle, use_themed_style, CalculatorExample, CompleteExample,
+    DioxusStyleInjector, DioxusThemeProvider, ThemeProvider, TransformerExample,
+};
+
+// 导出核心功能
+pub use theme::core::{
+    gen_calc,
+    gen_var,
+    gen_var_with_default,
+
+    // 缓存系统
+    CacheManager,
+    // 计算系统
+    CssCalculator,
+    LogicalPropertiesTransformer,
+    MemoryUsage,
+    NumCalculator,
+    ProcessedStyle,
+
+    Px2RemTransformer,
+
+    // SSR支持
+    ServerStyleSheet,
+    StyleExtractor,
+    StyleHydration,
+
+    // 样式处理管道
+    StylePipeline,
+    StylePipelineBuilder,
+    StyleSheetManager,
+    // 转换器系统
+    Transformer,
+    TransformerRegistry,
+    UnitConverter,
+};

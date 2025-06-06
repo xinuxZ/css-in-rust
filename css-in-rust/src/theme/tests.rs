@@ -2,7 +2,7 @@
 mod tests {
     use crate::theme::{
         adapter::{
-            frameworks::{DioxusAdapter, ReactAdapter},
+            frameworks::DioxusAdapter,
             provider::{ThemeProviderAdapter, ThemeProviderConfig},
             ssr::SsrSupport,
         },
@@ -74,16 +74,5 @@ mod tests {
         let dioxus_style = dioxus_adapter.style_component("button", "color: blue;");
         assert!(!dioxus_style.class_name.is_empty());
         assert!(dioxus_style.css.contains("color: blue;"));
-
-        // 测试 React 适配器
-        let react_adapter = ReactAdapter::new(provider);
-        let react_style = react_adapter.style_component("button", "color: blue;");
-        assert!(!react_style.class_name.is_empty());
-        assert!(react_style.css.contains("color: blue;"));
-
-        // 测试 React 样式对象
-        let style_object = react_adapter.create_style_object("color: blue; margin-top: 10px;");
-        assert!(style_object.contains("color: \"blue\""));
-        assert!(style_object.contains("marginTop: \"10px\""));
     }
 }

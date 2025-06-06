@@ -1,13 +1,13 @@
-//! Dioxus framework adapter
+//! Dioxus框架适配器
 //!
-//! This module provides integration with the Dioxus web framework.
+//! 提供与Dioxus框架的集成。
 
-use crate::adapters::FrameworkAdapter;
+use crate::adapters::DioxusAdapterTrait;
 
-/// Dioxus component representation
+/// Dioxus组件表示
 ///
-/// This is a placeholder for actual Dioxus integration.
-/// In a real implementation, this would work with Dioxus's VNode system.
+/// 这是Dioxus集成的占位符。
+/// 实际实现中，这将与Dioxus的VNode系统集成。
 #[derive(Debug, Clone)]
 pub struct DioxusComponent {
     pub tag: String,
@@ -50,10 +50,10 @@ impl DioxusComponent {
     }
 }
 
-/// Dioxus framework adapter implementation
+/// Dioxus框架适配器实现
 pub struct DioxusAdapter;
 
-impl FrameworkAdapter for DioxusAdapter {
+impl DioxusAdapterTrait for DioxusAdapter {
     type Component = DioxusComponent;
 
     fn apply_class(component: &mut Self::Component, class_name: &str) {
