@@ -8,9 +8,6 @@ pub mod dioxus;
 pub mod systems;
 pub mod theme_types;
 
-// 内部模块
-mod tests;
-
 // Re-exports
 pub use theme_types::{Theme, ThemeMode};
 

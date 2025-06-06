@@ -6,7 +6,7 @@ use std::sync::{Arc, RwLock};
 pub use theme_history::ThemeHistory;
 
 /// 主题管理器配置
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ThemeManagerConfig {
     /// 默认主题名称
     pub default_theme: String,
@@ -41,6 +41,13 @@ pub struct ThemeManager {
     config: ThemeManagerConfig,
     /// 主题历史
     theme_history: ThemeHistory,
+}
+
+// 为 ThemeManager 实现 PartialEq，只比较配置
+impl PartialEq for ThemeManager {
+    fn eq(&self, other: &Self) -> bool {
+        self.config == other.config
+    }
 }
 
 impl ThemeManager {
@@ -120,5 +127,40 @@ impl ThemeManager {
     /// 清除主题历史
     pub fn clear_theme_history(&self) -> Result<(), String> {
         self.theme_history.clear_history()
+    }
+
+    /// 切换到指定名称的主题
+    pub fn switch_theme(&self, theme_name: &str) -> Result<(), String> {
+        // 这里我们假设设置主题名称相当于切换主题
+        // 在实际实现中，您需要从主题注册表中查找主题并设置它
+        if let Ok(mut current) = self.current_theme.write() {
+            // 如果启用了历史记录，添加到历史
+            if self.config.enable_history {
+                self.theme_history.add_theme(theme_name)?;
+            }
+
+            current.name = theme_name.to_string();
+            Ok(())
+        } else {
+            Err("无法获取当前主题写锁".to_string())
+        }
+    }
+
+    /// 根据主题模式查找主题
+    pub fn find_theme_by_mode(&self, mode: ThemeMode) -> Option<String> {
+        // 在实际实现中，您需要从主题注册表中查找具有指定模式的主题
+        // 这里我们简单返回一个基于模式的主题名称
+        match mode {
+            ThemeMode::Light => Some("light".to_string()),
+            ThemeMode::Dark => Some("dark".to_string()),
+            ThemeMode::Auto => Some("auto".to_string()),
+        }
+    }
+
+    /// 获取所有可用主题
+    pub fn get_available_themes(&self) -> Vec<String> {
+        // 在实际实现中，您需要从主题注册表中获取所有主题
+        // 这里我们简单返回一些示例主题
+        vec!["light".to_string(), "dark".to_string(), "auto".to_string()]
     }
 }

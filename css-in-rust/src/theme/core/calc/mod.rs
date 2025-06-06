@@ -1,6 +1,6 @@
 mod calculator;
 mod num_calculator;
-mod unit_converter;
+pub mod unit_converter;
 
 pub use calculator::CssCalculator;
 pub use num_calculator::NumCalculator;

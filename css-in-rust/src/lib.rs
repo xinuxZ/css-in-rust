@@ -75,7 +75,8 @@ pub use variants::*;
 // Re-export macros when proc-macro feature is enabled
 #[cfg(feature = "proc-macro")]
 pub use css_in_rust_macros::{
-    css, css_if, styled_component, styled_component_with_props, themed_style,
+    css, css_if, styled_component as proc_styled_component, styled_component_with_props,
+    themed_style,
 };
 
 // Suppress unused dependency warning
@@ -134,7 +135,8 @@ pub use fallback_macros::*;
 ///
 /// This function should be called once at the start of your application
 /// to set up the style management system.
-pub fn init() -> Result<(), Box<dyn std::error::Error>> {
+#[cfg(feature = "init")]
+pub fn init() -> std::result::Result<(), Box<dyn std::error::Error>> {
     // Initialize the style manager with default configuration
     let _manager = runtime::StyleManager::new();
 

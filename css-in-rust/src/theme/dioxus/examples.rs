@@ -17,9 +17,9 @@ pub fn TransformerExample() -> Element {
 
     // 创建 CSS 对象
     let mut css_obj = CssObject::new();
-    css_obj.insert("marginInline", "16px");
-    css_obj.insert("paddingBlock", "1rem");
-    css_obj.insert("color", "var(--primary-color)");
+    css_obj.set("marginInline", "16px");
+    css_obj.set("paddingBlock", "1rem");
+    css_obj.set("color", "var(--primary-color)");
 
     // 处理 CSS 对象
     let processed = pipeline.process(css_obj).unwrap();

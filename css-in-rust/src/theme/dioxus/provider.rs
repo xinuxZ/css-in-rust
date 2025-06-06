@@ -5,6 +5,7 @@ use crate::theme::{
 };
 use std::sync::{Arc, Mutex};
 
+#[cfg(feature = "dioxus")]
 /// Dioxus主题提供者
 ///
 /// 为Dioxus应用提供主题支持

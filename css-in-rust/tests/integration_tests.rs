@@ -11,6 +11,7 @@ use css_in_rust_macros as _;
 use base64 as _;
 use chrono as _;
 use css_in_rust_macros as _;
+use hex as _;
 use lazy_static as _;
 #[cfg(feature = "optimizer")]
 use lightningcss as _;
@@ -22,6 +23,7 @@ use serde as _;
 use serde_json as _;
 use sha1 as _;
 #[cfg(feature = "optimizer")]
+use sha2 as _;
 use sha2 as _;
 use syn as _;
 use tempfile as _;
