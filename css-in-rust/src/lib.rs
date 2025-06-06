@@ -38,7 +38,7 @@
 pub mod adapters;
 pub mod animation;
 pub mod build_tools;
-pub mod core;
+pub mod css_engine;
 pub mod dev_experience;
 pub mod hot_reload;
 pub mod macros;
@@ -52,7 +52,7 @@ pub mod variants;
 pub use adapters::*;
 pub use animation::*;
 pub use build_tools::*;
-pub use core::*;
+pub use css_engine::*;
 pub use hot_reload::*;
 pub use runtime::*;
 pub use theme::*;

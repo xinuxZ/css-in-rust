@@ -4,7 +4,7 @@
 //! perform static analysis and dead code elimination during the build process.
 
 use crate::build_tools::static_analyzer::{CssUsageReport, StaticAnalyzer};
-use crate::core::optimizer::{CssOptimizer, OptimizerConfig};
+use crate::css_engine::optimizer::{CssOptimizer, OptimizerConfig};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -221,7 +221,7 @@ impl CssBuildProcessor {
         }
 
         // Parse CSS into StyleSheet
-        let parser = crate::core::parser::CssParser::new();
+        let parser = crate::css_engine::parser::CssParser::new();
         let stylesheet = parser.parse(&original_content).map_err(|e| {
             BuildError::IoError(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
@@ -306,7 +306,7 @@ pub enum BuildError {
     /// Analysis error
     AnalysisError(std::io::Error),
     /// Optimization error
-    OptimizationError(crate::core::optimizer::OptimizationError),
+    OptimizationError(crate::css_engine::optimizer::OptimizationError),
 }
 
 impl std::fmt::Display for BuildError {
