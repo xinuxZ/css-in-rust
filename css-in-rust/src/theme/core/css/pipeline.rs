@@ -1,6 +1,6 @@
 use crate::theme::core::cache::CacheManager;
 use crate::theme::core::css::{CssObject, StyleProcessor};
-use crate::theme::core::optimize::StyleOptimizer;
+use crate::theme::core::optimize::{OptimizeConfig, StyleOptimizer};
 use crate::theme::core::transform::{Transformer, TransformerRegistry};
 use std::sync::Arc;
 
@@ -55,7 +55,7 @@ impl StylePipeline {
         // 2. 优化 CSS
         let optimized_css = if let Some(optimizer) = &self.optimizer {
             let css_string = self.processor.to_css_string(&css_obj);
-            optimizer.optimize(&css_string)?
+            optimizer.optimize(&css_string)
         } else {
             self.processor.to_css_string(&css_obj)
         };
@@ -144,7 +144,7 @@ impl StylePipelineBuilder {
         let mut pipeline = StylePipeline::new().with_processor(processor);
 
         if self.enable_optimization {
-            pipeline = pipeline.with_optimizer(StyleOptimizer::new());
+            pipeline = pipeline.with_optimizer(StyleOptimizer::new(OptimizeConfig::default()));
         }
 
         if self.enable_caching {

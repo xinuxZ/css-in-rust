@@ -105,7 +105,7 @@ impl CacheManager {
         let token_value = TokenCacheValue {
             token_key: key.to_string(),
             token_hash,
-            token_data,
+            token_data: token_data.clone(),
         };
 
         // 更新缓存

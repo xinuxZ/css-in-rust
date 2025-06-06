@@ -97,7 +97,7 @@ impl CssValue {
 }
 
 /// CSS 对象，表示一组 CSS 属性或嵌套规则
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CssObject {
     pub properties: HashMap<String, CssValue>,
 }
@@ -215,8 +215,8 @@ mod tests {
     #[test]
     fn test_css_object_basic() {
         let mut obj = CssObject::new();
-        obj.insert("color", "red");
-        obj.insert("font-size", 16);
+        obj.set("color", "red");
+        obj.set("font-size", 16);
 
         assert_eq!(obj.len(), 2);
 
@@ -227,7 +227,7 @@ mod tests {
         }
 
         if let CssValue::Number(size) = obj.get("font-size").unwrap() {
-            assert_eq!(size, 16.0);
+            assert_eq!(*size, 16.0);
         } else {
             panic!("Expected Number value for font-size");
         }
@@ -236,10 +236,10 @@ mod tests {
     #[test]
     fn test_css_object_merge() {
         let mut obj1 = CssObject::new();
-        obj1.insert("color", "red");
+        obj1.set("color", "red");
 
         let mut obj2 = CssObject::new();
-        obj2.insert("font-size", 16);
+        obj2.set("font-size", 16);
 
         obj1.merge(&obj2);
 
@@ -251,10 +251,10 @@ mod tests {
     #[test]
     fn test_css_object_nested() {
         let mut inner = CssObject::new();
-        inner.insert("color", "blue");
+        inner.set("color", "blue");
 
         let mut obj = CssObject::new();
-        obj.insert("&:hover", inner);
+        obj.set("&:hover", inner);
 
         if let CssValue::Object(hover) = obj.get("&:hover").unwrap() {
             if let CssValue::String(color) = hover.get("color").unwrap() {

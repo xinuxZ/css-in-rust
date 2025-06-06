@@ -35,7 +35,6 @@
 //! ```
 
 // Module declarations
-pub mod adapters;
 pub mod animation;
 pub mod build_tools;
 pub mod css_engine;
@@ -49,7 +48,6 @@ pub mod theme_bridge;
 pub mod variants;
 
 // Re-exports for convenience
-pub use adapters::*;
 pub use animation::*;
 pub use build_tools::*;
 pub use css_engine::*;

@@ -52,7 +52,6 @@ impl Default for ComponentStyleConfig {
 }
 
 /// 组件样式生成器实现
-#[derive(Debug, Clone)]
 pub struct DefaultComponentStyleGenerator {
     /// 组件样式配置
     pub config: ComponentStyleConfig,
