@@ -1,6 +1,6 @@
 use crate::cache_management::{cache_css, get_cached_css};
 use crate::css_processing::{
-    compress_css, optimize_css_with_lightningcss, parse_css_syntax, process_media_queries,
+    optimize_css_with_lightningcss, parse_css_syntax, process_media_queries,
     process_pseudo_selectors,
 };
 use crate::hash_utils::calculate_css_hash;
