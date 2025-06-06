@@ -19,6 +19,9 @@ use macro_definitions::{
     css_class_impl_internal, css_if_impl_internal, css_impl_internal, css_multi_if_impl_internal,
 };
 
+mod css_macro;
+mod dioxus_macros;
+
 /// CSS macro for compile-time CSS processing and runtime injection
 /// Now supports theme variables and variant syntax
 ///
@@ -38,11 +41,7 @@ use macro_definitions::{
 /// ```
 #[proc_macro]
 pub fn css(input: TokenStream) -> TokenStream {
-    let input2 = TokenStream2::from(input);
-    match css_impl_internal(input2) {
-        Ok(tokens) => TokenStream::from(tokens),
-        Err(err) => TokenStream::from(err.to_compile_error()),
-    }
+    css_macro::css_impl(input)
 }
 
 /// Conditional CSS macro that only applies styles when condition is true
@@ -57,11 +56,7 @@ pub fn css(input: TokenStream) -> TokenStream {
 /// ```
 #[proc_macro]
 pub fn css_if(input: TokenStream) -> TokenStream {
-    let input2 = TokenStream2::from(input);
-    match css_if_impl_internal(input2) {
-        Ok(tokens) => TokenStream::from(tokens),
-        Err(err) => TokenStream::from(err.to_compile_error()),
-    }
+    css_macro::css_if_impl(input)
 }
 
 /// CSS class macro for generating CSS class names
@@ -109,4 +104,20 @@ pub fn css_multi_if(input: TokenStream) -> TokenStream {
         Ok(tokens) => TokenStream::from(tokens),
         Err(err) => TokenStream::from(err.to_compile_error()),
     }
+}
+
+// 导出Dioxus专用宏
+#[proc_macro]
+pub fn styled_component(input: TokenStream) -> TokenStream {
+    dioxus_macros::styled_component_impl(input)
+}
+
+#[proc_macro]
+pub fn styled_component_with_props(input: TokenStream) -> TokenStream {
+    dioxus_macros::styled_component_with_props_impl(input)
+}
+
+#[proc_macro]
+pub fn themed_style(input: TokenStream) -> TokenStream {
+    dioxus_macros::themed_style_impl(input)
 }
