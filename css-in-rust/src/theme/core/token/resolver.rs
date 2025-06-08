@@ -12,6 +12,24 @@ use std::collections::{HashMap, HashSet};
 /// 令牌解析器
 ///
 /// 负责解析令牌引用和值路径，提供令牌系统的查询能力。
+/// 支持令牌引用解析、表达式计算和令牌验证。
+///
+/// # Examples
+///
+/// ```
+/// use css_in_rust::theme::core::token::resolver::TokenResolver;
+/// use css_in_rust::theme::core::token::values::DesignTokens;
+/// use css_in_rust::theme::core::token::definitions::{ThemeVariant, TokenValue};
+///
+/// // 创建令牌解析器
+/// let resolver = TokenResolver::new(DesignTokens::new());
+///
+/// // 解析令牌值
+/// match resolver.resolve_token("colors.primary", ThemeVariant::Light) {
+///     Ok(value) => println!("解析的值: {}", value),
+///     Err(e) => println!("解析错误: {:?}", e),
+/// }
+/// ```
 #[derive(Debug, Clone)]
 pub struct TokenResolver {
     /// 令牌存储
@@ -38,6 +56,24 @@ impl Default for TokenResolver {
 
 impl TokenResolver {
     /// 创建新的令牌解析器
+    ///
+    /// # Arguments
+    ///
+    /// * `store` - 令牌存储
+    ///
+    /// # Returns
+    ///
+    /// 新创建的令牌解析器
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::resolver::TokenResolver;
+    /// use css_in_rust::theme::core::token::values::DesignTokens;
+    ///
+    /// let store = DesignTokens::new();
+    /// let resolver = TokenResolver::new(store);
+    /// ```
     pub fn new(store: DesignTokens) -> Self {
         Self {
             store,
@@ -46,6 +82,31 @@ impl TokenResolver {
     }
 
     /// 解析令牌
+    ///
+    /// 根据路径获取令牌值，支持引用解析。
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - 令牌路径
+    /// * `theme` - 主题变体
+    ///
+    /// # Returns
+    ///
+    /// 成功返回解析后的令牌值，失败返回错误
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::resolver::TokenResolver;
+    /// use css_in_rust::theme::core::token::definitions::ThemeVariant;
+    ///
+    /// let resolver = TokenResolver::default();
+    /// let result = resolver.resolve_token("colors.primary", ThemeVariant::Light);
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// 当路径无效或存在循环引用时返回错误
     pub fn resolve_token(
         &self,
         path: &str,
@@ -101,6 +162,27 @@ impl TokenResolver {
     }
 
     /// 获取令牌元数据
+    ///
+    /// 根据路径获取令牌的元数据信息。
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - 令牌路径
+    ///
+    /// # Returns
+    ///
+    /// 成功返回元数据字符串，失败返回None
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::resolver::TokenResolver;
+    ///
+    /// let resolver = TokenResolver::default();
+    /// if let Some(metadata) = resolver.get_token_metadata("colors.primary") {
+    ///     println!("令牌元数据: {}", metadata);
+    /// }
+    /// ```
     pub fn get_token_metadata(&self, path: &str) -> Option<String> {
         // 检查路径是否有效
         if !self.is_valid_token_path(path) {
@@ -124,6 +206,34 @@ impl TokenResolver {
     }
 
     /// 设置令牌
+    ///
+    /// 设置指定路径的令牌值。
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - 令牌路径
+    /// * `value` - 令牌值
+    /// * `theme` - 主题变体
+    ///
+    /// # Returns
+    ///
+    /// 成功返回Ok(()), 失败返回错误
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::resolver::TokenResolver;
+    /// use css_in_rust::theme::core::token::definitions::{ThemeVariant, TokenPath, TokenValue};
+    ///
+    /// let mut resolver = TokenResolver::default();
+    /// let path = TokenPath::from_str("colors.primary");
+    /// let value = TokenValue::String("#007bff".to_string());
+    /// resolver.set_token(&path, value, ThemeVariant::Light).unwrap();
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// 当路径无效时返回错误
     pub fn set_token(
         &mut self,
         path: &TokenPath,
@@ -145,6 +255,31 @@ impl TokenResolver {
     }
 
     /// 验证所有令牌引用
+    ///
+    /// 检查所有令牌引用的有效性，包括循环引用检测。
+    ///
+    /// # Arguments
+    ///
+    /// * `theme` - 主题变体
+    ///
+    /// # Returns
+    ///
+    /// 验证错误列表，如果没有错误则返回空列表
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::resolver::TokenResolver;
+    /// use css_in_rust::theme::core::token::definitions::ThemeVariant;
+    ///
+    /// let mut resolver = TokenResolver::default();
+    /// let errors = resolver.validate_references(ThemeVariant::Light);
+    /// if errors.is_empty() {
+    ///     println!("所有令牌引用都有效");
+    /// } else {
+    ///     println!("发现 {} 个引用错误", errors.len());
+    /// }
+    /// ```
     pub fn validate_references(&mut self, theme: ThemeVariant) -> Vec<TokenValidationError> {
         let mut errors = Vec::new();
         let mut visited = HashSet::new();
@@ -167,6 +302,22 @@ impl TokenResolver {
     }
 
     /// 验证单个令牌的引用
+    ///
+    /// 检查单个令牌引用的有效性，包括循环引用检测。
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - 令牌路径
+    /// * `theme` - 主题变体
+    /// * `visited` - 已访问的路径集合，用于检测循环引用
+    ///
+    /// # Returns
+    ///
+    /// 成功返回Ok(()), 失败返回错误
+    ///
+    /// # Errors
+    ///
+    /// 当存在循环引用或路径无效时返回错误
     fn validate_token_references(
         &self,
         path: &str,

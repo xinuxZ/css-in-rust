@@ -247,11 +247,45 @@ impl IncrementalCompiler {
     }
 
     /// 添加源文件
+    ///
+    /// # 参数
+    ///
+    /// * `path` - 源文件路径
+    ///
+    /// # 返回值
+    ///
+    /// 成功时返回 `Ok(())`，失败时返回 `IO错误`
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::performance::incremental::IncrementalCompiler;
+    /// use std::path::PathBuf;
+    ///
+    /// let mut compiler = IncrementalCompiler::new();
+    /// compiler.add_source_file(PathBuf::from("src/styles/main.css")).unwrap();
+    /// ```
     pub fn add_source_file(&mut self, path: PathBuf) -> Result<(), std::io::Error> {
         self.state.add_file(path)
     }
 
     /// 添加文件依赖关系
+    ///
+    /// # 参数
+    ///
+    /// * `source` - 源文件路径
+    /// * `dependency` - 依赖文件路径
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::performance::incremental::IncrementalCompiler;
+    /// use std::path::{Path, PathBuf};
+    ///
+    /// let mut compiler = IncrementalCompiler::new();
+    /// compiler.add_source_file(PathBuf::from("src/styles/main.css")).unwrap();
+    /// compiler.add_dependency(Path::new("src/styles/main.css"), PathBuf::from("src/styles/variables.css"));
+    /// ```
     pub fn add_dependency(&mut self, source: &Path, dependency: PathBuf) {
         if let Some(file_dep) = self.state.dependencies.get_mut(source) {
             file_dep.add_dependency(dependency);
@@ -259,6 +293,26 @@ impl IncrementalCompiler {
     }
 
     /// 检查是否需要增量编译
+    ///
+    /// # 参数
+    ///
+    /// * `config_hash` - 当前配置的哈希值
+    ///
+    /// # 返回值
+    ///
+    /// 如果需要增量编译，返回 `true`，否则返回 `false`
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::performance::incremental::IncrementalCompiler;
+    ///
+    /// let compiler = IncrementalCompiler::new();
+    /// let config_hash = "abc123"; // 配置哈希值
+    /// if compiler.needs_incremental_compile(config_hash) {
+    ///     // 执行增量编译
+    /// }
+    /// ```
     pub fn needs_incremental_compile(&self, config_hash: &str) -> bool {
         // 检查配置是否变化
         if self.state.is_config_changed(config_hash) {
@@ -270,11 +324,48 @@ impl IncrementalCompiler {
     }
 
     /// 获取需要重新编译的文件
+    ///
+    /// # 返回值
+    ///
+    /// 返回需要重新编译的文件路径列表
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::performance::incremental::IncrementalCompiler;
+    ///
+    /// let compiler = IncrementalCompiler::new();
+    /// let files_to_compile = compiler.get_files_to_compile();
+    /// for file in files_to_compile {
+    ///     // 处理文件...
+    /// }
+    /// ```
     pub fn get_files_to_compile(&self) -> Vec<PathBuf> {
         self.state.get_changed_files()
     }
 
     /// 标记文件编译完成
+    ///
+    /// # 参数
+    ///
+    /// * `path` - 已编译文件的路径
+    /// * `output` - 编译输出内容
+    ///
+    /// # 返回值
+    ///
+    /// 成功时返回 `Ok(())`，失败时返回 `IO错误`
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::performance::incremental::IncrementalCompiler;
+    /// use std::path::PathBuf;
+    ///
+    /// let mut compiler = IncrementalCompiler::new();
+    /// let file_path = PathBuf::from("src/styles/main.css");
+    /// let compiled_output = ".button { color: red; }";
+    /// compiler.mark_compiled(file_path, compiled_output.to_string()).unwrap();
+    /// ```
     pub fn mark_compiled(&mut self, path: PathBuf, output: String) -> Result<(), std::io::Error> {
         // 更新文件依赖信息
         if let Some(dependency) = self.state.dependencies.get_mut(&path) {
@@ -288,6 +379,20 @@ impl IncrementalCompiler {
     }
 
     /// 完成编译
+    ///
+    /// # 参数
+    ///
+    /// * `config_hash` - 当前配置的哈希值
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::performance::incremental::IncrementalCompiler;
+    ///
+    /// let mut compiler = IncrementalCompiler::new();
+    /// // 执行编译...
+    /// compiler.finish_compilation("abc123".to_string());
+    /// ```
     pub fn finish_compilation(&mut self, config_hash: String) {
         self.state.set_config_hash(config_hash);
         self.state.update_compile_time();
@@ -299,11 +404,42 @@ impl IncrementalCompiler {
     }
 
     /// 获取编译输出
+    ///
+    /// # 参数
+    ///
+    /// * `path` - 文件路径
+    ///
+    /// # 返回值
+    ///
+    /// 如果存在编译输出，返回 `Some(&String)`，否则返回 `None`
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::performance::incremental::IncrementalCompiler;
+    /// use std::path::Path;
+    ///
+    /// let compiler = IncrementalCompiler::new();
+    /// if let Some(output) = compiler.get_output(Path::new("src/styles/main.css")) {
+    ///     println!("编译输出: {}", output);
+    /// }
+    /// ```
     pub fn get_output(&self, path: &Path) -> Option<&String> {
         self.state.outputs.get(path)
     }
 
     /// 清理状态
+    ///
+    /// 清除所有增量编译状态并删除状态文件
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::performance::incremental::IncrementalCompiler;
+    ///
+    /// let mut compiler = IncrementalCompiler::new();
+    /// compiler.clean(); // 清理所有状态
+    /// ```
     pub fn clean(&mut self) {
         self.state = CompilationState::new();
         if let Err(e) = fs::remove_file(&self.state_file) {
@@ -314,6 +450,19 @@ impl IncrementalCompiler {
     }
 
     /// 保存编译状态
+    ///
+    /// # 返回值
+    ///
+    /// 成功时返回 `Ok(())`，失败时返回错误
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::performance::incremental::IncrementalCompiler;
+    ///
+    /// let compiler = IncrementalCompiler::new();
+    /// compiler.save_state().unwrap();
+    /// ```
     pub fn save_state(&self) -> Result<(), Box<dyn std::error::Error>> {
         // 确保目录存在
         if let Some(parent) = self.state_file.parent() {
@@ -327,6 +476,19 @@ impl IncrementalCompiler {
     }
 
     /// 加载编译状态
+    ///
+    /// # 返回值
+    ///
+    /// 成功时返回 `Ok(())`，失败时返回错误
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::performance::incremental::IncrementalCompiler;
+    ///
+    /// let mut compiler = IncrementalCompiler::new();
+    /// compiler.load_state().unwrap();
+    /// ```
     pub fn load_state(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         if !self.state_file.exists() {
             return Ok(());
@@ -339,6 +501,20 @@ impl IncrementalCompiler {
     }
 
     /// 获取编译统计信息
+    ///
+    /// # 返回值
+    ///
+    /// 返回当前增量编译的统计信息
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::performance::incremental::IncrementalCompiler;
+    ///
+    /// let compiler = IncrementalCompiler::new();
+    /// let stats = compiler.get_stats();
+    /// println!("缓存命中率: {}%", stats.cache_hit_rate * 100.0);
+    /// ```
     pub fn get_stats(&self) -> IncrementalStats {
         let total_files = self.state.dependencies.len();
         let changed_files = self.state.get_changed_files().len();

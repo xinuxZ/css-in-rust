@@ -7,6 +7,26 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// 颜色系统
+///
+/// 管理应用程序中使用的所有颜色，包括主色调、中性色、功能色和扩展色。
+/// 颜色系统提供了一种结构化的方式来组织和访问颜色值，确保整个应用程序的颜色一致性。
+///
+/// # 示例
+///
+/// ```
+/// use css_in_rust::theme::systems::ColorSystem;
+///
+/// // 创建默认颜色系统
+/// let mut color_system = ColorSystem::new();
+///
+/// // 获取主色调
+/// if let Some(primary_color) = color_system.get_color("primary.500") {
+///     println!("主色调: {}", primary_color);
+/// }
+///
+/// // 设置自定义颜色
+/// color_system.set_color("extended.brand.logo", "#FF5733".to_string()).unwrap();
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ColorSystem {
     /// 主色调
@@ -67,11 +87,55 @@ impl Default for ColorSystem {
 
 impl ColorSystem {
     /// 创建新的颜色系统
+    ///
+    /// 初始化一个包含默认颜色值的颜色系统。默认颜色包括主色调、中性色和功能色（成功、警告、错误）。
+    ///
+    /// # 返回值
+    ///
+    /// 返回一个新的 `ColorSystem` 实例。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::theme::systems::ColorSystem;
+    ///
+    /// let color_system = ColorSystem::new();
+    /// ```
     pub fn new() -> Self {
         Self::default()
     }
 
     /// 获取颜色值
+    ///
+    /// 根据路径获取颜色值。路径格式为 `category.level` 或 `category.subcategory.level`。
+    ///
+    /// # 参数
+    ///
+    /// * `path` - 颜色路径，例如 "primary.500"、"functional.success.500"
+    ///
+    /// # 返回值
+    ///
+    /// 如果找到颜色，则返回 `Some(&String)`，否则返回 `None`。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::theme::systems::ColorSystem;
+    ///
+    /// let color_system = ColorSystem::new();
+    ///
+    /// // 获取主色调
+    /// let primary = color_system.get_color("primary.500");
+    /// assert!(primary.is_some());
+    ///
+    /// // 获取功能色
+    /// let success = color_system.get_color("functional.success.500");
+    /// assert!(success.is_some());
+    ///
+    /// // 获取不存在的颜色
+    /// let nonexistent = color_system.get_color("nonexistent.color");
+    /// assert!(nonexistent.is_none());
+    /// ```
     pub fn get_color(&self, path: &str) -> Option<&String> {
         let parts: Vec<&str> = path.split('.').collect();
         match parts.as_slice() {
@@ -84,6 +148,38 @@ impl ColorSystem {
     }
 
     /// 设置颜色值
+    ///
+    /// 根据路径设置颜色值。路径格式为 `category.level` 或 `category.subcategory.level`。
+    ///
+    /// # 参数
+    ///
+    /// * `path` - 颜色路径，例如 "primary.500"、"functional.success.500"
+    /// * `value` - 颜色值，例如 "#0066cc"
+    ///
+    /// # 返回值
+    ///
+    /// 如果设置成功，则返回 `Ok(())`，如果路径无效，则返回 `Err(String)`。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::theme::systems::ColorSystem;
+    ///
+    /// let mut color_system = ColorSystem::new();
+    ///
+    /// // 设置主色调
+    /// color_system.set_color("primary.500", "#1890ff".to_string()).unwrap();
+    ///
+    /// // 设置功能色
+    /// color_system.set_color("functional.success.500", "#52c41a".to_string()).unwrap();
+    ///
+    /// // 设置扩展色
+    /// color_system.set_color("extended.brand.primary", "#FF5733".to_string()).unwrap();
+    ///
+    /// // 尝试设置无效路径
+    /// let result = color_system.set_color("invalid", "#000000".to_string());
+    /// assert!(result.is_err());
+    /// ```
     pub fn set_color(&mut self, path: &str, value: String) -> Result<(), String> {
         let parts: Vec<&str> = path.split('.').collect();
         match parts.as_slice() {
@@ -109,6 +205,19 @@ impl ColorSystem {
 }
 
 /// 颜色调色板
+///
+/// 提供一组结构化的颜色集合，用于构建一致的设计系统。
+/// 调色板包含主色调、中性色、成功色、警告色、错误色和信息色。
+///
+/// # 示例
+///
+/// ```
+/// use css_in_rust::theme::systems::color::ColorPalette;
+/// use css_in_rust::theme::core::token::definitions::ColorValue;
+///
+/// let mut palette = ColorPalette::default();
+/// palette.apply_light_theme(); // 应用浅色主题
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ColorPalette {
     /// 主色调
@@ -126,6 +235,19 @@ pub struct ColorPalette {
 }
 
 /// 语义颜色
+///
+/// 提供基于语义的颜色定义，使设计系统更易于理解和使用。
+/// 语义颜色将调色板中的原始颜色映射到具有特定用途的颜色，如文本、背景、边框和状态颜色。
+///
+/// # 示例
+///
+/// ```
+/// use css_in_rust::theme::systems::color::SemanticColors;
+/// use css_in_rust::theme::core::token::definitions::ThemeVariant;
+///
+/// let mut semantic_colors = SemanticColors::default();
+/// semantic_colors.update_for_theme(ThemeVariant::Dark); // 更新为深色主题
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SemanticColors {
     /// 文本颜色
@@ -139,6 +261,8 @@ pub struct SemanticColors {
 }
 
 /// 文本颜色
+///
+/// 定义应用程序中不同类型文本使用的颜色。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TextColors {
     /// 主要文本
@@ -152,6 +276,8 @@ pub struct TextColors {
 }
 
 /// 背景颜色
+///
+/// 定义应用程序中不同区域和状态的背景颜色。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BackgroundColors {
     /// 主要背景
@@ -165,6 +291,8 @@ pub struct BackgroundColors {
 }
 
 /// 边框颜色
+///
+/// 定义应用程序中不同状态下边框的颜色。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BorderColors {
     /// 默认边框
@@ -178,6 +306,8 @@ pub struct BorderColors {
 }
 
 /// 状态颜色
+///
+/// 定义应用程序中不同状态的颜色，如成功、警告、错误和信息。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StatusColors {
     /// 成功状态
@@ -261,6 +391,19 @@ impl Default for StatusColors {
 /// 颜色系统工具函数
 impl ColorPalette {
     /// 应用浅色主题颜色
+    ///
+    /// 配置调色板以使用浅色主题的颜色值。这将设置主色调和中性色的所有色阶。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::theme::systems::color::ColorPalette;
+    ///
+    /// let mut palette = ColorPalette::default();
+    /// palette.apply_light_theme();
+    ///
+    /// // 现在调色板使用浅色主题的颜色值
+    /// ```
     pub fn apply_light_theme(&mut self) {
         // 设置浅色主题的主色调（使用通用蓝色方案）
         self.primary
@@ -308,6 +451,20 @@ impl ColorPalette {
     }
 
     /// 应用深色主题颜色
+    ///
+    /// 配置调色板以使用深色主题的颜色值。这将设置主色调和中性色的所有色阶，
+    /// 通常会反转浅色主题的颜色值，使深色值用于背景，浅色值用于文本。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::theme::systems::color::ColorPalette;
+    ///
+    /// let mut palette = ColorPalette::default();
+    /// palette.apply_dark_theme();
+    ///
+    /// // 现在调色板使用深色主题的颜色值
+    /// ```
     pub fn apply_dark_theme(&mut self) {
         // 设置深色主题的主色调
         self.primary
@@ -357,6 +514,31 @@ impl ColorPalette {
 
 impl SemanticColors {
     /// 更新语义颜色以适应指定主题
+    ///
+    /// 根据提供的主题变体（浅色、深色或自动），更新语义颜色的引用，
+    /// 使其指向适合该主题的颜色值。
+    ///
+    /// # 参数
+    ///
+    /// * `theme` - 主题变体，可以是 Light、Dark 或 Auto
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::theme::systems::color::SemanticColors;
+    /// use css_in_rust::theme::core::token::definitions::ThemeVariant;
+    ///
+    /// let mut semantic_colors = SemanticColors::default();
+    ///
+    /// // 更新为深色主题
+    /// semantic_colors.update_for_theme(ThemeVariant::Dark);
+    ///
+    /// // 更新为浅色主题
+    /// semantic_colors.update_for_theme(ThemeVariant::Light);
+    ///
+    /// // 更新为自动主题（跟随系统）
+    /// semantic_colors.update_for_theme(ThemeVariant::Auto);
+    /// ```
     pub fn update_for_theme(&mut self, theme: ThemeVariant) {
         match theme {
             ThemeVariant::Light => {

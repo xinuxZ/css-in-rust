@@ -45,6 +45,23 @@ impl Default for AnimationPerformanceConfig {
 
 impl AnimationEngine {
     /// 创建新的动画引擎
+    ///
+    /// 初始化一个新的动画引擎实例，使用默认的性能配置。
+    ///
+    /// # 返回值
+    ///
+    /// 返回一个新的`AnimationEngine`实例。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::animation::AnimationEngine;
+    ///
+    /// // 创建动画引擎
+    /// let engine = AnimationEngine::new();
+    ///
+    /// // 现在可以使用引擎生成动画CSS
+    /// ```
     pub fn new() -> Self {
         Self {
             cache: Arc::new(Mutex::new(CacheManager::new(CacheConfig::default()))),
@@ -54,6 +71,31 @@ impl AnimationEngine {
     }
 
     /// 使用自定义性能配置创建引擎
+    ///
+    /// 初始化一个新的动画引擎实例，使用自定义的性能配置。
+    ///
+    /// # 参数
+    ///
+    /// * `config` - 自定义的动画性能配置
+    ///
+    /// # 返回值
+    ///
+    /// 返回一个新的`AnimationEngine`实例。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::animation::{AnimationEngine, AnimationPerformanceConfig};
+    ///
+    /// // 创建自定义性能配置
+    /// let mut config = AnimationPerformanceConfig::default();
+    /// config.enable_hardware_acceleration = false;
+    /// config.enable_caching = true;
+    /// config.max_concurrent_animations = 100;
+    ///
+    /// // 使用自定义配置创建动画引擎
+    /// let engine = AnimationEngine::with_config(config);
+    /// ```
     pub fn with_config(config: AnimationPerformanceConfig) -> Self {
         Self {
             cache: Arc::new(Mutex::new(CacheManager::new(CacheConfig::default()))),
@@ -63,6 +105,43 @@ impl AnimationEngine {
     }
 
     /// 生成动画 CSS
+    ///
+    /// 根据提供的动画配置生成CSS代码。如果启用了缓存，会尝试从缓存中获取结果。
+    ///
+    /// # 参数
+    ///
+    /// * `config` - 动画配置
+    ///
+    /// # 返回值
+    ///
+    /// 返回生成的CSS字符串。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::animation::{AnimationEngine, AnimationConfig, EasingFactory};
+    /// use css_in_rust::animation::{AnimationDirection, AnimationFillMode, AnimationIterationCount, AnimationPlayState};
+    /// use std::time::Duration;
+    ///
+    /// // 创建动画引擎
+    /// let engine = AnimationEngine::new();
+    ///
+    /// // 创建动画配置
+    /// let config = AnimationConfig {
+    ///     name: "fade-in".to_string(),
+    ///     duration: Duration::from_millis(300),
+    ///     easing: EasingFactory::standard(),
+    ///     delay: Duration::from_millis(0),
+    ///     iteration_count: AnimationIterationCount::Count(1),
+    ///     direction: AnimationDirection::Normal,
+    ///     fill_mode: AnimationFillMode::Both,
+    ///     play_state: AnimationPlayState::Running,
+    /// };
+    ///
+    /// // 生成CSS
+    /// let css = engine.generate_css(&config);
+    /// println!("生成的CSS: {}", css);
+    /// ```
     pub fn generate_css(&self, config: &AnimationConfig) -> String {
         let cache_key = self.generate_cache_key(config);
 
@@ -94,6 +173,43 @@ impl AnimationEngine {
     }
 
     /// 注册关键帧
+    ///
+    /// 将关键帧定义注册到动画引擎中，使其可以被动画使用。
+    ///
+    /// # 参数
+    ///
+    /// * `keyframes` - 要注册的关键帧定义
+    ///
+    /// # 返回值
+    ///
+    /// 成功时返回`Ok(())`，失败时返回包含错误信息的`Err(String)`。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::animation::{AnimationEngine, KeyframesBuilder};
+    ///
+    /// // 创建动画引擎
+    /// let engine = AnimationEngine::new();
+    ///
+    /// // 创建关键帧定义
+    /// let keyframes = KeyframesBuilder::new("bounce")
+    ///     .step(0)
+    ///     .property("transform", "scale(0.3)")
+    ///     .property("opacity", "0")
+    ///     .step(50)
+    ///     .property("transform", "scale(1.05)")
+    ///     .property("opacity", "1")
+    ///     .step(100)
+    ///     .property("transform", "scale(1)")
+    ///     .build();
+    ///
+    /// // 注册关键帧
+    /// match engine.register_keyframes(keyframes) {
+    ///     Ok(_) => println!("关键帧注册成功"),
+    ///     Err(e) => println!("关键帧注册失败: {}", e),
+    /// }
+    /// ```
     pub fn register_keyframes(&self, keyframes: Keyframes) -> Result<(), String> {
         keyframes.validate()?;
 
@@ -106,6 +222,38 @@ impl AnimationEngine {
     }
 
     /// 获取关键帧
+    ///
+    /// 通过名称获取已注册的关键帧定义。
+    ///
+    /// # 参数
+    ///
+    /// * `name` - 要获取的关键帧名称
+    ///
+    /// # 返回值
+    ///
+    /// 如果找到匹配的关键帧，则返回`Some(Keyframes)`；否则返回`None`。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::animation::{AnimationEngine, PredefinedKeyframes};
+    ///
+    /// // 创建动画引擎
+    /// let engine = AnimationEngine::new();
+    ///
+    /// // 注册预定义关键帧
+    /// let fade_in = PredefinedKeyframes::fade_in();
+    /// engine.register_keyframes(fade_in).unwrap();
+    ///
+    /// // 获取已注册的关键帧
+    /// if let Some(keyframes) = engine.get_keyframes("fade-in") {
+    ///     println!("找到关键帧: {}", keyframes.name);
+    ///
+    ///     // 可以生成关键帧的CSS
+    ///     let css = keyframes.to_css();
+    ///     println!("关键帧CSS: {}", css);
+    /// }
+    /// ```
     pub fn get_keyframes(&self, name: &str) -> Option<Keyframes> {
         if let Ok(registry) = self.keyframes_registry.lock() {
             registry.get(name).cloned()
@@ -115,6 +263,57 @@ impl AnimationEngine {
     }
 
     /// 生成完整的动画样式表
+    ///
+    /// 根据提供的多个动画配置生成完整的CSS样式表，包括所有注册的关键帧和动画类。
+    ///
+    /// # 参数
+    ///
+    /// * `animations` - 动画配置数组
+    ///
+    /// # 返回值
+    ///
+    /// 返回生成的完整CSS样式表字符串。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::animation::{AnimationEngine, AnimationConfig, EasingFactory};
+    /// use css_in_rust::animation::{AnimationDirection, AnimationFillMode, AnimationIterationCount, AnimationPlayState};
+    /// use std::time::Duration;
+    ///
+    /// // 创建动画引擎
+    /// let engine = AnimationEngine::new();
+    ///
+    /// // 创建多个动画配置
+    /// let fade_in = AnimationConfig {
+    ///     name: "fade-in".to_string(),
+    ///     duration: Duration::from_millis(300),
+    ///     easing: EasingFactory::standard(),
+    ///     delay: Duration::from_millis(0),
+    ///     iteration_count: AnimationIterationCount::Count(1),
+    ///     direction: AnimationDirection::Normal,
+    ///     fill_mode: AnimationFillMode::Both,
+    ///     play_state: AnimationPlayState::Running,
+    /// };
+    ///
+    /// let fade_out = AnimationConfig {
+    ///     name: "fade-out".to_string(),
+    ///     duration: Duration::from_millis(200),
+    ///     easing: EasingFactory::standard(),
+    ///     delay: Duration::from_millis(0),
+    ///     iteration_count: AnimationIterationCount::Count(1),
+    ///     direction: AnimationDirection::Normal,
+    ///     fill_mode: AnimationFillMode::Both,
+    ///     play_state: AnimationPlayState::Running,
+    /// };
+    ///
+    /// // 生成完整样式表
+    /// let stylesheet = engine.generate_stylesheet(&[fade_in, fade_out]);
+    /// println!("生成的样式表: {}", stylesheet);
+    ///
+    /// // 可以将样式表注入到文档中
+    /// // css_in_rust::runtime::inject_style(&stylesheet, "animations");
+    /// ```
     pub fn generate_stylesheet(&self, animations: &[AnimationConfig]) -> String {
         let mut stylesheet = String::new();
 
@@ -235,6 +434,24 @@ impl AnimationEngine {
     }
 
     /// 清除缓存
+    ///
+    /// 清除动画引擎的内部缓存，释放内存并确保下次生成CSS时重新计算。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::animation::AnimationEngine;
+    ///
+    /// // 创建动画引擎
+    /// let engine = AnimationEngine::new();
+    ///
+    /// // 生成一些动画CSS后，可能需要清除缓存
+    /// // ...
+    ///
+    /// // 清除缓存
+    /// engine.clear_cache();
+    /// println!("缓存已清除");
+    /// ```
     pub fn clear_cache(&self) {
         if let Ok(mut cache) = self.cache.lock() {
             cache.clear();
@@ -242,6 +459,33 @@ impl AnimationEngine {
     }
 
     /// 获取缓存统计
+    ///
+    /// 获取当前缓存的使用情况统计，包括缓存项数量和容量。
+    ///
+    /// # 返回值
+    ///
+    /// 如果成功获取缓存锁，返回`Some((size, capacity))`，其中`size`是当前缓存项数量，
+    /// `capacity`是缓存容量；如果获取锁失败，则返回`None`。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::animation::AnimationEngine;
+    ///
+    /// // 创建动画引擎
+    /// let engine = AnimationEngine::new();
+    ///
+    /// // 检查缓存状态
+    /// if let Some((size, capacity)) = engine.get_cache_stats() {
+    ///     println!("缓存统计: {} 项 / {} 容量", size, capacity);
+    ///
+    ///     // 如果缓存使用率过高，可以清除缓存
+    ///     if size > capacity * 80 / 100 {  // 超过80%使用率
+    ///         engine.clear_cache();
+    ///         println!("缓存使用率过高，已清除");
+    ///     }
+    /// }
+    /// ```
     pub fn get_cache_stats(&self) -> Option<(usize, usize)> {
         if let Ok(cache) = self.cache.lock() {
             Some((cache.len(), cache.capacity()))
@@ -251,6 +495,36 @@ impl AnimationEngine {
     }
 
     /// 预加载动画
+    ///
+    /// 预先生成并缓存多个动画的CSS，以提高后续使用时的性能。
+    ///
+    /// # 参数
+    ///
+    /// * `configs` - 要预加载的动画配置数组
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::animation::{AnimationEngine, AnimationPresets};
+    ///
+    /// // 创建动画引擎
+    /// let engine = AnimationEngine::new();
+    ///
+    /// // 获取标准预设
+    /// let presets = AnimationPresets::standard();
+    ///
+    /// // 预加载常用动画
+    /// let animations = vec![
+    ///     presets.get("fade-in").unwrap(),
+    ///     presets.get("fade-out").unwrap(),
+    ///     presets.get("slide-up").unwrap(),
+    ///     presets.get("slide-down").unwrap(),
+    /// ];
+    ///
+    /// // 预加载动画
+    /// engine.preload_animations(&animations);
+    /// println!("常用动画已预加载");
+    /// ```
     pub fn preload_animations(&self, configs: &[AnimationConfig]) {
         for config in configs {
             self.generate_css(config);
@@ -259,6 +533,9 @@ impl AnimationEngine {
 }
 
 /// 动画批处理器
+///
+/// 用于批量处理多个动画，提高性能并简化动画管理。
+/// 可以一次性生成多个动画的CSS，避免多次调用引擎的开销。
 pub struct AnimationBatch {
     animations: Vec<AnimationConfig>,
     engine: AnimationEngine,
@@ -266,6 +543,30 @@ pub struct AnimationBatch {
 
 impl AnimationBatch {
     /// 创建新的批处理器
+    ///
+    /// 使用指定的动画引擎初始化一个新的批处理器实例。
+    ///
+    /// # 参数
+    ///
+    /// * `engine` - 用于生成动画CSS的动画引擎
+    ///
+    /// # 返回值
+    ///
+    /// 返回一个新的`AnimationBatch`实例。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::animation::{AnimationEngine, AnimationBatch};
+    ///
+    /// // 创建动画引擎
+    /// let engine = AnimationEngine::new();
+    ///
+    /// // 创建批处理器
+    /// let batch = AnimationBatch::new(engine);
+    ///
+    /// // 现在可以向批处理器添加动画
+    /// ```
     pub fn new(engine: AnimationEngine) -> Self {
         Self {
             animations: Vec::new(),
@@ -274,26 +575,146 @@ impl AnimationBatch {
     }
 
     /// 添加动画
+    ///
+    /// 向批处理器添加一个动画配置。
+    ///
+    /// # 参数
+    ///
+    /// * `config` - 要添加的动画配置
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::animation::{AnimationEngine, AnimationBatch, AnimationConfig, EasingFactory};
+    /// use css_in_rust::animation::{AnimationDirection, AnimationFillMode, AnimationIterationCount, AnimationPlayState};
+    /// use std::time::Duration;
+    ///
+    /// // 创建批处理器
+    /// let mut batch = AnimationBatch::new(AnimationEngine::new());
+    ///
+    /// // 创建动画配置
+    /// let fade_in = AnimationConfig {
+    ///     name: "fade-in".to_string(),
+    ///     duration: Duration::from_millis(300),
+    ///     easing: EasingFactory::standard(),
+    ///     delay: Duration::from_millis(0),
+    ///     iteration_count: AnimationIterationCount::Count(1),
+    ///     direction: AnimationDirection::Normal,
+    ///     fill_mode: AnimationFillMode::Both,
+    ///     play_state: AnimationPlayState::Running,
+    /// };
+    ///
+    /// // 添加动画到批处理器
+    /// batch.add_animation(fade_in);
+    /// ```
     pub fn add_animation(&mut self, config: AnimationConfig) {
         self.animations.push(config);
     }
 
     /// 批量生成 CSS
+    ///
+    /// 为所有添加的动画生成完整的CSS样式表。
+    ///
+    /// # 返回值
+    ///
+    /// 返回包含所有动画的CSS样式表字符串。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::animation::{AnimationEngine, AnimationBatch, AnimationPresets};
+    ///
+    /// // 创建批处理器
+    /// let mut batch = AnimationBatch::new(AnimationEngine::new());
+    ///
+    /// // 获取预设动画
+    /// let presets = AnimationPresets::standard();
+    ///
+    /// // 添加多个动画
+    /// batch.add_animation(presets.get("fade-in").unwrap());
+    /// batch.add_animation(presets.get("slide-up").unwrap());
+    /// batch.add_animation(presets.get("zoom-in").unwrap());
+    ///
+    /// // 生成所有动画的CSS
+    /// let css = batch.generate_css();
+    /// println!("生成的CSS样式表: {}", css);
+    ///
+    /// // 可以将CSS注入到文档中
+    /// // css_in_rust::runtime::inject_style(&css, "animations-bundle");
+    /// ```
     pub fn generate_css(&self) -> String {
         self.engine.generate_stylesheet(&self.animations)
     }
 
     /// 清空批处理
+    ///
+    /// 移除批处理器中的所有动画配置。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::animation::{AnimationEngine, AnimationBatch, AnimationPresets};
+    ///
+    /// // 创建批处理器并添加动画
+    /// let mut batch = AnimationBatch::new(AnimationEngine::new());
+    /// let presets = AnimationPresets::standard();
+    /// batch.add_animation(presets.get("fade-in").unwrap());
+    ///
+    /// // 清空批处理器
+    /// batch.clear();
+    /// assert_eq!(batch.len(), 0);
+    /// ```
     pub fn clear(&mut self) {
         self.animations.clear();
     }
 
     /// 获取动画数量
+    ///
+    /// 返回批处理器中当前的动画配置数量。
+    ///
+    /// # 返回值
+    ///
+    /// 返回批处理器中的动画数量。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::animation::{AnimationEngine, AnimationBatch, AnimationPresets};
+    ///
+    /// // 创建批处理器
+    /// let mut batch = AnimationBatch::new(AnimationEngine::new());
+    /// assert_eq!(batch.len(), 0);
+    ///
+    /// // 添加动画
+    /// let presets = AnimationPresets::standard();
+    /// batch.add_animation(presets.get("fade-in").unwrap());
+    /// assert_eq!(batch.len(), 1);
+    /// ```
     pub fn len(&self) -> usize {
         self.animations.len()
     }
 
     /// 检查是否为空
+    ///
+    /// 检查批处理器是否不包含任何动画配置。
+    ///
+    /// # 返回值
+    ///
+    /// 如果批处理器不包含任何动画，则返回`true`；否则返回`false`。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::animation::{AnimationEngine, AnimationBatch};
+    ///
+    /// // 创建批处理器
+    /// let mut batch = AnimationBatch::new(AnimationEngine::new());
+    /// assert!(batch.is_empty());
+    ///
+    /// // 添加动画后不再为空
+    /// // batch.add_animation(...);
+    /// // assert!(!batch.is_empty());
+    /// ```
     pub fn is_empty(&self) -> bool {
         self.animations.is_empty()
     }

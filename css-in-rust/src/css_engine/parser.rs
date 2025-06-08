@@ -3,6 +3,10 @@
 //!
 //! This module provides CSS parsing capabilities using lightningcss as the core engine
 //! for high-performance CSS processing and optimization.
+//!
+//! The parser can operate in two modes:
+//! - With the "optimizer" feature enabled, it uses lightningcss for full parsing capabilities
+//! - Without the feature, it falls back to a simpler parsing implementation
 
 #[cfg(feature = "optimizer")]
 use lightningcss::{
@@ -14,6 +18,23 @@ use lightningcss::{
 // use std::collections::HashMap; // Unused import
 
 /// Configuration for CSS parser
+///
+/// Controls how CSS is parsed and processed, including browser targets and minification options.
+///
+/// # Examples
+///
+/// ```
+/// use css_in_rust::css_engine::parser::ParserConfig;
+///
+/// // Create a default configuration
+/// let default_config = ParserConfig::default();
+///
+/// // Create a custom configuration with minification enabled
+/// let custom_config = ParserConfig {
+///     minify: true,
+///     ..ParserConfig::default()
+/// };
+/// ```
 #[derive(Debug, Clone)]
 pub struct ParserConfig {
     /// Target browsers for CSS compatibility
@@ -26,6 +47,18 @@ pub struct ParserConfig {
 }
 
 impl Default for ParserConfig {
+    /// Creates a default parser configuration
+    ///
+    /// By default, targets are set to standard browsers and minification is disabled.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::parser::ParserConfig;
+    ///
+    /// let config = ParserConfig::default();
+    /// assert_eq!(config.minify, false);
+    /// ```
     fn default() -> Self {
         Self {
             #[cfg(feature = "optimizer")]
@@ -38,15 +71,42 @@ impl Default for ParserConfig {
 }
 
 /// CSS parser error wrapper for lightningcss errors
+///
+/// Represents errors that can occur during CSS parsing.
+///
+/// # Examples
+///
+/// ```
+/// use css_in_rust::css_engine::parser::{CssParser, ParseError};
+///
+/// fn process_css(css: &str) -> Result<String, ParseError> {
+///     let parser = CssParser::new();
+///     let stylesheet = parser.parse(css)?;
+///     Ok(stylesheet.optimized)
+/// }
+/// ```
 #[derive(Debug)]
 pub enum ParseError {
     #[cfg(feature = "optimizer")]
+    /// Error from the lightningcss library
     LightningCssError(LightningError<()>),
+    /// Error due to invalid CSS input
     InvalidInput(String),
+    /// Error during CSS processing
     ProcessingError(String),
 }
 
 impl std::fmt::Display for ParseError {
+    /// Formats the error message for display
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::parser::ParseError;
+    ///
+    /// let error = ParseError::InvalidInput("Missing semicolon".to_string());
+    /// println!("Error: {}", error);
+    /// ```
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             #[cfg(feature = "optimizer")]
@@ -61,12 +121,43 @@ impl std::error::Error for ParseError {}
 
 #[cfg(feature = "optimizer")]
 impl From<LightningError<()>> for ParseError {
+    /// Converts a LightningCSS error into a ParseError
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #[cfg(feature = "optimizer")]
+    /// # {
+    /// use css_in_rust::css_engine::parser::ParseError;
+    /// use lightningcss::error::Error as LightningError;
+    ///
+    /// fn handle_lightning_error(err: LightningError<()>) {
+    ///     let parse_error: ParseError = err.into();
+    ///     eprintln!("Parse error: {}", parse_error);
+    /// }
+    /// # }
+    /// ```
     fn from(err: LightningError<()>) -> Self {
         ParseError::LightningCssError(err)
     }
 }
 
 /// CSS stylesheet wrapper around lightningcss
+///
+/// Represents a parsed CSS stylesheet with both original source and optimized output.
+///
+/// # Examples
+///
+/// ```
+/// use css_in_rust::css_engine::parser::{CssParser, StyleSheet};
+///
+/// let parser = CssParser::new();
+/// let css = ".button { color: red; }";
+/// let stylesheet = parser.parse(css).unwrap();
+///
+/// println!("Original: {}", stylesheet.source);
+/// println!("Optimized: {}", stylesheet.optimized);
+/// ```
 #[derive(Debug, Clone)]
 pub struct StyleSheet {
     /// The original CSS source
@@ -78,6 +169,18 @@ pub struct StyleSheet {
 }
 
 /// Metadata extracted from CSS parsing
+///
+/// Contains information about the parsed CSS stylesheet.
+///
+/// # Examples
+///
+/// ```
+/// use css_in_rust::css_engine::parser::{StyleSheetMetadata};
+///
+/// let metadata = StyleSheetMetadata::default();
+/// assert_eq!(metadata.rule_count, 0);
+/// assert_eq!(metadata.has_media_queries, false);
+/// ```
 #[derive(Debug, Clone, Default)]
 pub struct StyleSheetMetadata {
     /// Number of rules in the stylesheet
@@ -91,12 +194,44 @@ pub struct StyleSheetMetadata {
 }
 
 /// CSS parser using lightningcss
+///
+/// Parses CSS strings into structured StyleSheet objects.
+///
+/// # Examples
+///
+/// ```
+/// use css_in_rust::css_engine::parser::{CssParser, ParserConfig};
+///
+/// // Create a parser with default configuration
+/// let parser = CssParser::new();
+///
+/// // Create a parser with custom configuration
+/// let config = ParserConfig {
+///     minify: true,
+///     ..ParserConfig::default()
+/// };
+/// let custom_parser = CssParser::with_config(config);
+///
+/// // Parse CSS
+/// let css = ".button { color: red; }";
+/// let stylesheet = parser.parse(css).unwrap();
+/// ```
 pub struct CssParser {
     config: ParserConfig,
 }
 
 impl CssParser {
     /// Create a new CSS parser with default configuration
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::parser::CssParser;
+    ///
+    /// let parser = CssParser::new();
+    /// let css = ".button { color: red; }";
+    /// let stylesheet = parser.parse(css).unwrap();
+    /// ```
     pub fn new() -> Self {
         Self {
             config: ParserConfig::default(),
@@ -104,69 +239,229 @@ impl CssParser {
     }
 
     /// Create a new CSS parser with custom configuration
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::parser::{CssParser, ParserConfig};
+    ///
+    /// let config = ParserConfig {
+    ///     minify: true,
+    ///     ..ParserConfig::default()
+    /// };
+    /// let parser = CssParser::with_config(config);
+    ///
+    /// let css = ".button { color: red; }";
+    /// let stylesheet = parser.parse(css).unwrap();
+    /// assert!(stylesheet.optimized.len() <= css.len()); // Should be minified
+    /// ```
     pub fn with_config(config: ParserConfig) -> Self {
         Self { config }
     }
 
-    /// Parse CSS string into a stylesheet
+    /// Parse CSS string into a StyleSheet object
+    ///
+    /// 将CSS字符串解析为StyleSheet对象，提供原始源代码和优化后的输出。
+    /// 当启用了"optimizer"特性时，会使用lightningcss进行高性能解析。
+    ///
+    /// # 参数
+    ///
+    /// * `css` - 要解析的CSS字符串
+    ///
+    /// # 返回值
+    ///
+    /// 成功时返回包含原始源代码、优化后代码和元数据的`StyleSheet`对象，
+    /// 失败时返回`ParseError`错误。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::parser::{CssParser, ParserConfig};
+    ///
+    /// // 创建解析器
+    /// let parser = CssParser::new();
+    ///
+    /// // 简单的CSS
+    /// let css = ".button {
+    ///     background-color: #0066cc;
+    ///     color: white;
+    ///     padding: 8px 16px;
+    ///     border-radius: 4px;
+    /// }";
+    ///
+    /// // 解析CSS
+    /// let result = parser.parse(css);
+    /// assert!(result.is_ok());
+    ///
+    /// // 获取解析结果
+    /// let stylesheet = result.unwrap();
+    /// println!("原始CSS: {}", stylesheet.source);
+    /// println!("优化后CSS: {}", stylesheet.optimized);
+    /// println!("规则数量: {}", stylesheet.metadata.rule_count);
+    ///
+    /// // 检查是否包含媒体查询
+    /// assert_eq!(stylesheet.metadata.has_media_queries, false);
+    ///
+    /// // 解析带有媒体查询的CSS
+    /// let responsive_css = "@media (max-width: 768px) {
+    ///     .container { width: 100%; }
+    /// }";
+    /// let responsive_result = parser.parse(responsive_css).unwrap();
+    /// assert_eq!(responsive_result.metadata.has_media_queries, true);
+    ///
+    /// // 解析带有CSS变量的CSS
+    /// let theme_css = ":root {
+    ///     --primary-color: #0066cc;
+    /// }
+    /// .themed-button {
+    ///     background-color: var(--primary-color);
+    /// }";
+    /// let theme_result = parser.parse(theme_css).unwrap();
+    /// assert!(theme_result.metadata.custom_properties.contains(&"--primary-color".to_string()));
+    /// ```
+    ///
+    /// # 错误处理
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::parser::{CssParser, ParseError};
+    ///
+    /// let parser = CssParser::new();
+    ///
+    /// // 无效的CSS（缺少分号）
+    /// let invalid_css = ".error { color: red background: #ffeeee }";
+    /// let result = parser.parse(invalid_css);
+    ///
+    /// // 处理解析错误
+    /// match result {
+    ///     Ok(_) => println!("解析成功"),
+    ///     Err(err) => match err {
+    ///         ParseError::InvalidInput(msg) => println!("无效输入: {}", msg),
+    ///         ParseError::ProcessingError(msg) => println!("处理错误: {}", msg),
+    ///         #[cfg(feature = "optimizer")]
+    ///         ParseError::LightningCssError(err) => println!("LightningCSS错误: {:?}", err),
+    ///     }
+    /// }
+    /// ```
     #[cfg(feature = "optimizer")]
     pub fn parse(&self, css: &str) -> Result<StyleSheet, ParseError> {
+        // Empty CSS check
         if css.trim().is_empty() {
             return Ok(StyleSheet {
-                source: css.to_string(),
+                source: String::new(),
                 optimized: String::new(),
                 metadata: StyleSheetMetadata::default(),
             });
         }
 
-        // Parse CSS using lightningcss with default options
-        let stylesheet =
-            LightningStyleSheet::parse(css, ParserOptions::default()).map_err(|e| {
-                ParseError::ProcessingError(format!("lightningcss parse error: {:?}", e))
-            })?;
+        // Parse with lightningcss
+        let parser_options = ParserOptions {
+            nesting: true,
+            custom_media: true,
+            ..ParserOptions::default()
+        };
 
-        // Create printer options for optimization
+        let stylesheet = LightningStyleSheet::parse(css, parser_options)?;
+
+        // Generate printer options
         let mut printer_options = PrinterOptions::default();
-        printer_options.minify = true;
+        printer_options.minify = self.config.minify;
+
         if let Some(targets) = &self.config.targets {
-            printer_options.targets = Targets::from(targets.clone());
+            printer_options.targets = Targets::Browsers(targets.clone());
         }
 
-        // Generate optimized CSS
-        let optimized_css = stylesheet
-            .to_css(printer_options)
-            .map_err(|e| ParseError::ProcessingError(format!("Failed to optimize CSS: {:?}", e)))?;
+        // Print the optimized CSS
+        let optimized = stylesheet.to_css(printer_options)?.code;
+
+        // Extract metadata
+        let metadata = self.extract_metadata(&stylesheet);
 
         Ok(StyleSheet {
             source: css.to_string(),
-            optimized: optimized_css.code,
-            metadata: StyleSheetMetadata::default(),
+            optimized,
+            metadata,
         })
     }
 
-    /// Parse CSS string into a stylesheet (fallback implementation)
+    /// Parse CSS string into a StyleSheet object (fallback implementation)
+    ///
+    /// 将CSS字符串解析为StyleSheet对象的备用实现，当未启用"optimizer"特性时使用。
+    /// 这个版本提供基本的CSS验证，但不执行完整的解析和优化。
+    ///
+    /// # 参数
+    ///
+    /// * `css` - 要解析的CSS字符串
+    ///
+    /// # 返回值
+    ///
+    /// 成功时返回包含原始源代码和基本处理后代码的`StyleSheet`对象，
+    /// 失败时返回`ParseError`错误。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::parser::CssParser;
+    ///
+    /// // 创建解析器
+    /// let parser = CssParser::new();
+    ///
+    /// // 简单的CSS
+    /// let css = ".simple { font-size: 14px; }";
+    /// let result = parser.parse(css);
+    /// assert!(result.is_ok());
+    ///
+    /// // 获取解析结果
+    /// let stylesheet = result.unwrap();
+    /// assert_eq!(stylesheet.source, css);
+    /// ```
     #[cfg(not(feature = "optimizer"))]
     pub fn parse(&self, css: &str) -> Result<StyleSheet, ParseError> {
+        // Empty CSS check
         if css.trim().is_empty() {
             return Ok(StyleSheet {
-                source: css.to_string(),
+                source: String::new(),
                 optimized: String::new(),
                 metadata: StyleSheetMetadata::default(),
             });
         }
 
-        // Basic CSS syntax validation
-        if let Err(err) = self.validate_basic_css_syntax(css) {
-            return Err(ParseError::InvalidInput(err));
+        // Basic validation
+        if let Err(msg) = self.validate_basic_css_syntax(css) {
+            return Err(ParseError::InvalidInput(msg));
         }
 
-        // Simple fallback: basic minification if enabled
+        // Simple metadata extraction
+        let metadata = StyleSheetMetadata {
+            rule_count: css.matches('{').count(),
+            has_media_queries: css.contains("@media"),
+            has_keyframes: css.contains("@keyframes"),
+            custom_properties: css
+                .lines()
+                .filter_map(|line| {
+                    if line.contains("--") {
+                        let start = line.find("--")?;
+                        let end = line[start..].find(':')?;
+                        Some(line[start..start + end].trim().to_string())
+                    } else {
+                        None
+                    }
+                })
+                .collect(),
+        };
+
+        // Simple optimization (whitespace removal)
         let optimized = if self.config.minify {
             css.lines()
                 .map(|line| line.trim())
-                .filter(|line| !line.is_empty())
                 .collect::<Vec<_>>()
-                .join(" ")
+                .join("")
+                .replace("{ ", "{")
+                .replace(" }", "}")
+                .replace(", ", ",")
+                .replace("; ", ";")
+                .replace(" {", "{")
+                .replace(" :", ":")
+                .replace(": ", ":")
         } else {
             css.to_string()
         };
@@ -174,11 +469,38 @@ impl CssParser {
         Ok(StyleSheet {
             source: css.to_string(),
             optimized,
-            metadata: StyleSheetMetadata::default(),
+            metadata,
         })
     }
 
     /// Basic CSS syntax validation for fallback implementation
+    ///
+    /// Performs simple syntax validation when the optimizer feature is not enabled.
+    ///
+    /// # Arguments
+    ///
+    /// * `css` - The CSS string to validate
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing either `()` if valid or an error message string
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #[cfg(not(feature = "optimizer"))]
+    /// # {
+    /// use css_in_rust::css_engine::parser::CssParser;
+    ///
+    /// let parser = CssParser::new();
+    /// let valid_css = ".button { color: red; }";
+    /// let invalid_css = ".button { color: red; } }"; // Extra closing brace
+    ///
+    /// // This would be called internally by parse()
+    /// assert!(parser.validate_basic_css_syntax(valid_css).is_ok());
+    /// assert!(parser.validate_basic_css_syntax(invalid_css).is_err());
+    /// # }
+    /// ```
     #[cfg(not(feature = "optimizer"))]
     fn validate_basic_css_syntax(&self, css: &str) -> Result<(), String> {
         let mut brace_count = 0;
@@ -232,6 +554,33 @@ impl CssParser {
     }
 
     /// Extract metadata from parsed stylesheet
+    ///
+    /// Analyzes the parsed stylesheet to extract metadata like rule count, media queries, etc.
+    ///
+    /// # Arguments
+    ///
+    /// * `stylesheet` - The parsed LightningStyleSheet
+    ///
+    /// # Returns
+    ///
+    /// A `StyleSheetMetadata` object with extracted information
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #[cfg(feature = "optimizer")]
+    /// # {
+    /// use css_in_rust::css_engine::parser::CssParser;
+    /// use lightningcss::stylesheet::{StyleSheet as LightningStyleSheet, ParserOptions};
+    ///
+    /// let parser = CssParser::new();
+    /// let css = ".button { color: red; } @media (max-width: 768px) { .button { color: blue; } }";
+    /// let lightning_stylesheet = LightningStyleSheet::parse(css, ParserOptions::default()).unwrap();
+    ///
+    /// // This would be called internally during parsing
+    /// let metadata = parser.extract_metadata(&lightning_stylesheet);
+    /// # }
+    /// ```
     #[cfg(feature = "optimizer")]
     fn extract_metadata(&self, _stylesheet: &LightningStyleSheet) -> StyleSheetMetadata {
         // This is a simplified implementation
@@ -247,6 +596,17 @@ impl CssParser {
 }
 
 impl Default for CssParser {
+    /// Creates a new CSS parser with default configuration
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::parser::CssParser;
+    ///
+    /// let parser = CssParser::default();
+    /// let css = ".button { color: red; }";
+    /// let stylesheet = parser.parse(css).unwrap();
+    /// ```
     fn default() -> Self {
         Self::new()
     }

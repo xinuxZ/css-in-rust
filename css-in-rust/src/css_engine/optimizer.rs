@@ -3,6 +3,12 @@
 //!
 //! This module provides CSS optimization capabilities leveraging lightningcss
 //! for high-performance minification and optimization.
+//!
+//! The optimizer can perform various optimizations including:
+//! - CSS minification
+//! - Dead code elimination
+//! - Browser compatibility transformations
+//! - Static analysis for unused CSS
 
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
@@ -16,6 +22,21 @@ use lightningcss::{
 };
 
 /// 用于跟踪CSS使用情况的结构体
+///
+/// 跟踪CSS类名、ID和规则的使用情况，用于死代码消除。
+///
+/// # Examples
+///
+/// ```
+/// use css_in_rust::css_engine::optimizer::CssUsageTracker;
+///
+/// let mut tracker = CssUsageTracker::default();
+/// tracker.used_classes.insert("button".to_string());
+/// tracker.used_ids.insert("header".to_string());
+///
+/// assert!(tracker.used_classes.contains("button"));
+/// assert!(tracker.used_ids.contains("header"));
+/// ```
 #[derive(Debug, Clone, Default)]
 pub struct CssUsageTracker {
     /// 已使用的CSS类名集合
@@ -29,6 +50,28 @@ pub struct CssUsageTracker {
 }
 
 /// 死代码分析结果
+///
+/// 包含对CSS中未使用代码的分析结果。
+///
+/// # Examples
+///
+/// ```
+/// use css_in_rust::css_engine::optimizer::{CssOptimizer, DeadCodeAnalysis};
+/// use std::collections::HashSet;
+///
+/// // 通常通过CssOptimizer的analyze_dead_code方法获取
+/// let analysis = DeadCodeAnalysis {
+///     unused_rules: vec!["0".to_string()],
+///     unused_classes: HashSet::from(["unused-class".to_string()]),
+///     unused_ids: HashSet::from(["unused-id".to_string()]),
+///     removable_bytes: 100,
+///     original_size: 1000,
+/// };
+///
+/// println!("可移除的字节数: {}", analysis.removable_bytes);
+/// println!("原始大小: {}", analysis.original_size);
+/// println!("优化比例: {}%", analysis.removable_bytes * 100 / analysis.original_size);
+/// ```
 #[derive(Debug, Clone)]
 pub struct DeadCodeAnalysis {
     /// 未使用的CSS规则
@@ -44,6 +87,29 @@ pub struct DeadCodeAnalysis {
 }
 
 /// Configuration for CSS optimizer
+///
+/// 控制CSS优化器的行为，包括目标浏览器、死代码消除等选项。
+///
+/// # Examples
+///
+/// ```
+/// use css_in_rust::css_engine::optimizer::OptimizerConfig;
+/// use std::path::PathBuf;
+///
+/// // 创建默认配置
+/// let default_config = OptimizerConfig::default();
+///
+/// // 创建自定义配置
+/// let custom_config = OptimizerConfig {
+///     minify: true,
+///     analyze_dependencies: true,
+///     enable_dead_code_elimination: true,
+///     source_paths: vec![PathBuf::from("src/")],
+///     aggressive_elimination: false,
+///     usage_threshold: 0.05, // 使用率低于5%的规则将被移除
+///     ..OptimizerConfig::default()
+/// };
+/// ```
 #[derive(Debug, Clone)]
 pub struct OptimizerConfig {
     /// Whether to minify the CSS output
@@ -68,6 +134,20 @@ pub struct OptimizerConfig {
 }
 
 impl Default for OptimizerConfig {
+    /// 创建默认的优化器配置
+    ///
+    /// 默认配置启用了最常用的优化选项。
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::OptimizerConfig;
+    ///
+    /// let config = OptimizerConfig::default();
+    /// assert_eq!(config.minify, true);
+    /// assert_eq!(config.enable_dead_code_elimination, true);
+    /// assert_eq!(config.usage_threshold, 0.0);
+    /// ```
     fn default() -> Self {
         Self {
             minify: true,
@@ -86,17 +166,49 @@ impl Default for OptimizerConfig {
 }
 
 /// CSS optimization error
+///
+/// 表示在CSS优化过程中可能发生的错误。
+///
+/// # Examples
+///
+/// ```
+/// use css_in_rust::css_engine::optimizer::{CssOptimizer, OptimizationError};
+///
+/// fn process_css(css: &str) -> Result<String, OptimizationError> {
+///     let mut optimizer = CssOptimizer::new();
+///     let stylesheet = css_in_rust::css_engine::parser::CssParser::new().parse(css)
+///         .map_err(OptimizationError::from)?;
+///     optimizer.optimize(stylesheet)
+/// }
+/// ```
 #[derive(Debug)]
 pub enum OptimizationError {
+    /// CSS解析错误
     ParseError(ParseError),
+    /// 优化过程中的错误
     OptimizationFailed(String),
+    /// 配置无效
     InvalidConfiguration(String),
+    /// 死代码分析错误
     DeadCodeAnalysisError(String),
+    /// 源文件错误
     SourceFileError(std::io::Error),
+    /// 静态分析错误
     StaticAnalysisError(String),
 }
 
 impl std::fmt::Display for OptimizationError {
+    /// 格式化错误消息
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::OptimizationError;
+    /// use css_in_rust::css_engine::parser::ParseError;
+    ///
+    /// let error = OptimizationError::OptimizationFailed("压缩失败".to_string());
+    /// println!("错误: {}", error);
+    /// ```
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             OptimizationError::ParseError(err) => {
@@ -122,18 +234,61 @@ impl std::fmt::Display for OptimizationError {
 impl std::error::Error for OptimizationError {}
 
 impl From<ParseError> for OptimizationError {
+    /// 将解析错误转换为优化错误
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::OptimizationError;
+    /// use css_in_rust::css_engine::parser::ParseError;
+    ///
+    /// let parse_error = ParseError::InvalidInput("无效的CSS".to_string());
+    /// let opt_error: OptimizationError = parse_error.into();
+    /// ```
     fn from(err: ParseError) -> Self {
         OptimizationError::ParseError(err)
     }
 }
 
 impl From<std::io::Error> for OptimizationError {
+    /// 将IO错误转换为优化错误
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::OptimizationError;
+    /// use std::io::{self, ErrorKind};
+    ///
+    /// let io_error = io::Error::new(ErrorKind::NotFound, "文件未找到");
+    /// let opt_error: OptimizationError = io_error.into();
+    /// ```
     fn from(err: std::io::Error) -> Self {
         OptimizationError::SourceFileError(err)
     }
 }
 
 /// CSS optimizer using lightningcss
+///
+/// 提供CSS优化功能，包括压缩和死代码消除。
+///
+/// # Examples
+///
+/// ```
+/// use css_in_rust::css_engine::optimizer::{CssOptimizer, OptimizerConfig};
+/// use css_in_rust::css_engine::parser::{CssParser, StyleSheet};
+///
+/// // 创建一个优化器
+/// let mut optimizer = CssOptimizer::new();
+///
+/// // 解析CSS
+/// let parser = CssParser::new();
+/// let css = ".button { color: red; font-size: 16px; }";
+/// let stylesheet = parser.parse(css).unwrap();
+///
+/// // 优化CSS
+/// let optimized = optimizer.optimize(stylesheet).unwrap();
+/// println!("优化后的CSS: {}", optimized);
+/// ```
 #[derive(Clone)]
 pub struct CssOptimizer {
     config: OptimizerConfig,
@@ -141,7 +296,15 @@ pub struct CssOptimizer {
 }
 
 impl CssOptimizer {
-    /// Create a new CSS optimizer with default configuration
+    /// 创建一个新的CSS优化器，使用默认配置
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::CssOptimizer;
+    ///
+    /// let optimizer = CssOptimizer::new();
+    /// ```
     pub fn new() -> Self {
         Self {
             config: OptimizerConfig::default(),
@@ -149,7 +312,24 @@ impl CssOptimizer {
         }
     }
 
-    /// Create a new CSS optimizer with custom configuration
+    /// 创建一个新的CSS优化器，使用自定义配置
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - 自定义的优化器配置
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::{CssOptimizer, OptimizerConfig};
+    ///
+    /// let config = OptimizerConfig {
+    ///     minify: true,
+    ///     enable_dead_code_elimination: false,
+    ///     ..OptimizerConfig::default()
+    /// };
+    /// let optimizer = CssOptimizer::with_config(config);
+    /// ```
     pub fn with_config(config: OptimizerConfig) -> Self {
         Self {
             config,
@@ -157,7 +337,30 @@ impl CssOptimizer {
         }
     }
 
-    /// Optimize a CSS stylesheet using lightningcss
+    /// 优化CSS样式表
+    ///
+    /// 根据配置对CSS样式表进行优化，包括压缩和死代码消除。
+    ///
+    /// # Arguments
+    ///
+    /// * `stylesheet` - 要优化的CSS样式表
+    ///
+    /// # Returns
+    ///
+    /// 优化后的CSS字符串或错误
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::CssOptimizer;
+    /// use css_in_rust::css_engine::parser::{CssParser, StyleSheet};
+    ///
+    /// let mut optimizer = CssOptimizer::new();
+    /// let parser = CssParser::new();
+    /// let css = ".button { color: red; }";
+    /// let stylesheet = parser.parse(css).unwrap();
+    /// let optimized = optimizer.optimize(stylesheet).unwrap();
+    /// ```
     pub fn optimize(&mut self, stylesheet: StyleSheet) -> Result<String, OptimizationError> {
         let mut css_content = if !stylesheet.optimized.is_empty() && self.config.minify {
             stylesheet.optimized
@@ -174,7 +377,47 @@ impl CssOptimizer {
         self.optimize_string(&css_content)
     }
 
-    /// Optimize CSS string
+    /// 优化CSS字符串（使用lightningcss）
+    ///
+    /// 当启用optimizer特性时，使用lightningcss库进行高级优化。
+    ///
+    /// # Arguments
+    ///
+    /// * `css` - 要优化的CSS字符串
+    ///
+    /// # Returns
+    ///
+    /// 优化后的CSS字符串或错误
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::CssOptimizer;
+    ///
+    /// let mut optimizer = CssOptimizer::new();
+    ///
+    /// // 优化CSS字符串
+    /// let css = "
+    /// /* 这是一个注释 */
+    /// .container {
+    ///     max-width: 1200px;
+    ///     margin: 0 auto;
+    ///     padding: 0 15px;
+    /// }
+    ///
+    /// .container .row {
+    ///     display: flex;
+    ///     flex-wrap: wrap;
+    /// }
+    /// ";
+    ///
+    /// let result = optimizer.optimize_string(css).unwrap();
+    ///
+    /// // 优化后的CSS应该更小，没有注释和多余的空白
+    /// println!("优化后: {}", result);
+    /// assert!(result.len() < css.len());
+    /// assert!(!result.contains("/*"));
+    /// ```
     #[cfg(feature = "optimizer")]
     pub fn optimize_string(&self, css: &str) -> Result<String, OptimizationError> {
         use lightningcss::stylesheet::ParserOptions;
@@ -200,7 +443,36 @@ impl CssOptimizer {
         Ok(result.code)
     }
 
-    /// Fallback optimize CSS string (without lightningcss)
+    /// Optimize a CSS string directly (fallback implementation)
+    ///
+    /// 当未启用optimizer特性时的回退实现，提供基本的CSS压缩。
+    ///
+    /// # Arguments
+    ///
+    /// * `css` - 要优化的CSS字符串
+    ///
+    /// # Returns
+    ///
+    /// 优化后的CSS字符串或错误
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::CssOptimizer;
+    ///
+    /// let optimizer = CssOptimizer::new();
+    ///
+    /// // 优化简单的CSS
+    /// let css = "
+    /// .header {
+    ///     background-color: #333;
+    ///     color: white;
+    /// }
+    /// ";
+    ///
+    /// let result = optimizer.optimize_string(css).unwrap();
+    /// println!("优化后: {}", result);
+    /// ```
     #[cfg(not(feature = "optimizer"))]
     pub fn optimize_string(&self, css: &str) -> Result<String, OptimizationError> {
         // Simple fallback: just return the CSS as-is or do basic minification
@@ -219,6 +491,73 @@ impl CssOptimizer {
     }
 
     /// Eliminate dead code from CSS
+    ///
+    /// 从CSS中消除未使用的代码，基于静态分析或手动跟踪的使用情况。
+    /// 这个方法可以显著减小CSS的大小，移除应用程序中未使用的样式规则。
+    ///
+    /// # Arguments
+    ///
+    /// * `css` - 要处理的CSS字符串
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回优化后的CSS字符串（已移除未使用的代码），
+    /// 失败时返回`OptimizationError`错误。
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::{CssOptimizer, OptimizerConfig};
+    /// use std::path::PathBuf;
+    ///
+    /// // 创建优化器
+    /// let config = OptimizerConfig {
+    ///     enable_dead_code_elimination: true,
+    ///     source_paths: vec![PathBuf::from("src/")],
+    ///     ..OptimizerConfig::default()
+    /// };
+    /// let mut optimizer = CssOptimizer::with_config(config);
+    ///
+    /// // 手动跟踪使用的类
+    /// let mut used_classes = HashSet::new();
+    /// used_classes.insert("header".to_string());
+    /// used_classes.insert("active".to_string());
+    ///
+    /// // 更新使用情况跟踪器
+    /// optimizer.get_usage_tracker().used_classes = used_classes;
+    ///
+    /// // CSS包含使用和未使用的类
+    /// let css = "
+    /// .header {
+    ///     background-color: #333;
+    ///     color: white;
+    /// }
+    /// .active {
+    ///     font-weight: bold;
+    /// }
+    /// .unused {
+    ///     display: none;
+    /// }
+    /// #unused-id {
+    ///     visibility: hidden;
+    /// }
+    /// ";
+    ///
+    /// // 消除未使用的代码
+    /// let result = optimizer.eliminate_dead_code(css).unwrap();
+    ///
+    /// // 验证结果
+    /// assert!(result.contains(".header"));
+    /// assert!(result.contains(".active"));
+    /// assert!(!result.contains(".unused"));
+    /// assert!(!result.contains("#unused-id"));
+    ///
+    /// // 分析死代码
+    /// let analysis = optimizer.analyze_dead_code(css).unwrap();
+    /// println!("未使用的类: {:?}", analysis.unused_classes);
+    /// println!("可移除的字节数: {}", analysis.removable_bytes);
+    /// println!("优化比例: {}%", analysis.removable_bytes * 100 / analysis.original_size);
+    /// ```
     pub fn eliminate_dead_code(&mut self, css: &str) -> Result<String, OptimizationError> {
         if !self.config.enable_dead_code_elimination {
             return Ok(css.to_string());
@@ -234,7 +573,29 @@ impl CssOptimizer {
         self.remove_unused_rules(css, &analysis)
     }
 
-    /// Perform static analysis on source files
+    /// 对源文件进行静态分析
+    ///
+    /// 分析项目源文件以查找使用的CSS类和ID。
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回 `Ok(())`，失败时返回错误
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::{CssOptimizer, OptimizerConfig};
+    /// use std::path::PathBuf;
+    ///
+    /// let config = OptimizerConfig {
+    ///     analyze_dependencies: true,
+    ///     source_paths: vec![PathBuf::from("src/")],
+    ///     ..OptimizerConfig::default()
+    /// };
+    /// let mut optimizer = CssOptimizer::with_config(config);
+    /// // 这个方法通常在eliminate_dead_code内部调用
+    /// optimizer.perform_static_analysis().unwrap();
+    /// ```
     fn perform_static_analysis(&mut self) -> Result<(), OptimizationError> {
         if !self.config.analyze_dependencies {
             return Ok(());
@@ -249,7 +610,30 @@ impl CssOptimizer {
         Ok(())
     }
 
-    /// Analyze a source file for CSS usage
+    /// 分析源文件中的CSS使用情况
+    ///
+    /// 读取并分析单个源文件，提取CSS类和ID的使用信息。
+    ///
+    /// # Arguments
+    ///
+    /// * `file_path` - 要分析的文件路径
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回 `Ok(())`，失败时返回错误
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::CssOptimizer;
+    /// use std::path::Path;
+    ///
+    /// let mut optimizer = CssOptimizer::new();
+    /// // 这个方法通常在perform_static_analysis内部调用
+    /// if let Ok(()) = optimizer.analyze_source_file(Path::new("src/main.rs")) {
+    ///     println!("成功分析文件");
+    /// }
+    /// ```
     fn analyze_source_file(
         &mut self,
         file_path: &std::path::Path,
@@ -265,7 +649,26 @@ impl CssOptimizer {
         Ok(())
     }
 
-    /// Extract CSS usage from Rust code (css! macros)
+    /// 从Rust代码中提取CSS使用情况
+    ///
+    /// 分析Rust代码中的css!宏调用，提取使用的CSS选择器。
+    ///
+    /// # Arguments
+    ///
+    /// * `content` - Rust源代码内容
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::CssOptimizer;
+    ///
+    /// let mut optimizer = CssOptimizer::new();
+    /// let rust_code = r#"
+    ///     let class = css!(".button { color: red; }");
+    /// "#;
+    /// optimizer.extract_css_usage_from_rust(rust_code);
+    /// let tracker = optimizer.get_usage_tracker();
+    /// ```
     fn extract_css_usage_from_rust(&mut self, content: &str) {
         // Find css! macro calls
         if let Ok(css_macro_regex) = Regex::new(r#"css!\s*\(\s*["']([^"']*)["']\s*\)"#) {
@@ -277,7 +680,30 @@ impl CssOptimizer {
         }
     }
 
-    /// Extract CSS usage from template content
+    /// 从模板内容中提取CSS使用情况
+    ///
+    /// 分析HTML/模板代码中的class和id属性，提取使用的CSS选择器。
+    ///
+    /// # Arguments
+    ///
+    /// * `content` - HTML或模板代码内容
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::CssOptimizer;
+    ///
+    /// let mut optimizer = CssOptimizer::new();
+    /// let html = r#"<div class="container">
+    ///     <button id="submit-btn" class="btn primary">提交</button>
+    /// </div>"#;
+    /// optimizer.extract_css_usage_from_templates(html);
+    /// let tracker = optimizer.get_usage_tracker();
+    /// assert!(tracker.used_classes.contains("container"));
+    /// assert!(tracker.used_classes.contains("btn"));
+    /// assert!(tracker.used_classes.contains("primary"));
+    /// assert!(tracker.used_ids.contains("submit-btn"));
+    /// ```
     fn extract_css_usage_from_templates(&mut self, content: &str) {
         // Find class attributes
         if let Ok(class_regex) = Regex::new(r#"class\s*=\s*["']([^"']*)["']"#) {
@@ -319,7 +745,26 @@ impl CssOptimizer {
         }
     }
 
-    /// Parse CSS content to extract selectors
+    /// 解析CSS内容以提取选择器
+    ///
+    /// 从CSS内容中提取类选择器和ID选择器，并更新使用跟踪器。
+    ///
+    /// # Arguments
+    ///
+    /// * `css_content` - CSS内容
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::CssOptimizer;
+    ///
+    /// let mut optimizer = CssOptimizer::new();
+    /// let css = ".button { color: red; } #header { background: blue; }";
+    /// optimizer.parse_css_for_usage(css);
+    /// let tracker = optimizer.get_usage_tracker();
+    /// assert!(tracker.used_classes.contains("button"));
+    /// assert!(tracker.used_ids.contains("header"));
+    /// ```
     fn parse_css_for_usage(&mut self, css_content: &str) {
         // Simple CSS parsing to extract class and id selectors
         if let Ok(class_regex) = Regex::new(r"\.([a-zA-Z][a-zA-Z0-9_-]*)") {
@@ -357,7 +802,31 @@ impl CssOptimizer {
         }
     }
 
-    /// Analyze CSS for dead code
+    /// 分析CSS中的死代码
+    ///
+    /// 分析CSS内容，找出未使用的规则、类和ID。
+    ///
+    /// # Arguments
+    ///
+    /// * `css` - 要分析的CSS内容
+    ///
+    /// # Returns
+    ///
+    /// 包含死代码分析结果的 `DeadCodeAnalysis` 或错误
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::CssOptimizer;
+    ///
+    /// let mut optimizer = CssOptimizer::new();
+    /// // 先添加一些已使用的类
+    /// optimizer.track_css_usage(vec!["button".to_string()], vec![], None);
+    ///
+    /// let css = ".button { color: red; } .unused { color: blue; }";
+    /// let analysis = optimizer.analyze_dead_code(css).unwrap();
+    /// assert!(analysis.unused_classes.contains("unused"));
+    /// ```
     fn analyze_dead_code(&self, css: &str) -> Result<DeadCodeAnalysis, OptimizationError> {
         let mut analysis = DeadCodeAnalysis {
             unused_rules: Vec::new(),
@@ -385,7 +854,28 @@ impl CssOptimizer {
         Ok(analysis)
     }
 
-    /// Extract CSS rules from CSS content
+    /// 从CSS内容中提取规则
+    ///
+    /// 解析CSS内容，将其分解为单独的规则。
+    ///
+    /// # Arguments
+    ///
+    /// * `css` - 要解析的CSS内容
+    ///
+    /// # Returns
+    ///
+    /// 包含CSS规则的字符串向量或错误
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::CssOptimizer;
+    ///
+    /// let optimizer = CssOptimizer::new();
+    /// let css = ".button { color: red; } .card { padding: 10px; }";
+    /// let rules = optimizer.extract_css_rules(css).unwrap();
+    /// assert_eq!(rules.len(), 2);
+    /// ```
     fn extract_css_rules(&self, css: &str) -> Result<Vec<String>, OptimizationError> {
         let mut rules = Vec::new();
         let mut current_rule = String::new();
@@ -415,7 +905,32 @@ impl CssOptimizer {
         Ok(rules)
     }
 
-    /// Check if a CSS rule is used
+    /// 检查CSS规则是否被使用
+    ///
+    /// 分析CSS规则，判断其选择器是否在项目中被使用。
+    ///
+    /// # Arguments
+    ///
+    /// * `rule` - 要检查的CSS规则
+    ///
+    /// # Returns
+    ///
+    /// 如果规则被使用则返回 `true`，否则返回 `false`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::CssOptimizer;
+    ///
+    /// let mut optimizer = CssOptimizer::new();
+    /// optimizer.track_css_usage(vec!["button".to_string()], vec![], None);
+    ///
+    /// // 这个方法通常在analyze_dead_code内部调用
+    /// let used_rule = ".button { color: red; }";
+    /// let unused_rule = ".card { padding: 10px; }";
+    /// assert!(optimizer.is_rule_used(used_rule));
+    /// assert!(!optimizer.is_rule_used(unused_rule));
+    /// ```
     fn is_rule_used(&self, rule: &str) -> bool {
         // Extract selectors from the rule
         let selector_part = rule.split('{').next().unwrap_or("").trim();
@@ -432,7 +947,31 @@ impl CssOptimizer {
         false
     }
 
-    /// Check if a specific selector is used
+    /// 检查选择器是否被使用
+    ///
+    /// 判断特定的CSS选择器是否在项目中被使用。
+    ///
+    /// # Arguments
+    ///
+    /// * `selector` - 要检查的CSS选择器
+    ///
+    /// # Returns
+    ///
+    /// 如果选择器被使用则返回 `true`，否则返回 `false`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::CssOptimizer;
+    ///
+    /// let mut optimizer = CssOptimizer::new();
+    /// optimizer.track_css_usage(vec!["button".to_string()], vec!["header".to_string()], None);
+    ///
+    /// // 这个方法通常在is_rule_used内部调用
+    /// assert!(optimizer.is_selector_used(".button"));
+    /// assert!(optimizer.is_selector_used("#header"));
+    /// assert!(!optimizer.is_selector_used(".unused"));
+    /// ```
     fn is_selector_used(&self, selector: &str) -> bool {
         // Check class selectors
         if selector.starts_with('.') {
@@ -456,7 +995,37 @@ impl CssOptimizer {
         }
     }
 
-    /// Extract unused selectors from a rule
+    /// 从规则中提取未使用的选择器
+    ///
+    /// 分析CSS规则，提取其中未使用的类和ID选择器。
+    ///
+    /// # Arguments
+    ///
+    /// * `rule` - 要分析的CSS规则
+    /// * `analysis` - 用于存储分析结果的对象
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::{CssOptimizer, DeadCodeAnalysis};
+    /// use std::collections::HashSet;
+    ///
+    /// let mut optimizer = CssOptimizer::new();
+    /// let rule = ".used, .unused { color: red; }";
+    /// optimizer.track_css_usage(vec!["used".to_string()], vec![], None);
+    ///
+    /// let mut analysis = DeadCodeAnalysis {
+    ///     unused_rules: Vec::new(),
+    ///     unused_classes: HashSet::new(),
+    ///     unused_ids: HashSet::new(),
+    ///     removable_bytes: 0,
+    ///     original_size: 100,
+    /// };
+    ///
+    /// // 这个方法通常在analyze_dead_code内部调用
+    /// optimizer.extract_unused_selectors(rule, &mut analysis);
+    /// assert!(analysis.unused_classes.contains("unused"));
+    /// ```
     fn extract_unused_selectors(&self, rule: &str, analysis: &mut DeadCodeAnalysis) {
         let selector_part = rule.split('{').next().unwrap_or("").trim();
 
@@ -477,7 +1046,33 @@ impl CssOptimizer {
         }
     }
 
-    /// Remove unused CSS rules
+    /// 移除未使用的CSS规则
+    ///
+    /// 根据死代码分析结果，从CSS内容中移除未使用的规则。
+    ///
+    /// # Arguments
+    ///
+    /// * `css` - 原始CSS内容
+    /// * `analysis` - 死代码分析结果
+    ///
+    /// # Returns
+    ///
+    /// 移除未使用规则后的CSS内容或错误
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::CssOptimizer;
+    ///
+    /// let mut optimizer = CssOptimizer::new();
+    /// optimizer.track_css_usage(vec!["used".to_string()], vec![], None);
+    ///
+    /// let css = ".used { color: red; } .unused { color: blue; }";
+    /// let analysis = optimizer.analyze_dead_code(css).unwrap();
+    /// let result = optimizer.remove_unused_rules(css, &analysis).unwrap();
+    /// assert!(result.contains(".used"));
+    /// assert!(!result.contains(".unused"));
+    /// ```
     fn remove_unused_rules(
         &self,
         css: &str,
@@ -496,12 +1091,58 @@ impl CssOptimizer {
         Ok(result)
     }
 
-    /// Get usage tracking information
+    /// Get a reference to the usage tracker
+    ///
+    /// 获取对内部使用情况跟踪器的引用，用于检查或修改CSS使用情况数据。
+    ///
+    /// # Returns
+    ///
+    /// 返回对`CssUsageTracker`实例的不可变引用。
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::CssOptimizer;
+    ///
+    /// let mut optimizer = CssOptimizer::new();
+    /// optimizer.track_css_usage(vec!["button".to_string()], vec!["header".to_string()], None);
+    ///
+    /// // 获取使用情况跟踪器
+    /// let tracker = optimizer.get_usage_tracker();
+    /// assert!(tracker.used_classes.contains("button"));
+    /// assert!(tracker.used_ids.contains("header"));
+    /// ```
     pub fn get_usage_tracker(&self) -> &CssUsageTracker {
         &self.usage_tracker
     }
 
-    /// Track CSS usage from external source
+    /// 跟踪外部CSS使用情况
+    ///
+    /// 从外部源添加已使用的CSS类和ID信息。
+    ///
+    /// # Arguments
+    ///
+    /// * `classes` - 已使用的CSS类名列表
+    /// * `ids` - 已使用的CSS ID列表
+    /// * `file_path` - 可选的文件路径，用于记录使用位置
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::CssOptimizer;
+    ///
+    /// let mut optimizer = CssOptimizer::new();
+    /// optimizer.track_css_usage(
+    ///     vec!["button".to_string(), "container".to_string()],
+    ///     vec!["app".to_string()],
+    ///     Some("App.js".to_string())
+    /// );
+    ///
+    /// let tracker = optimizer.get_usage_tracker();
+    /// assert!(tracker.used_classes.contains("button"));
+    /// assert!(tracker.used_classes.contains("container"));
+    /// assert!(tracker.used_ids.contains("app"));
+    /// ```
     pub fn track_css_usage(
         &mut self,
         classes: Vec<String>,
@@ -525,6 +1166,15 @@ impl CssOptimizer {
 }
 
 impl Default for CssOptimizer {
+    /// 创建一个使用默认配置的CSS优化器
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::css_engine::optimizer::CssOptimizer;
+    ///
+    /// let optimizer = CssOptimizer::default();
+    /// ```
     fn default() -> Self {
         Self::new()
     }

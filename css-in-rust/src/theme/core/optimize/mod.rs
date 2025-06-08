@@ -1,8 +1,67 @@
+//! CSS优化模块
+//!
+//! 本模块负责CSS的优化处理，包括压缩、合并、去重和选择器优化。
+//! 职责：提高CSS的性能和减少体积，同时保持功能完整性。
+//!
+//! # 主要组件
+//!
+//! - `StyleOptimizer`: 核心优化器，提供各种CSS优化策略
+//! - `OptimizeConfig`: 优化配置，控制优化行为
+//!
+//! # 示例
+//!
+//! ```
+//! use css_in_rust::theme::core::optimize::{StyleOptimizer, OptimizeConfig};
+//!
+//! // 创建默认优化器
+//! let optimizer = StyleOptimizer::default();
+//!
+//! // 使用自定义优化配置
+//! let config = OptimizeConfig {
+//!     minify: true,
+//!     remove_unused: true,
+//!     merge_rules: true,
+//!     optimize_selectors: true,
+//! };
+//!
+//! let optimizer = StyleOptimizer::new(config);
+//!
+//! // 优化CSS
+//! let css = r#"
+//!   .button {
+//!     color: #ff0000;
+//!     color: red;
+//!     padding: 10px;
+//!   }
+//! "#;
+//!
+//! let optimized = optimizer.optimize(css);
+//! ```
+
 use regex;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
 /// CSS 优化配置
+///
+/// 控制CSS优化过程中应用的优化策略。
+///
+/// # Examples
+///
+/// ```
+/// use css_in_rust::theme::core::optimize::OptimizeConfig;
+///
+/// // 创建默认配置
+/// let default_config = OptimizeConfig::default();
+///
+/// // 创建自定义配置
+/// let custom_config = OptimizeConfig {
+///     minify: true,
+///     remove_unused: false,
+///     merge_rules: true,
+///     optimize_selectors: true,
+/// };
+/// ```
 #[derive(Debug, Clone)]
 pub struct OptimizeConfig {
     /// 是否压缩 CSS
@@ -27,6 +86,35 @@ impl Default for OptimizeConfig {
 }
 
 /// CSS 优化器
+///
+/// 提供CSS优化功能，包括压缩、移除未使用样式、合并规则和优化选择器。
+///
+/// # Examples
+///
+/// ```
+/// use css_in_rust::theme::core::optimize::{StyleOptimizer, OptimizeConfig};
+///
+/// // 创建默认优化器
+/// let optimizer = StyleOptimizer::default();
+///
+/// // 创建自定义优化器
+/// let config = OptimizeConfig {
+///     minify: true,
+///     remove_unused: true,
+///     merge_rules: true,
+///     optimize_selectors: true,
+/// };
+/// let optimizer = StyleOptimizer::new(config);
+///
+/// // 注册使用的类名
+/// let mut optimizer = StyleOptimizer::default();
+/// optimizer.register_used_class("button");
+/// optimizer.register_used_class("card");
+///
+/// // 优化CSS
+/// let css = ".button { color: red; } .unused { display: none; }";
+/// let optimized = optimizer.optimize(css);
+/// ```
 #[derive(Default)]
 pub struct StyleOptimizer {
     config: OptimizeConfig,
@@ -35,6 +123,23 @@ pub struct StyleOptimizer {
 
 impl StyleOptimizer {
     /// 创建新的优化器实例
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - 优化配置
+    ///
+    /// # Returns
+    ///
+    /// 新创建的CSS优化器
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::optimize::{StyleOptimizer, OptimizeConfig};
+    ///
+    /// let config = OptimizeConfig::default();
+    /// let optimizer = StyleOptimizer::new(config);
+    /// ```
     pub fn new(config: OptimizeConfig) -> Self {
         Self {
             config,
@@ -43,11 +148,53 @@ impl StyleOptimizer {
     }
 
     /// 注册使用的类名
+    ///
+    /// 将类名添加到已使用类名列表中，用于移除未使用的样式。
+    ///
+    /// # Arguments
+    ///
+    /// * `class_name` - 要注册的类名
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::optimize::StyleOptimizer;
+    ///
+    /// let mut optimizer = StyleOptimizer::default();
+    /// optimizer.register_used_class("button");
+    /// optimizer.register_used_class("card");
+    /// ```
     pub fn register_used_class(&mut self, class_name: &str) {
         self.used_classes.insert(class_name.to_string());
     }
 
     /// 优化 CSS 内容
+    ///
+    /// 根据配置的优化策略对CSS进行优化处理。
+    ///
+    /// # Arguments
+    ///
+    /// * `css` - 要优化的CSS字符串
+    ///
+    /// # Returns
+    ///
+    /// 优化后的CSS字符串
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::optimize::StyleOptimizer;
+    ///
+    /// let optimizer = StyleOptimizer::default();
+    /// let css = r#"
+    ///   .button {
+    ///     color: red;
+    ///     padding: 10px;
+    ///   }
+    /// "#;
+    ///
+    /// let optimized = optimizer.optimize(css);
+    /// ```
     pub fn optimize(&self, css: &str) -> String {
         let mut optimized = css.to_string();
 
@@ -74,6 +221,16 @@ impl StyleOptimizer {
     }
 
     /// 压缩 CSS
+    ///
+    /// 移除注释和多余的空白，减小CSS文件大小。
+    ///
+    /// # Arguments
+    ///
+    /// * `css` - 要压缩的CSS字符串
+    ///
+    /// # Returns
+    ///
+    /// 压缩后的CSS字符串
     fn minify(&self, css: &str) -> String {
         // 移除注释
         let without_comments = css
@@ -101,6 +258,16 @@ impl StyleOptimizer {
     }
 
     /// 移除未使用的样式
+    ///
+    /// 根据已注册的类名，移除CSS中未使用的样式规则。
+    ///
+    /// # Arguments
+    ///
+    /// * `css` - 要处理的CSS字符串
+    ///
+    /// # Returns
+    ///
+    /// 移除未使用样式后的CSS字符串
     fn remove_unused_styles(&self, css: &str) -> String {
         if self.used_classes.is_empty() {
             return css.to_string();
@@ -143,6 +310,16 @@ impl StyleOptimizer {
     }
 
     /// 检查选择器是否被使用
+    ///
+    /// 判断选择器中是否包含已注册的类名。
+    ///
+    /// # Arguments
+    ///
+    /// * `selector` - 要检查的选择器
+    ///
+    /// # Returns
+    ///
+    /// 如果选择器被使用则返回true，否则返回false
     fn is_selector_used(&self, selector: &str) -> bool {
         if self.used_classes.is_empty() {
             return true; // 如果没有注册任何使用的类，则保留所有选择器
@@ -165,6 +342,16 @@ impl StyleOptimizer {
     }
 
     /// 合并相同的规则
+    ///
+    /// 合并具有相同选择器的规则，并对声明进行去重。
+    ///
+    /// # Arguments
+    ///
+    /// * `css` - 要处理的CSS字符串
+    ///
+    /// # Returns
+    ///
+    /// 合并规则后的CSS字符串
     fn merge_rules(&self, css: &str) -> String {
         // 解析 CSS 为规则集
         let rules = self.parse_css_rules(css);
@@ -207,6 +394,16 @@ impl StyleOptimizer {
     }
 
     /// 解析 CSS 为规则集
+    ///
+    /// 将CSS字符串解析为选择器和声明的规则集。
+    ///
+    /// # Arguments
+    ///
+    /// * `css` - 要解析的CSS字符串
+    ///
+    /// # Returns
+    ///
+    /// 解析后的规则集，每个规则包含选择器和声明列表
     fn parse_css_rules(&self, css: &str) -> Vec<(String, Vec<(String, String)>)> {
         let mut rules = Vec::new();
 
@@ -298,6 +495,13 @@ impl StyleOptimizer {
     }
 
     /// 辅助函数：解析声明
+    ///
+    /// 解析CSS声明字符串为属性和值对。
+    ///
+    /// # Arguments
+    ///
+    /// * `text` - 要解析的声明文本
+    /// * `declarations` - 存储解析结果的声明列表
     fn parse_declarations(&self, text: &str, declarations: &mut Vec<(String, String)>) {
         for decl in text.split(';') {
             let decl = decl.trim();
@@ -317,6 +521,16 @@ impl StyleOptimizer {
     }
 
     /// 将规则集转换为 CSS 字符串
+    ///
+    /// 将解析后的规则集转换回格式化的CSS字符串。
+    ///
+    /// # Arguments
+    ///
+    /// * `rules` - 规则集，每个规则包含选择器和声明列表
+    ///
+    /// # Returns
+    ///
+    /// 格式化的CSS字符串
     fn rules_to_css(&self, rules: &[(String, Vec<(String, String)>)]) -> String {
         let mut css = String::new();
 
@@ -334,6 +548,16 @@ impl StyleOptimizer {
     }
 
     /// 优化选择器
+    ///
+    /// 对CSS选择器进行优化，如移除冗余部分和合并相同声明的选择器。
+    ///
+    /// # Arguments
+    ///
+    /// * `css` - 要优化的CSS字符串
+    ///
+    /// # Returns
+    ///
+    /// 选择器优化后的CSS字符串
     fn optimize_selectors(&self, css: &str) -> String {
         // 解析 CSS 为规则集
         let rules = self.parse_css_rules(css);
@@ -363,6 +587,16 @@ impl StyleOptimizer {
     }
 
     /// 优化单个选择器
+    ///
+    /// 对单个选择器进行优化，如移除冗余通配符和简化后代选择器。
+    ///
+    /// # Arguments
+    ///
+    /// * `selector` - 要优化的选择器
+    ///
+    /// # Returns
+    ///
+    /// 优化后的选择器
     fn optimize_selector(&self, selector: &str) -> String {
         let mut optimized = selector.to_string();
 
@@ -403,6 +637,16 @@ impl StyleOptimizer {
     }
 
     /// 按声明对选择器进行分组
+    ///
+    /// 将具有相同声明的选择器合并为一个规则。
+    ///
+    /// # Arguments
+    ///
+    /// * `rules` - 规则集，每个规则包含选择器和声明列表
+    ///
+    /// # Returns
+    ///
+    /// 分组后的规则集
     fn group_selectors_by_declarations(
         &self,
         rules: &[(String, Vec<(String, String)>)],
@@ -437,6 +681,16 @@ impl StyleOptimizer {
     }
 
     /// 将声明列表转换为唯一键
+    ///
+    /// 将声明列表转换为可哈希的字符串键，用于比较声明是否相同。
+    ///
+    /// # Arguments
+    ///
+    /// * `declarations` - 声明列表
+    ///
+    /// # Returns
+    ///
+    /// 唯一的声明键
     fn declarations_to_key(&self, declarations: &[(String, String)]) -> String {
         // 对声明进行排序以确保相同内容的声明产生相同的键
         let mut sorted = declarations.to_vec();

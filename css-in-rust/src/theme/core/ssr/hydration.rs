@@ -1,6 +1,24 @@
 use std::collections::{HashMap, HashSet};
 
 /// 样式水合配置
+///
+/// 控制客户端水合过程中的行为，包括样式去重、服务端样式移除和懒加载。
+///
+/// # Examples
+///
+/// ```
+/// use css_in_rust::theme::core::ssr::hydration::HydrationConfig;
+///
+/// // 创建默认配置
+/// let default_config = HydrationConfig::default();
+///
+/// // 创建自定义配置
+/// let custom_config = HydrationConfig {
+///     deduplication: true,
+///     remove_server_styles: false,
+///     lazy_load: true,
+/// };
+/// ```
 #[derive(Debug, Clone)]
 pub struct HydrationConfig {
     /// 是否启用样式去重
@@ -22,6 +40,24 @@ impl Default for HydrationConfig {
 }
 
 /// 样式水合
+///
+/// 负责在客户端水合服务端渲染的样式，确保样式在客户端正确应用。
+/// 水合过程包括收集服务端样式、去重客户端样式和管理样式生命周期。
+///
+/// # Examples
+///
+/// ```
+/// use css_in_rust::theme::core::ssr::hydration::{StyleHydration, HydrationConfig};
+///
+/// // 使用默认配置创建水合器
+/// let mut hydration = StyleHydration::default();
+///
+/// // 在客户端使用
+/// #[cfg(target_arch = "wasm32")]
+/// {
+///     hydration.hydrate().expect("样式水合失败");
+/// }
+/// ```
 pub struct StyleHydration {
     /// 水合配置
     config: HydrationConfig,
@@ -33,6 +69,28 @@ pub struct StyleHydration {
 
 impl StyleHydration {
     /// 创建新的样式水合器
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - 水合配置
+    ///
+    /// # Returns
+    ///
+    /// 新创建的样式水合器
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::ssr::hydration::{StyleHydration, HydrationConfig};
+    ///
+    /// let config = HydrationConfig {
+    ///     deduplication: true,
+    ///     remove_server_styles: false,
+    ///     lazy_load: true,
+    /// };
+    ///
+    /// let hydration = StyleHydration::new(config);
+    /// ```
     pub fn new(config: HydrationConfig) -> Self {
         Self {
             config,
@@ -42,11 +100,45 @@ impl StyleHydration {
     }
 
     /// 使用默认配置创建样式水合器
+    ///
+    /// # Returns
+    ///
+    /// 使用默认配置的样式水合器
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::ssr::hydration::StyleHydration;
+    ///
+    /// let hydration = StyleHydration::default();
+    /// ```
     pub fn default() -> Self {
         Self::new(HydrationConfig::default())
     }
 
     /// 水合样式
+    ///
+    /// 在客户端执行样式水合过程，包括收集服务端样式、去重和管理样式生命周期。
+    /// 该方法只在WebAssembly目标上可用。
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回`Ok(())`，失败时返回包含错误信息的`Err`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::ssr::hydration::StyleHydration;
+    ///
+    /// let mut hydration = StyleHydration::default();
+    ///
+    /// #[cfg(target_arch = "wasm32")]
+    /// {
+    ///     if let Err(err) = hydration.hydrate() {
+    ///         console_log::log!("样式水合失败: {}", err);
+    ///     }
+    /// }
+    /// ```
     #[cfg(target_arch = "wasm32")]
     pub fn hydrate(&mut self) -> Result<(), String> {
         use web_sys::{window, Document, Element, HtmlCollection};
@@ -73,6 +165,17 @@ impl StyleHydration {
     }
 
     /// 收集服务端样式
+    ///
+    /// 从文档中收集服务端渲染的样式元素，并记录它们的ID和哈希值。
+    /// 该方法只在WebAssembly目标上可用。
+    ///
+    /// # Arguments
+    ///
+    /// * `document` - Web文档对象
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回`Ok(())`，失败时返回包含错误信息的`Err`
     #[cfg(target_arch = "wasm32")]
     fn collect_server_styles(&mut self, document: &web_sys::Document) -> Result<(), String> {
         use wasm_bindgen::JsCast;
@@ -96,6 +199,17 @@ impl StyleHydration {
     }
 
     /// 去重样式
+    ///
+    /// 比较新注入的客户端样式与服务端样式，移除重复的样式以避免冲突。
+    /// 该方法只在WebAssembly目标上可用。
+    ///
+    /// # Arguments
+    ///
+    /// * `document` - Web文档对象
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回`Ok(())`，失败时返回包含错误信息的`Err`
     #[cfg(target_arch = "wasm32")]
     fn deduplicate_styles(&self, document: &web_sys::Document) -> Result<(), String> {
         // 实现样式去重逻辑
@@ -105,6 +219,17 @@ impl StyleHydration {
     }
 
     /// 安排移除服务端样式
+    ///
+    /// 在客户端样式加载完成后，安排移除服务端注入的样式元素。
+    /// 该方法只在WebAssembly目标上可用。
+    ///
+    /// # Arguments
+    ///
+    /// * `document` - Web文档对象
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回`Ok(())`，失败时返回包含错误信息的`Err`
     #[cfg(target_arch = "wasm32")]
     fn schedule_server_styles_removal(&self, document: &web_sys::Document) -> Result<(), String> {
         use wasm_bindgen::closure::Closure;
@@ -149,16 +274,69 @@ impl StyleHydration {
     }
 
     /// 检查样式是否已水合
+    ///
+    /// # Arguments
+    ///
+    /// * `style_id` - 样式ID
+    ///
+    /// # Returns
+    ///
+    /// 如果样式已水合则返回true，否则返回false
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::ssr::hydration::StyleHydration;
+    ///
+    /// let hydration = StyleHydration::default();
+    /// let is_hydrated = hydration.is_hydrated("app-styles");
+    /// ```
     pub fn is_hydrated(&self, style_id: &str) -> bool {
         self.hydrated_styles.contains(style_id)
     }
 
     /// 获取样式哈希
+    ///
+    /// # Arguments
+    ///
+    /// * `style_id` - 样式ID
+    ///
+    /// # Returns
+    ///
+    /// 样式哈希的可选引用，如果样式不存在则返回None
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::ssr::hydration::StyleHydration;
+    ///
+    /// let mut hydration = StyleHydration::default();
+    /// hydration.mark_as_hydrated("app-styles", "abc123");
+    ///
+    /// let hash = hydration.get_style_hash("app-styles");
+    /// assert_eq!(hash, Some(&"abc123".to_string()));
+    /// ```
     pub fn get_style_hash(&self, style_id: &str) -> Option<&String> {
         self.style_hashes.get(style_id)
     }
 
     /// 标记样式为已水合
+    ///
+    /// # Arguments
+    ///
+    /// * `style_id` - 样式ID
+    /// * `hash` - 样式哈希
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::ssr::hydration::StyleHydration;
+    ///
+    /// let mut hydration = StyleHydration::default();
+    /// hydration.mark_as_hydrated("app-styles", "abc123");
+    ///
+    /// assert!(hydration.is_hydrated("app-styles"));
+    /// ```
     pub fn mark_as_hydrated(&mut self, style_id: &str, hash: &str) {
         self.hydrated_styles.insert(style_id.to_string());
         self.style_hashes
@@ -166,6 +344,20 @@ impl StyleHydration {
     }
 
     /// 清空水合状态
+    ///
+    /// 清除所有已水合的样式记录和哈希映射。
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::ssr::hydration::StyleHydration;
+    ///
+    /// let mut hydration = StyleHydration::default();
+    /// hydration.mark_as_hydrated("app-styles", "abc123");
+    ///
+    /// hydration.clear();
+    /// assert!(!hydration.is_hydrated("app-styles"));
+    /// ```
     pub fn clear(&mut self) {
         self.hydrated_styles.clear();
         self.style_hashes.clear();

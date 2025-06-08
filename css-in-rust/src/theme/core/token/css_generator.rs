@@ -1,16 +1,77 @@
+//! CSS变量生成模块
+//!
+//! 本模块负责将设计令牌转换为CSS变量和样式规则。
+//! 职责：生成CSS变量定义、组件类和工具类。
+//!
+//! # 主要组件
+//!
+//! - `CssGenerator`: 核心CSS生成器，负责将令牌转换为CSS变量和样式规则
+//!
+//! # 示例
+//!
+//! ```
+//! use css_in_rust::theme::core::token::css_generator::CssGenerator;
+//! use css_in_rust::theme::core::token::resolver::TokenResolver;
+//! use css_in_rust::theme::core::token::definitions::ThemeVariant;
+//!
+//! let resolver = TokenResolver::default();
+//! let mut generator = CssGenerator::new(resolver);
+//! let css = generator.generate_css_variables(ThemeVariant::Light).unwrap();
+//! ```
+
 use super::definitions::{ThemeVariant, TokenValue};
 use super::resolver::TokenResolver;
 
 /// CSS生成器
+///
+/// 负责将设计令牌转换为CSS变量和样式规则。
+/// 支持生成CSS变量、主题样式、组件类和工具类。
+///
+/// # Examples
+///
+/// ```
+/// use css_in_rust::theme::core::token::css_generator::CssGenerator;
+/// use css_in_rust::theme::core::token::resolver::TokenResolver;
+///
+/// // 创建CSS生成器
+/// let resolver = TokenResolver::default();
+/// let generator = CssGenerator::new(resolver);
+///
+/// // 使用自定义前缀和压缩选项
+/// let generator = CssGenerator::new(resolver)
+///     .with_prefix("app".to_string())
+///     .with_minify(true);
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct CssGenerator {
+    /// 令牌解析器
     resolver: TokenResolver,
+    /// CSS变量前缀
     prefix: String,
+    /// 是否压缩CSS
     minify: bool,
 }
 
 impl CssGenerator {
     /// 创建新的CSS生成器
+    ///
+    /// # Arguments
+    ///
+    /// * `resolver` - 令牌解析器
+    ///
+    /// # Returns
+    ///
+    /// 新创建的CSS生成器
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::css_generator::CssGenerator;
+    /// use css_in_rust::theme::core::token::resolver::TokenResolver;
+    ///
+    /// let resolver = TokenResolver::default();
+    /// let generator = CssGenerator::new(resolver);
+    /// ```
     pub fn new(resolver: TokenResolver) -> Self {
         Self {
             resolver,
@@ -20,28 +81,118 @@ impl CssGenerator {
     }
 
     /// 设置CSS变量前缀
+    ///
+    /// # Arguments
+    ///
+    /// * `prefix` - CSS变量前缀
+    ///
+    /// # Returns
+    ///
+    /// 更新后的CSS生成器
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::css_generator::CssGenerator;
+    /// use css_in_rust::theme::core::token::resolver::TokenResolver;
+    ///
+    /// let resolver = TokenResolver::default();
+    /// let generator = CssGenerator::new(resolver)
+    ///     .with_prefix("app".to_string());
+    /// ```
     pub fn with_prefix(mut self, prefix: String) -> Self {
         self.prefix = prefix;
         self
     }
 
     /// 设置是否压缩CSS
+    ///
+    /// # Arguments
+    ///
+    /// * `minify` - 是否压缩CSS
+    ///
+    /// # Returns
+    ///
+    /// 更新后的CSS生成器
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::css_generator::CssGenerator;
+    /// use css_in_rust::theme::core::token::resolver::TokenResolver;
+    ///
+    /// let resolver = TokenResolver::default();
+    /// let generator = CssGenerator::new(resolver)
+    ///     .with_minify(true);
+    /// ```
     pub fn with_minify(mut self, minify: bool) -> Self {
         self.minify = minify;
         self
     }
 
     /// 获取令牌解析器的可变引用
+    ///
+    /// # Returns
+    ///
+    /// 令牌解析器的可变引用
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::css_generator::CssGenerator;
+    /// use css_in_rust::theme::core::token::resolver::TokenResolver;
+    ///
+    /// let resolver = TokenResolver::default();
+    /// let mut generator = CssGenerator::new(resolver);
+    /// let resolver_ref = generator.get_resolver_mut();
+    /// ```
     pub fn get_resolver_mut(&mut self) -> &mut TokenResolver {
         &mut self.resolver
     }
 
     /// 获取令牌解析器的引用
+    ///
+    /// # Returns
+    ///
+    /// 令牌解析器的引用
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::css_generator::CssGenerator;
+    /// use css_in_rust::theme::core::token::resolver::TokenResolver;
+    ///
+    /// let resolver = TokenResolver::default();
+    /// let generator = CssGenerator::new(resolver);
+    /// let resolver_ref = generator.get_resolver();
+    /// ```
     pub fn get_resolver(&self) -> &TokenResolver {
         &self.resolver
     }
 
     /// 生成CSS变量
+    ///
+    /// 将设计令牌转换为CSS变量定义。
+    ///
+    /// # Arguments
+    ///
+    /// * `theme` - 主题变体
+    ///
+    /// # Returns
+    ///
+    /// 成功返回CSS变量定义字符串，失败返回错误信息
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::css_generator::CssGenerator;
+    /// use css_in_rust::theme::core::token::resolver::TokenResolver;
+    /// use css_in_rust::theme::core::token::definitions::ThemeVariant;
+    ///
+    /// let resolver = TokenResolver::default();
+    /// let mut generator = CssGenerator::new(resolver);
+    /// let css = generator.generate_css_variables(ThemeVariant::Light).unwrap();
+    /// ```
     pub fn generate_css_variables(&mut self, theme: ThemeVariant) -> Result<String, String> {
         let mut css = String::new();
 
@@ -138,6 +289,28 @@ impl CssGenerator {
     }
 
     /// 将令牌值转换为 CSS 值
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - 令牌值
+    ///
+    /// # Returns
+    ///
+    /// CSS值字符串
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::css_generator::CssGenerator;
+    /// use css_in_rust::theme::core::token::resolver::TokenResolver;
+    /// use css_in_rust::theme::core::token::definitions::{TokenValue, ColorValue};
+    ///
+    /// let resolver = TokenResolver::default();
+    /// let generator = CssGenerator::new(resolver);
+    /// let color = ColorValue::new("#007bff".to_string());
+    /// let token = TokenValue::Color(color);
+    /// let css_value = generator.token_value_to_css(&token);
+    /// ```
     fn token_value_to_css(&self, value: &TokenValue) -> String {
         match value {
             TokenValue::String(s) => s.clone(),
@@ -168,6 +341,28 @@ impl CssGenerator {
     }
 
     /// 压缩 CSS
+    ///
+    /// 移除CSS中的注释、多余空白和换行符。
+    ///
+    /// # Arguments
+    ///
+    /// * `css` - 原始CSS字符串
+    ///
+    /// # Returns
+    ///
+    /// 压缩后的CSS字符串
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::css_generator::CssGenerator;
+    /// use css_in_rust::theme::core::token::resolver::TokenResolver;
+    ///
+    /// let resolver = TokenResolver::default();
+    /// let generator = CssGenerator::new(resolver);
+    /// let original = "body {\n  color: red;\n  /* 注释 */\n}";
+    /// let minified = generator.minify_css(original);
+    /// ```
     fn minify_css(&self, css: &str) -> String {
         // 使用更高效的 CSS 压缩算法
         let mut result = String::with_capacity(css.len());

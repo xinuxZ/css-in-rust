@@ -2,6 +2,13 @@
 //!
 //! 本模块负责存储和管理具体的令牌值，支持多主题变体。
 //! 职责：令牌值的存储、检索和主题切换
+//!
+//! # 主要组件
+//!
+//! - `TokenValues`: 令牌值特征，定义令牌值的基本操作
+//! - `DesignTokens`: 设计令牌存储，支持多主题变体
+//! - `TokenStore`: 令牌存储特征，定义令牌存储的基本操作
+//! - 各种具体的令牌值类型：颜色、间距、排版等
 
 // 移除对design_tokens的依赖，将相关类型定义在本文件中
 use super::definitions::{DimensionUnit, DimensionValue, ThemeVariant, TokenMetadata, TokenValue};
@@ -10,10 +17,36 @@ use std::collections::HashMap;
 use std::fmt;
 
 /// 令牌值特征
+///
+/// 定义令牌值的基本操作，包括转换为字符串和获取值类型。
+///
+/// # Examples
+///
+/// ```
+/// use css_in_rust::theme::core::token::values::TokenValues;
+/// use css_in_rust::theme::core::token::definitions::TokenValue;
+///
+/// let value = TokenValue::String("primary".to_string());
+/// assert_eq!(value.to_string(), "primary");
+/// assert_eq!(value.value_type(), "string");
+/// ```
 pub trait TokenValues: fmt::Display + Clone {
     /// 转换为字符串
+    ///
+    /// 将令牌值转换为其字符串表示形式。
+    ///
+    /// # Returns
+    ///
+    /// 令牌值的字符串表示
     fn to_string(&self) -> String;
+
     /// 获取值类型
+    ///
+    /// 返回令牌值的类型名称。
+    ///
+    /// # Returns
+    ///
+    /// 值类型的字符串表示
     fn value_type(&self) -> &'static str;
 }
 
@@ -73,21 +106,65 @@ impl fmt::Display for TokenValue {
 
 impl DimensionValue {
     /// 创建新的尺寸值
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - 数值
+    /// * `unit` - 单位
+    ///
+    /// # Returns
+    ///
+    /// 新创建的尺寸值
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::definitions::{DimensionValue, DimensionUnit};
+    ///
+    /// let size = DimensionValue::new(16.0, DimensionUnit::Px);
+    /// ```
     pub fn new(value: f64, unit: DimensionUnit) -> Self {
         Self { value, unit }
     }
 
     /// 转换为CSS字符串
+    ///
+    /// # Returns
+    ///
+    /// 尺寸值的CSS字符串表示
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::definitions::{DimensionValue, DimensionUnit};
+    ///
+    /// let size = DimensionValue::new(16.0, DimensionUnit::Px);
+    /// assert_eq!(size.to_css_string(), "16px");
+    /// ```
     pub fn to_css_string(&self) -> String {
         format!("{}{}", self.value, self.unit)
     }
 }
 
 /// 边框颜色
+///
+/// 定义边框的各种颜色值，包括主要、次要和反色边框。
+///
+/// # Examples
+///
+/// ```
+/// use css_in_rust::theme::core::token::values::BorderColors;
+///
+/// let border_colors = BorderColors::default();
+/// assert_eq!(border_colors.primary, "#dddddd");
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BorderColors {
+    /// 主要边框颜色
     pub primary: String,
+    /// 次要边框颜色
     pub secondary: String,
+    /// 反色边框颜色
     pub inverse: String,
 }
 
@@ -102,6 +179,25 @@ impl Default for BorderColors {
 }
 
 impl BorderColors {
+    /// 获取指定路径的边框颜色值
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - 颜色路径，可以是 "primary"、"secondary" 或 "inverse"
+    ///
+    /// # Returns
+    ///
+    /// 匹配路径的颜色值，如果路径无效则返回 None
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::values::BorderColors;
+    ///
+    /// let border_colors = BorderColors::default();
+    /// assert_eq!(border_colors.get_value("primary"), Some("#dddddd".to_string()));
+    /// assert_eq!(border_colors.get_value("invalid"), None);
+    /// ```
     pub fn get_value(&self, path: &str) -> Option<String> {
         match path {
             "primary" => Some(self.primary.clone()),
@@ -111,6 +207,23 @@ impl BorderColors {
         }
     }
 
+    /// 生成CSS变量
+    ///
+    /// 将边框颜色转换为CSS变量定义。
+    ///
+    /// # Returns
+    ///
+    /// 包含边框颜色CSS变量的字符串
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::values::BorderColors;
+    ///
+    /// let border_colors = BorderColors::default();
+    /// let css = border_colors.to_css_variables();
+    /// assert!(css.contains("--color-border-primary"));
+    /// ```
     pub fn to_css_variables(&self) -> String {
         format!(
             "  --color-border-primary: {};\n\
@@ -122,17 +235,41 @@ impl BorderColors {
 }
 
 /// 颜色色阶（1-10级）
+///
+/// 定义从浅到深的10级颜色渐变。
+///
+/// # Examples
+///
+/// ```
+/// use css_in_rust::theme::core::token::values::ColorScale;
+///
+/// // 创建默认的蓝色色阶
+/// let blue_scale = ColorScale::default();
+///
+/// // 创建绿色色阶
+/// let green_scale = ColorScale::green();
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ColorScale {
+    /// 色阶1（最浅）
     pub c1: String,
+    /// 色阶2
     pub c2: String,
+    /// 色阶3
     pub c3: String,
+    /// 色阶4
     pub c4: String,
+    /// 色阶5
     pub c5: String,
+    /// 色阶6
     pub c6: String,
+    /// 色阶7
     pub c7: String,
+    /// 色阶8
     pub c8: String,
+    /// 色阶9
     pub c9: String,
+    /// 色阶10（最深）
     pub c10: String,
 }
 

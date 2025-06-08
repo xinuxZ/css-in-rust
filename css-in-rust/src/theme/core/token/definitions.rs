@@ -13,32 +13,208 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
 
-/// 令牌值类型
+/// 令牌值
+///
+/// 表示设计系统中的各种类型的令牌值，如颜色、尺寸、字体等。
+/// 令牌值可以是基本类型（如字符串、数字）或复合类型（如颜色、尺寸）。
+///
+/// # Examples
+///
+/// ```
+/// use css_in_rust::theme::core::token::definitions::{TokenValue, ColorValue, DimensionValue, DimensionUnit};
+///
+/// // 创建字符串令牌值
+/// let string_token = TokenValue::string("Roboto".to_string());
+///
+/// // 创建数字令牌值
+/// let number_token = TokenValue::number(16.0);
+///
+/// // 创建颜色令牌值
+/// let color = ColorValue::new("#007bff".to_string());
+/// let color_token = TokenValue::color(color);
+///
+/// // 创建尺寸令牌值
+/// let dimension = DimensionValue::px(16.0);
+/// let dimension_token = TokenValue::dimension(dimension);
+/// ```
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum TokenValue {
     /// 字符串值（如颜色、字体名称）
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::definitions::TokenValue;
+    ///
+    /// let font_family = TokenValue::String("Roboto, sans-serif".to_string());
+    /// ```
     String(String),
+
     /// 数值（如尺寸、权重）
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::definitions::TokenValue;
+    ///
+    /// let font_weight = TokenValue::Number(500.0);
+    /// ```
     Number(f64),
+
     /// 布尔值（如是否启用）
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::definitions::TokenValue;
+    ///
+    /// let is_rounded = TokenValue::Boolean(true);
+    /// ```
     Boolean(bool),
+
     /// 引用其他令牌
+    ///
+    /// 使用字符串路径直接引用其他令牌，不支持变换。
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::definitions::TokenValue;
+    ///
+    /// let primary_color_ref = TokenValue::Reference("colors.primary".to_string());
+    /// ```
     Reference(String),
+
     /// 数组值（如字体栈）
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::definitions::TokenValue;
+    ///
+    /// let font_stack = TokenValue::Array(vec![
+    ///     TokenValue::String("Roboto".to_string()),
+    ///     TokenValue::String("Arial".to_string()),
+    ///     TokenValue::String("sans-serif".to_string()),
+    /// ]);
+    /// ```
     Array(Vec<TokenValue>),
+
     /// 对象值（如复合属性）
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::definitions::TokenValue;
+    /// use std::collections::HashMap;
+    ///
+    /// let mut button_props = HashMap::new();
+    /// button_props.insert("padding".to_string(), TokenValue::String("8px 16px".to_string()));
+    /// button_props.insert("borderRadius".to_string(), TokenValue::String("4px".to_string()));
+    ///
+    /// let button = TokenValue::Object(button_props);
+    /// ```
     Object(HashMap<String, TokenValue>),
+
     /// 令牌引用（带变换）
+    ///
+    /// 使用TokenReference结构体引用其他令牌，支持应用变换。
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::definitions::{TokenValue, TokenReference, TokenTransform};
+    ///
+    /// // 引用主色并应用50%透明度
+    /// let reference = TokenReference::create_with_transform(
+    ///     "colors.primary".to_string(),
+    ///     TokenTransform::Alpha(0.5)
+    /// );
+    /// let token = TokenValue::TokenReference(reference);
+    /// ```
     TokenReference(TokenReference),
+
     /// 颜色值
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::definitions::{TokenValue, ColorValue};
+    ///
+    /// let color = ColorValue::new("#007bff".to_string());
+    /// let color_token = TokenValue::Color(color);
+    ///
+    /// // 带透明度的颜色
+    /// let transparent_color = ColorValue::with_alpha("#007bff".to_string(), 0.5);
+    /// let transparent_token = TokenValue::Color(transparent_color);
+    /// ```
     Color(ColorValue),
+
     /// 尺寸值
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::definitions::{TokenValue, DimensionValue, DimensionUnit};
+    ///
+    /// // 像素尺寸
+    /// let px_size = DimensionValue::px(16.0);
+    /// let px_token = TokenValue::Dimension(px_size);
+    ///
+    /// // rem尺寸
+    /// let rem_size = DimensionValue::rem(1.0);
+    /// let rem_token = TokenValue::Dimension(rem_size);
+    ///
+    /// // 百分比尺寸
+    /// let percent_size = DimensionValue::percent(100.0);
+    /// let percent_token = TokenValue::Dimension(percent_size);
+    /// ```
     Dimension(DimensionValue),
+
     /// 字体值
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::definitions::{TokenValue, TypographyValue, DimensionValue};
+    ///
+    /// let mut typography = TypographyValue::new();
+    /// typography = typography
+    ///     .with_family("Roboto, sans-serif".to_string())
+    ///     .with_size(DimensionValue::px(16.0))
+    ///     .with_weight(500);
+    ///
+    /// let typography_token = TokenValue::Typography(typography);
+    /// ```
     Typography(TypographyValue),
+
     /// 阴影值
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::definitions::{TokenValue, ShadowValue, DimensionValue, ColorValue};
+    ///
+    /// let shadow = ShadowValue::new(
+    ///     DimensionValue::px(0.0),
+    ///     DimensionValue::px(4.0),
+    ///     DimensionValue::px(8.0),
+    ///     ColorValue::with_alpha("#000000".to_string(), 0.2)
+    /// ).with_spread(DimensionValue::px(0.0));
+    ///
+    /// let shadow_token = TokenValue::Shadow(shadow);
+    /// ```
     Shadow(ShadowValue),
+
     /// 空值
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::definitions::TokenValue;
+    ///
+    /// let null_token = TokenValue::Null;
+    /// ```
     Null,
 }
 
@@ -451,18 +627,10 @@ impl TokenValue {
     /// 获取令牌类型
     pub fn token_type(&self) -> TokenType {
         match self {
-            TokenValue::String(_) => TokenType::String,
-            TokenValue::Number(_) => TokenType::Number,
-            TokenValue::Boolean(_) => TokenType::Boolean,
-            TokenValue::Reference(_) => TokenType::Reference,
-            TokenValue::Array(_) => TokenType::Array,
-            TokenValue::Object(_) => TokenType::Object,
-            TokenValue::TokenReference(_) => TokenType::TokenReference,
             TokenValue::Color(_) => TokenType::Color,
-            TokenValue::Dimension(_) => TokenType::Dimension,
             TokenValue::Typography(_) => TokenType::Typography,
             TokenValue::Shadow(_) => TokenType::Shadow,
-            TokenValue::Null => TokenType::Null,
+            _ => TokenType::Custom(self.value_type().to_string()),
         }
     }
 }
@@ -471,35 +639,130 @@ impl TokenValue {
 /// 令牌类型
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum TokenType {
-    String,
-    Number,
-    Boolean,
-    Reference,
-    Array,
-    Object,
-    TokenReference,
+    /// 颜色令牌
     Color,
-    Dimension,
+    /// 间距令牌
+    Spacing,
+    /// 排版令牌
     Typography,
+    /// 边框令牌
+    Border,
+    /// 阴影令牌
     Shadow,
-    Null,
+    /// 圆角令牌
+    Radius,
+    /// 层叠令牌
+    ZIndex,
+    /// 不透明度令牌
+    Opacity,
+    /// 动画令牌
+    Animation,
+    /// 自定义令牌
+    Custom(String),
 }
 
-impl std::fmt::Display for TokenType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl TokenType {
+    /// 获取令牌类型的CSS前缀
+    ///
+    /// 返回用于CSS变量的前缀，例如 `--color-`、`--spacing-` 等。
+    ///
+    /// # Returns
+    ///
+    /// 令牌类型对应的CSS变量前缀
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::definitions::TokenType;
+    ///
+    /// let color_token = TokenType::Color;
+    /// assert_eq!(color_token.css_prefix(), "--color-");
+    ///
+    /// let custom_token = TokenType::Custom("brand".to_string());
+    /// assert_eq!(custom_token.css_prefix(), "--brand-");
+    /// ```
+    pub fn css_prefix(&self) -> String {
         match self {
-            TokenType::String => write!(f, "String"),
-            TokenType::Number => write!(f, "Number"),
-            TokenType::Boolean => write!(f, "Boolean"),
-            TokenType::Reference => write!(f, "Reference"),
-            TokenType::Array => write!(f, "Array"),
-            TokenType::Object => write!(f, "Object"),
-            TokenType::TokenReference => write!(f, "TokenReference"),
-            TokenType::Color => write!(f, "Color"),
-            TokenType::Dimension => write!(f, "Dimension"),
-            TokenType::Typography => write!(f, "Typography"),
-            TokenType::Shadow => write!(f, "Shadow"),
-            TokenType::Null => write!(f, "Null"),
+            TokenType::Color => "--color-".to_string(),
+            TokenType::Spacing => "--spacing-".to_string(),
+            TokenType::Typography => "--typography-".to_string(),
+            TokenType::Border => "--border-".to_string(),
+            TokenType::Shadow => "--shadow-".to_string(),
+            TokenType::Radius => "--radius-".to_string(),
+            TokenType::ZIndex => "--z-index-".to_string(),
+            TokenType::Opacity => "--opacity-".to_string(),
+            TokenType::Animation => "--animation-".to_string(),
+            TokenType::Custom(name) => format!("--{}-", name),
+        }
+    }
+
+    /// 获取令牌类型的名称
+    ///
+    /// 返回令牌类型的字符串表示
+    ///
+    /// # Returns
+    ///
+    /// 令牌类型的名称
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::definitions::TokenType;
+    ///
+    /// let color_token = TokenType::Color;
+    /// assert_eq!(color_token.name(), "color");
+    ///
+    /// let custom_token = TokenType::Custom("brand".to_string());
+    /// assert_eq!(custom_token.name(), "brand");
+    /// ```
+    pub fn name(&self) -> String {
+        match self {
+            TokenType::Color => "color".to_string(),
+            TokenType::Spacing => "spacing".to_string(),
+            TokenType::Typography => "typography".to_string(),
+            TokenType::Border => "border".to_string(),
+            TokenType::Shadow => "shadow".to_string(),
+            TokenType::Radius => "radius".to_string(),
+            TokenType::ZIndex => "z-index".to_string(),
+            TokenType::Opacity => "opacity".to_string(),
+            TokenType::Animation => "animation".to_string(),
+            TokenType::Custom(name) => name.clone(),
+        }
+    }
+
+    /// 从字符串创建令牌类型
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - 令牌类型名称
+    ///
+    /// # Returns
+    ///
+    /// 对应的令牌类型
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::token::definitions::TokenType;
+    ///
+    /// let color_token = TokenType::from_str("color");
+    /// assert_eq!(color_token, TokenType::Color);
+    ///
+    /// let custom_token = TokenType::from_str("brand");
+    /// assert_eq!(custom_token, TokenType::Custom("brand".to_string()));
+    /// ```
+    pub fn from_str(name: &str) -> Self {
+        match name.to_lowercase().as_str() {
+            "color" => TokenType::Color,
+            "spacing" => TokenType::Spacing,
+            "typography" => TokenType::Typography,
+            "border" => TokenType::Border,
+            "shadow" => TokenType::Shadow,
+            "radius" => TokenType::Radius,
+            "z-index" | "zindex" => TokenType::ZIndex,
+            "opacity" => TokenType::Opacity,
+            "animation" => TokenType::Animation,
+            _ => TokenType::Custom(name.to_string()),
         }
     }
 }

@@ -25,6 +25,27 @@ pub struct KeyframeStep {
 
 impl Keyframes {
     /// 创建新的关键帧
+    ///
+    /// 初始化一个新的关键帧定义，使用指定的名称。
+    ///
+    /// # 参数
+    ///
+    /// * `name` - 关键帧的名称，将用于CSS `@keyframes` 规则
+    ///
+    /// # 返回值
+    ///
+    /// 返回一个新的`Keyframes`实例。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::animation::Keyframes;
+    ///
+    /// // 创建新的关键帧定义
+    /// let mut keyframes = Keyframes::new("fade-in");
+    ///
+    /// // 现在可以添加关键帧步骤
+    /// ```
     pub fn new(name: impl Into<String>) -> Self {
         Self {
             name: name.into(),
@@ -33,6 +54,41 @@ impl Keyframes {
     }
 
     /// 添加关键帧步骤
+    ///
+    /// 向关键帧定义中添加一个步骤，指定百分比位置和CSS属性。
+    ///
+    /// # 参数
+    ///
+    /// * `percentage` - 关键帧步骤的百分比位置（0-100）
+    /// * `step` - 关键帧步骤定义，包含CSS属性和可选的缓动函数
+    ///
+    /// # 返回值
+    ///
+    /// 返回对`self`的可变引用，支持方法链式调用。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::animation::{Keyframes, KeyframeStep};
+    /// use std::collections::BTreeMap;
+    ///
+    /// // 创建关键帧
+    /// let mut keyframes = Keyframes::new("fade-in");
+    ///
+    /// // 创建步骤
+    /// let mut start_step = KeyframeStep::new();
+    /// start_step.add_property("opacity", "0");
+    /// start_step.add_property("transform", "translateY(20px)");
+    ///
+    /// let mut end_step = KeyframeStep::new();
+    /// end_step.add_property("opacity", "1");
+    /// end_step.add_property("transform", "translateY(0)");
+    /// end_step.with_easing("ease-out");
+    ///
+    /// // 添加步骤到关键帧
+    /// keyframes.add_step(0, start_step)
+    ///         .add_step(100, end_step);
+    /// ```
     pub fn add_step(&mut self, percentage: u8, step: KeyframeStep) -> &mut Self {
         if percentage <= 100 {
             self.steps.insert(percentage, step);
@@ -41,6 +97,41 @@ impl Keyframes {
     }
 
     /// 添加简单的关键帧步骤
+    ///
+    /// 向关键帧定义中添加一个简单的步骤，只指定CSS属性而不包含缓动函数。
+    ///
+    /// # 参数
+    ///
+    /// * `percentage` - 关键帧步骤的百分比位置（0-100）
+    /// * `properties` - CSS属性和值的映射
+    ///
+    /// # 返回值
+    ///
+    /// 返回对`self`的可变引用，支持方法链式调用。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::animation::Keyframes;
+    /// use std::collections::BTreeMap;
+    ///
+    /// // 创建关键帧
+    /// let mut keyframes = Keyframes::new("slide-in");
+    ///
+    /// // 创建起始属性
+    /// let mut start_props = BTreeMap::new();
+    /// start_props.insert("opacity".to_string(), "0".to_string());
+    /// start_props.insert("transform".to_string(), "translateX(-100%)".to_string());
+    ///
+    /// // 创建结束属性
+    /// let mut end_props = BTreeMap::new();
+    /// end_props.insert("opacity".to_string(), "1".to_string());
+    /// end_props.insert("transform".to_string(), "translateX(0)".to_string());
+    ///
+    /// // 添加简单步骤
+    /// keyframes.add_simple_step(0, start_props)
+    ///         .add_simple_step(100, end_props);
+    /// ```
     pub fn add_simple_step(
         &mut self,
         percentage: u8,
@@ -56,6 +147,56 @@ impl Keyframes {
     }
 
     /// 生成 CSS @keyframes 规则
+    ///
+    /// 将关键帧定义转换为完整的CSS `@keyframes` 规则字符串。
+    ///
+    /// # 返回值
+    ///
+    /// 返回表示CSS `@keyframes` 规则的字符串。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::animation::{Keyframes, KeyframeStep};
+    /// use std::collections::BTreeMap;
+    ///
+    /// // 创建并配置关键帧
+    /// let mut keyframes = Keyframes::new("bounce");
+    ///
+    /// // 添加步骤
+    /// let mut start = KeyframeStep::new();
+    /// start.add_property("transform", "scale(0.3)");
+    /// start.add_property("opacity", "0");
+    ///
+    /// let mut middle = KeyframeStep::new();
+    /// middle.add_property("transform", "scale(1.05)");
+    /// middle.add_property("opacity", "1");
+    ///
+    /// let mut end = KeyframeStep::new();
+    /// end.add_property("transform", "scale(1)");
+    ///
+    /// keyframes.add_step(0, start)
+    ///         .add_step(50, middle)
+    ///         .add_step(100, end);
+    ///
+    /// // 生成CSS
+    /// let css = keyframes.to_css();
+    /// println!("生成的CSS: {}", css);
+    /// // 输出类似:
+    /// // @keyframes bounce {
+    /// //   0% {
+    /// //     transform: scale(0.3);
+    /// //     opacity: 0;
+    /// //   }
+    /// //   50% {
+    /// //     transform: scale(1.05);
+    /// //     opacity: 1;
+    /// //   }
+    /// //   100% {
+    /// //     transform: scale(1);
+    /// //   }
+    /// // }
+    /// ```
     pub fn to_css(&self) -> String {
         let mut css = format!("@keyframes {} {{\n", self.name);
 
@@ -78,6 +219,38 @@ impl Keyframes {
     }
 
     /// 验证关键帧是否有效
+    ///
+    /// 检查关键帧定义是否符合基本要求，如名称不为空、至少有一个步骤、
+    /// 包含0%或100%的关键步骤等。
+    ///
+    /// # 返回值
+    ///
+    /// 如果关键帧有效，则返回`Ok(())`；否则返回包含错误信息的`Err(String)`。
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::animation::{Keyframes, KeyframeStep};
+    /// use std::collections::BTreeMap;
+    ///
+    /// // 创建关键帧
+    /// let mut keyframes = Keyframes::new("fade-in");
+    ///
+    /// // 添加步骤
+    /// let mut start = KeyframeStep::new();
+    /// start.add_property("opacity", "0");
+    /// keyframes.add_step(0, start);
+    ///
+    /// let mut end = KeyframeStep::new();
+    /// end.add_property("opacity", "1");
+    /// keyframes.add_step(100, end);
+    ///
+    /// // 验证关键帧
+    /// match keyframes.validate() {
+    ///     Ok(_) => println!("关键帧有效"),
+    ///     Err(e) => println!("关键帧无效: {}", e),
+    /// }
+    /// ```
     pub fn validate(&self) -> Result<(), String> {
         if self.name.is_empty() {
             return Err("关键帧名称不能为空".to_string());
