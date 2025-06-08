@@ -2,6 +2,7 @@
 //!
 //! This module provides the main interface for style injection and management.
 
+use crate::runtime::injector::InjectionEnvironment;
 use crate::runtime::StyleInjector;
 use std::sync::OnceLock;
 
@@ -39,6 +40,28 @@ pub enum ProviderType {
     Ssr,
     /// No-op provider for testing
     Noop,
+    /// Isomorphic provider for both server and client
+    Isomorphic,
+}
+
+impl ProviderType {
+    /// 转换为对应的注入环境
+    pub(crate) fn to_injection_environment(&self) -> InjectionEnvironment {
+        match self {
+            ProviderType::Auto => {
+                // 自动检测环境
+                #[cfg(target_arch = "wasm32")]
+                return InjectionEnvironment::Browser;
+
+                #[cfg(not(target_arch = "wasm32"))]
+                return InjectionEnvironment::Server;
+            }
+            ProviderType::Web => InjectionEnvironment::Browser,
+            ProviderType::Ssr => InjectionEnvironment::Server,
+            ProviderType::Noop => InjectionEnvironment::Noop,
+            ProviderType::Isomorphic => InjectionEnvironment::Isomorphic,
+        }
+    }
 }
 
 /// Trait for style providers
@@ -128,6 +151,40 @@ pub trait StyleProvider {
 /// ```
 pub fn init() {
     let _ = STYLE_INJECTOR.get_or_init(|| StyleInjector::new());
+}
+
+/// Initialize the global style system with specific provider type
+///
+/// 使用指定的提供器类型初始化全局样式系统。
+/// 这对于同构应用特别有用，可以明确指定是在服务端还是客户端环境中运行。
+///
+/// # Arguments
+///
+/// * `provider_type` - 要使用的提供器类型
+///
+/// # Examples
+///
+/// ```
+/// use css_in_rust::runtime::{provider, ProviderType};
+///
+/// // 初始化为同构模式
+/// provider::init_with_provider(ProviderType::Isomorphic);
+///
+/// // 现在样式会同时在服务端和客户端处理
+/// let class_name = "my-class";
+/// let css = "color: red; font-size: 16px;";
+/// provider::inject_style(css, class_name);
+/// ```
+pub fn init_with_provider(provider_type: ProviderType) {
+    let _ = STYLE_INJECTOR.get_or_init(|| {
+        let env = provider_type.to_injection_environment();
+        match env {
+            InjectionEnvironment::Browser => StyleInjector::new(),
+            InjectionEnvironment::Server => StyleInjector::new_ssr(),
+            InjectionEnvironment::Isomorphic => StyleInjector::new_isomorphic(),
+            InjectionEnvironment::Noop => StyleInjector::new_noop(),
+        }
+    });
 }
 
 /// Inject CSS into the document
@@ -237,6 +294,72 @@ pub fn clear_all_styles() -> Result<(), crate::runtime::InjectionError> {
     injector.clear_all_styles()
 }
 
+/// Get the current environment of the style injector
+///
+/// 获取当前样式注入器的运行环境。
+///
+/// # Returns
+///
+/// 当前的注入环境
+///
+/// # Examples
+///
+/// ```
+/// use css_in_rust::runtime::provider;
+/// use css_in_rust::runtime::injector::InjectionEnvironment;
+///
+/// // 初始化样式系统
+/// provider::init();
+///
+/// // 获取当前环境
+/// let env = provider::current_environment();
+/// ```
+pub fn current_environment() -> InjectionEnvironment {
+    let injector = STYLE_INJECTOR.get_or_init(|| StyleInjector::new());
+    injector.environment()
+}
+
+/// Generate HTML style tags for server-side rendering
+///
+/// 生成包含所有收集样式的HTML样式标签，用于服务端渲染。
+///
+/// # Returns
+///
+/// 包含所有样式的HTML字符串，如果失败则返回空字符串
+///
+/// # Examples
+///
+/// ```
+/// use css_in_rust::runtime::{provider, ProviderType};
+///
+/// // 初始化为SSR模式
+/// provider::init_with_provider(ProviderType::Ssr);
+///
+/// // 注入一些样式
+/// provider::inject_style("color: blue;", "text-blue");
+/// provider::inject_style("margin: 16px;", "m-4");
+///
+/// // 生成HTML样式标签
+/// let html = provider::generate_style_html();
+/// ```
+#[cfg(not(target_arch = "wasm32"))]
+pub fn generate_style_html() -> String {
+    let injector = STYLE_INJECTOR.get_or_init(|| StyleInjector::new_ssr());
+    match injector.generate_style_html() {
+        Ok(html) => html,
+        Err(e) => {
+            eprintln!("Failed to generate style HTML: {:?}", e);
+            String::new()
+        }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn generate_style_html() -> String {
+    // 在客户端环境中，这个方法不会生成任何内容
+    String::new()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -254,5 +377,25 @@ mod tests {
     fn test_provider_type_equality() {
         assert_eq!(ProviderType::Auto, ProviderType::Auto);
         assert_ne!(ProviderType::Auto, ProviderType::Web);
+    }
+
+    #[test]
+    fn test_provider_type_to_injection_environment() {
+        assert_eq!(
+            ProviderType::Web.to_injection_environment(),
+            InjectionEnvironment::Browser
+        );
+        assert_eq!(
+            ProviderType::Ssr.to_injection_environment(),
+            InjectionEnvironment::Server
+        );
+        assert_eq!(
+            ProviderType::Noop.to_injection_environment(),
+            InjectionEnvironment::Noop
+        );
+        assert_eq!(
+            ProviderType::Isomorphic.to_injection_environment(),
+            InjectionEnvironment::Isomorphic
+        );
     }
 }
