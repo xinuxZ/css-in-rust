@@ -353,6 +353,7 @@ dependencies = [
  "hex",
  "lazy_static",
  "lightningcss",
+ "log",
  "num_cpus",
  "proc-macro2",
  "quote",

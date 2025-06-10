@@ -32,7 +32,27 @@ pub struct DioxusThemeIntegration;
 impl DioxusThemeIntegration {
     /// 初始化Dioxus主题集成
     pub fn initialize() {
-        // 初始化代码，如果需要
+        #[cfg(feature = "dioxus")]
+        {
+            use crate::theme::core::cache::CacheManager;
+            use crate::theme::core::manager::ThemeManager;
+            use crate::theme::theme_types::{Theme, ThemeMode};
+
+            // 初始化Dioxus特定的缓存
+            CacheManager::initialize_global_with("dioxus-theme");
+
+            // 准备默认的Dioxus主题
+            if let Ok(manager) = ThemeManager::get_global() {
+                // 如果没有当前主题，设置默认主题
+                if manager.get_current_theme().is_none() {
+                    let default_theme = Theme::new("dioxus-default").with_mode(ThemeMode::Light);
+
+                    let _ = manager.set_theme(default_theme);
+                }
+            }
+
+            log::debug!("Dioxus theme integration initialized");
+        }
     }
 }
 

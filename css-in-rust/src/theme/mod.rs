@@ -68,10 +68,28 @@ impl ThemeSystem {
     /// ThemeSystem::initialize();
     /// ```
     pub fn initialize() {
-        // 初始化代码
+        // 初始化主题系统的核心组件
+        core::manager::ThemeManager::initialize_global();
+
+        // 初始化默认设计令牌
+        Self::initialize_default_tokens();
+
+        // 初始化缓存系统
+        core::cache::cache_manager::CacheManager::initialize_global();
 
         // 如果启用了Dioxus，初始化Dioxus集成
         #[cfg(feature = "dioxus")]
         dioxus::DioxusThemeIntegration::initialize();
+
+        log::debug!("Theme system initialized");
+    }
+
+    /// 初始化默认设计令牌
+    fn initialize_default_tokens() {
+        // 这里可以注册默认的设计令牌，如全局颜色、间距等
+        // 例如，可以注册品牌颜色、标准间距等核心设计令牌
+
+        #[cfg(feature = "debug")]
+        log::debug!("Default design tokens initialized");
     }
 }

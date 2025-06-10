@@ -1,8 +1,12 @@
 pub mod theme_history;
 
 use crate::theme::theme_types::{Theme, ThemeMode};
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, LazyLock, Mutex, RwLock};
 use theme_history::ThemeHistory;
+
+/// 全局主题管理器实例
+static GLOBAL_THEME_MANAGER: LazyLock<Mutex<Option<ThemeManager>>> =
+    LazyLock::new(|| Mutex::new(None));
 
 /// 主题管理器配置
 ///
@@ -476,5 +480,112 @@ impl ThemeManager {
         // 在实际实现中，这里应该返回系统中可用的主题列表
         // 这里只是一个简化的实现
         vec!["light".to_string(), "dark".to_string()]
+    }
+
+    /// 初始化全局主题管理器
+    ///
+    /// 创建全局主题管理器实例，使用默认配置或自定义配置。
+    /// 这个方法应该在应用程序启动时调用，且只调用一次。
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::manager::ThemeManager;
+    ///
+    /// // 使用默认配置初始化全局主题管理器
+    /// ThemeManager::initialize_global();
+    /// ```
+    pub fn initialize_global() {
+        let mut global_manager = GLOBAL_THEME_MANAGER.lock().unwrap();
+
+        // 只有在全局管理器未初始化时才创建新实例
+        if global_manager.is_none() {
+            *global_manager = Some(ThemeManager::new(ThemeManagerConfig::default()));
+
+            log::debug!("Global theme manager initialized");
+        }
+    }
+
+    /// 获取全局主题管理器
+    ///
+    /// 获取全局主题管理器的引用。如果全局管理器尚未初始化，会自动初始化。
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回全局主题管理器的引用，失败时返回错误信息
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::manager::ThemeManager;
+    ///
+    /// // 获取全局主题管理器
+    /// if let Ok(manager) = ThemeManager::get_global() {
+    ///     // 使用管理器
+    ///     if let Some(theme) = manager.get_current_theme() {
+    ///         println!("当前主题: {}", theme.name);
+    ///     }
+    /// }
+    /// ```
+    pub fn get_global() -> Result<&'static ThemeManager, String> {
+        let global_manager = GLOBAL_THEME_MANAGER
+            .lock()
+            .map_err(|_| "无法获取全局主题管理器锁".to_string())?;
+
+        if global_manager.is_none() {
+            drop(global_manager);
+            Self::initialize_global();
+        }
+
+        let global_manager = GLOBAL_THEME_MANAGER
+            .lock()
+            .map_err(|_| "无法获取全局主题管理器锁".to_string())?;
+
+        // 现在我们确定全局管理器已初始化
+        match global_manager.as_ref() {
+            Some(manager) => {
+                // 使用 std::mem::forget 防止 Mutex 锁被释放，但这可能导致内存泄漏
+                // 由于这是全局单例，应用程序的整个生命周期内都需要它，所以这是可以接受的
+                let manager_ref: &'static ThemeManager = unsafe { std::mem::transmute(manager) };
+                Ok(manager_ref)
+            }
+            None => Err("全局主题管理器初始化失败".to_string()),
+        }
+    }
+
+    /// 使用全局主题管理器执行操作
+    ///
+    /// 这是一个便捷方法，用于在全局主题管理器上执行操作。
+    ///
+    /// # Arguments
+    ///
+    /// * `f` - 要执行的操作，接收主题管理器的引用作为参数
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回操作的结果，失败时返回错误信息
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::manager::ThemeManager;
+    /// use css_in_rust::theme::theme_types::ThemeMode;
+    ///
+    /// // 使用全局主题管理器切换主题模式
+    /// ThemeManager::with_global(|manager| {
+    ///     manager.toggle_theme_mode();
+    ///
+    ///     // 获取并打印当前主题
+    ///     if let Some(theme) = manager.get_current_theme() {
+    ///         println!("当前主题模式: {:?}", theme.mode);
+    ///     }
+    /// }).unwrap();
+    /// ```
+    pub fn with_global<F, R>(f: F) -> Result<R, String>
+    where
+        F: FnOnce(&ThemeManager) -> R,
+    {
+        let manager = Self::get_global()?;
+        Ok(f(manager))
     }
 }

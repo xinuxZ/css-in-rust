@@ -3,7 +3,11 @@ use crate::theme::core::cache::cache_entity::{
     STYLE_PREFIX, TOKEN_PREFIX,
 };
 use serde_json::Value;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, LazyLock, Mutex};
+
+/// 全局缓存管理器实例
+static GLOBAL_CACHE_MANAGER: LazyLock<Mutex<Option<Arc<CacheManager>>>> =
+    LazyLock::new(|| Mutex::new(None));
 
 /// 缓存管理器
 ///
@@ -478,5 +482,131 @@ impl CacheManager {
         }
 
         removed_styles
+    }
+
+    /// 初始化全局缓存管理器
+    ///
+    /// 创建并初始化全局缓存管理器，可以在应用程序的任何地方访问。
+    /// 通常在应用启动时调用一次。
+    ///
+    /// # 参数
+    ///
+    /// * `container_id` - 可选的容器ID，用于标识缓存实例，默认为 "global"
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::cache::CacheManager;
+    ///
+    /// // 使用默认容器ID初始化
+    /// CacheManager::initialize_global();
+    ///
+    /// // 使用自定义容器ID初始化
+    /// CacheManager::initialize_global_with("my-app");
+    /// ```
+    pub fn initialize_global() {
+        Self::initialize_global_with("global");
+    }
+
+    /// 使用指定容器ID初始化全局缓存管理器
+    ///
+    /// # 参数
+    ///
+    /// * `container_id` - 容器ID，用于标识缓存实例
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::cache::CacheManager;
+    ///
+    /// CacheManager::initialize_global_with("my-app");
+    /// ```
+    pub fn initialize_global_with(container_id: &str) {
+        let mut global_manager = GLOBAL_CACHE_MANAGER.lock().unwrap();
+
+        // 只有在全局管理器未初始化时才创建新实例
+        if global_manager.is_none() {
+            *global_manager = Some(Arc::new(CacheManager::new(container_id)));
+
+            log::debug!(
+                "Global cache manager initialized with container ID: {}",
+                container_id
+            );
+        }
+    }
+
+    /// 获取全局缓存管理器
+    ///
+    /// 获取全局缓存管理器的引用。如果全局管理器尚未初始化，会自动使用默认配置初始化。
+    ///
+    /// # 返回值
+    ///
+    /// 成功时返回全局缓存管理器的引用，失败时返回错误信息
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::cache::CacheManager;
+    ///
+    /// if let Ok(manager) = CacheManager::get_global() {
+    ///     // 使用全局缓存管理器
+    ///     let memory_usage = manager.get_memory_usage();
+    ///     println!("总缓存大小: {} 字节", memory_usage.total_cache_size);
+    /// }
+    /// ```
+    pub fn get_global() -> Result<Arc<CacheManager>, String> {
+        let global_manager = GLOBAL_CACHE_MANAGER
+            .lock()
+            .map_err(|_| "无法获取全局缓存管理器锁".to_string())?;
+
+        match global_manager.clone() {
+            Some(manager) => Ok(manager),
+            None => {
+                // 如果全局管理器未初始化，自动初始化
+                drop(global_manager);
+                Self::initialize_global();
+
+                let global_manager = GLOBAL_CACHE_MANAGER
+                    .lock()
+                    .map_err(|_| "无法获取全局缓存管理器锁".to_string())?;
+
+                match global_manager.clone() {
+                    Some(manager) => Ok(manager),
+                    None => Err("全局缓存管理器初始化失败".to_string()),
+                }
+            }
+        }
+    }
+
+    /// 使用全局缓存管理器执行操作
+    ///
+    /// 这是一个便捷方法，用于在全局缓存管理器上执行操作。
+    ///
+    /// # 参数
+    ///
+    /// * `f` - 要执行的操作，接收缓存管理器的引用作为参数
+    ///
+    /// # 返回值
+    ///
+    /// 成功时返回操作的结果，失败时返回错误信息
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use css_in_rust::theme::core::cache::CacheManager;
+    ///
+    /// // 使用全局缓存管理器获取内存使用情况
+    /// let usage = CacheManager::with_global(|manager| {
+    ///     manager.get_memory_usage()
+    /// }).unwrap();
+    ///
+    /// println!("缓存项数量: {}", usage.cache_item_count);
+    /// ```
+    pub fn with_global<F, R>(f: F) -> Result<R, String>
+    where
+        F: FnOnce(&CacheManager) -> R,
+    {
+        let manager = Self::get_global()?;
+        Ok(f(&*manager))
     }
 }
