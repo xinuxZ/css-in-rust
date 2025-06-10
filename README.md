@@ -1,271 +1,164 @@
 # CSS-in-Rust
 
-🚀 A high-performance CSS-in-Rust solution based on lightningcss.
+**高性能的 Rust CSS-in-JS 解决方案，专为 Dioxus 框架设计**
 
-## Features
+CSS-in-Rust 是一个专注于 Dioxus 框架的样式解决方案，提供类似于 styled-components 和 emotion 的 CSS-in-JS 体验，同时利用 Rust 的性能和类型安全特性。
 
-- **🚀 High Performance**: Built on top of lightningcss for fast CSS parsing and optimization
-- **🔒 Type Safety**: Compile-time CSS validation and error checking
-- **🎨 Theme System**: Built-in support for CSS variables and theming (Phase 2)
-- **📱 Responsive Design**: First-class support for media queries and responsive layouts
-- **🔧 Framework Integration**: Adapters for popular Rust web frameworks (Dioxus, Yew, Leptos)
-- **⚡ Style Optimization**: Automatic CSS minification, dead code elimination, and deduplication
-- **🔄 Hot Reload**: Development-time style updates (Phase 2)
-- **📦 SSR Support**: Server-side rendering with critical CSS extraction
+## 特性
 
-## Quick Start
+- **强大的 CSS 处理**：基于 lightningcss 引擎实现高性能的 CSS 解析和处理
+- **主题系统**：灵活的主题支持，包括动态主题切换和主题变量
+- **编译时优化**：支持在编译时处理和优化 CSS，减少运行时开销
+- **类型安全**：与 Rust 类型系统无缝集成
+- **Dioxus 框架支持**：专为 Dioxus 框架设计的适配器和工具
+- **零运行时开销**：通过编译时计算和优化最小化运行时开销
 
-### Installation
+## 安装
 
-Add this to your `Cargo.toml`:
+在 `Cargo.toml` 中添加依赖：
 
 ```toml
 [dependencies]
 css-in-rust = "0.1.0"
 ```
 
-### Basic Usage
+## 基本用法
 
 ```rust
-use css_in_rust::{css, init};
-
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize the CSS runtime
-    init()?;
-
-    // Define styles using the css! macro
-    let button_class = css! {
-        r#"
-        .button {
-            background: #007bff;
-            color: white;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .button:hover {
-            background: #0056b3;
-        }
-        "#
-    };
-
-    println!("Generated class: {}", button_class);
-    // Output: Generated class: css-a1b2c3d4
-
-    Ok(())
-}
-```
-
-### Advanced Usage
-
-#### Responsive Design
-
-```rust
-let responsive_class = css! {
-    r#"
-    .container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 16px;
-    }
-
-    @media (max-width: 768px) {
-        .container {
-            padding: 0 8px;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .container {
-            padding: 0 4px;
-        }
-    }
-    "#
-};
-```
-
-#### CSS Variables and Theming
-
-```rust
-let themed_class = css! {
-    r#"
-    :root {
-        --primary-color: #007bff;
-        --secondary-color: #6c757d;
-    }
-
-    .card {
-        background: white;
-        border: 1px solid var(--primary-color);
-        border-radius: 8px;
-        padding: 16px;
-    }
-    "#
-};
-```
-
-#### Animations
-
-```rust
-let animated_class = css! {
-    r#"
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .fade-in {
-        animation: fadeIn 0.3s ease-out;
-    }
-    "#
-};
-```
-
-## Framework Integration
-
-### Dioxus
-
-```rust
-use dioxus::prelude::*;
 use css_in_rust::css;
+use dioxus::prelude::*;
 
-fn App(cx: Scope) -> Element {
-    let button_style = css! {
-        r#"
-        .button {
-            background: #007bff;
+fn App() -> Element {
+    let button_style = css!("
+        background-color: blue;
             color: white;
             padding: 8px 16px;
-            border: none;
             border-radius: 4px;
-        }
-        "#
-    };
 
-    render! {
+        &:hover {
+            background-color: darkblue;
+        }
+    ");
+
+    rsx! {
         button {
-            class: "{button_style}",
-            "Click me!"
+            class: button_style,
+            "Click me"
         }
     }
 }
 ```
 
-## Architecture
+## 高级特性
 
-### Core Components
+### 主题支持
 
-- **Parser**: CSS parsing using lightningcss
-- **Optimizer**: CSS optimization and minification
-- **Runtime**: Style injection and management
-- **Macro System**: Compile-time CSS processing
-- **Provider System**: Platform-specific style injection
+```rust
+use css_in_rust::theme::{DioxusAdapter, ThemeProvider};
+use dioxus::prelude::*;
 
-### Performance
+fn App() -> Element {
+    // 设置主题提供者
+    let theme_provider = use_context::<ThemeProvider>().unwrap();
 
-- **Compile-time Processing**: CSS is parsed and validated at compile time
-- **Style Deduplication**: Identical styles are automatically deduplicated
-- **Lazy Injection**: Styles are only injected when first used
-- **Caching**: Intelligent caching system for optimal performance
-- **Minification**: Automatic CSS minification in release builds
+    let button_style = css!("
+        background-color: var(--primary-color);
+        color: var(--text-color);
+        padding: var(--spacing-md);
+    ");
 
-## Development
+    rsx! {
+        button {
+            class: button_style,
+            "主题化按钮"
+        }
+    }
+}
+```
 
-### Building
+## 版权和许可
+
+本项目采用 MIT 或 Apache-2.0 许可证。
+
+## 开发
+
+### 构建
 
 ```bash
 cargo build
 ```
 
-### Testing
+### 测试
 
 ```bash
 cargo test
 ```
 
-### Running Examples
+### 运行示例
 
 ```bash
 cargo run --example basic
 ```
-## Roadmap
 
-### Phase 1 (Current) ✅
-- [x] Basic CSS parsing with lightningcss
-- [x] `css!` macro implementation
-- [x] Style injection system
-- [x] Platform-specific providers (Web/Server)
-- [x] Basic optimization
-- [x] Documentation and examples
+## 路线图
 
-### Phase 2 (Planned)
-- [x] Theme system with CSS variables
-- [x] Variant system (hover, focus, etc.)
-- [x] Style optimization engine
-- [x] Hot reload support
-- [·] Advanced caching
+### 阶段 1 (当前) ✅
+- [x] 基本 CSS 解析与 lightningcss
+- [x] `css!` 宏实现
+- [x] 样式注入系统
+- [x] 平台特定提供者 (Web/Server)
+- [x] 基本优化
+- [x] 文档和示例
 
-### Phase 3 (Planned)
-- [ ] SSR/SSG support
-- [ ] Critical CSS extraction
+### 阶段 2 (计划中)
+- [x] 主题系统与 CSS 变量
+- [x] 变体系统 (hover, focus, etc.)
+- [x] 样式优化引擎
+- [x] 热重载支持
+- [·] 高级缓存
 
-### Phase 4 (Planned)
-- [ ] VS Code plugin
-- [ ] CLI tools
-- [ ] Additional framework adapters
-- [ ] Performance monitoring
+### 阶段 3 (计划中)
+- [ ] SSR/SSG 支持
+- [ ] 关键 CSS 提取
 
-## Contributing
+### 阶段 4 (计划中)
+- [ ] VS Code 插件
+- [ ] CLI 工具
+- [ ] 其他框架适配器
+- [ ] 性能监控
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+## 贡献
 
-### Development Setup
+我们欢迎贡献！请参阅我们的 [贡献指南](CONTRIBUTING.md) 了解更多详细信息。
 
-1. Clone the repository:
+### 开发设置
+
+1. 克隆仓库：
    ```bash
    git clone https://github.com/xinuxZ/css-in-rust.git
    cd css-in-rust
    ```
 
-2. Install dependencies:
+2. 安装依赖：
    ```bash
    cargo build
    ```
 
-3. Run tests:
+3. 运行测试：
    ```bash
    cargo test
    ```
 
-4. Run examples:
+4. 运行示例：
    ```bash
    cargo run --example basic
    ```
 
-## License
+## 支持
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-- [lightningcss](https://github.com/parcel-bundler/lightningcss) - Fast CSS parser and transformer
-- [stylers](https://github.com/abishekatp/stylers) - Original inspiration for CSS-in-Rust
-- [Dioxus](https://github.com/DioxusLabs/dioxus) - Modern Rust web framework
-- [ant-design](https://ant.design/) - Design system inspiration
-
-## Support
-
-If you have any questions or need help, please:
-1. Create a [new issue](https://github.com/xinuxZ/css-in-rust/issues/new)
+如果您有任何问题或需要帮助，请：
+1. 创建一个 [新问题](https://github.com/xinuxZ/css-in-rust/issues/new)
 
 ---
 
-**Made with ❤️ by the CSS-in-Rust team**
+**由 CSS-in-Rust 团队制作**

@@ -26,6 +26,13 @@ pub struct ThemeBridge {
     auto_sync: bool,
 }
 
+/// 实现 PartialEq
+impl PartialEq for ThemeBridge {
+    fn eq(&self, other: &Self) -> bool {
+        self.current_theme == other.current_theme
+    }
+}
+
 impl ThemeBridge {
     /// 创建默认主题桥接器
     pub fn default() -> Self {

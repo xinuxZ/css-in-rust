@@ -1,11 +1,14 @@
 [workspace]
-members = ["css-in-rust", "css-in-rust-macros", "demo-project", "examples"]
+members = ["css-in-rust", "css-in-rust-macros"]
 resolver = "2"
+exclude = ["demo", "examples"]
 
 [workspace.dependencies]
 proc-macro2 = "1.0"
 quote = "1.0"
 syn = { version = "2.0", features = ["full", "extra-traits"] }
 sha2 = "0.10"
-thiserror = "1.0"
+thiserror = "2.0.12"
 lightningcss = "1.0.0-alpha.66"
+
+css-in-rust-macros = { path = "./css-in-rust-macros" }

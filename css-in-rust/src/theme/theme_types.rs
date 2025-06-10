@@ -91,6 +91,13 @@ impl Default for Theme {
     }
 }
 
+/// Display for ThemeMode
+impl std::fmt::Display for ThemeMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 impl Theme {
     /// 创建新主题
     ///
