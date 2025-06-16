@@ -36,6 +36,18 @@
 //!
 
 use js_sys as _;
+// Suppress unused dependency warning
+#[cfg(feature = "proc-macro")]
+#[allow(unused_imports)]
+use css_in_rust_macros as _;
+#[allow(unused_imports)]
+use lazy_static as _;
+#[allow(unused_imports)]
+use tempfile as _;
+// #[allow(unused_imports)]
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen as _;
+use web_sys::wasm_bindgen as _;
 
 // Module declarations
 pub mod animation;
@@ -81,20 +93,6 @@ pub use css_in_rust_macros::{
     css, css_if, styled_component as proc_styled_component, styled_component_with_props,
     themed_style,
 };
-
-// Suppress unused dependency warning
-#[cfg(feature = "proc-macro")]
-#[allow(unused_imports)]
-use css_in_rust_macros as _;
-
-#[allow(unused_imports)]
-use lazy_static as _;
-#[allow(unused_imports)]
-use tempfile as _;
-// #[allow(unused_imports)]
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen as _;
-use web_sys::wasm_bindgen as _;
 
 // Provide fallback implementations when proc-macro feature is disabled
 #[cfg(not(feature = "proc-macro"))]
