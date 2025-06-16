@@ -76,7 +76,7 @@ impl DioxusThemeProvider {
         match self.manager.switch_theme(theme_name) {
             Ok(_) => {
                 // 获取新主题
-                if let Some(theme) = self.manager.get_current_theme() {
+                if let Some(mut theme) = self.manager.get_current_theme() {
                     // 注入主题CSS变量
                     let css = theme.to_css_variables();
                     let id = format!("theme-{}", theme_name);

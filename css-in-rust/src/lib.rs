@@ -33,6 +33,9 @@
 //!     format!(r#"<div class="{}">Content</div>"#, class)
 //! }
 //! ```
+//!
+
+use js_sys as _;
 
 // Module declarations
 pub mod animation;

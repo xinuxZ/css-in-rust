@@ -465,6 +465,7 @@ impl StyleInjector {
     /// 成功时返回`Ok(())`
     #[cfg(target_arch = "wasm32")]
     fn remove_browser_style(&self, class_name: &str) -> Result<(), InjectionError> {
+        use js_sys::RegExp;
         use web_sys::{window, Document, Element, HtmlStyleElement};
 
         // 获取window和document
@@ -482,7 +483,7 @@ impl StyleInjector {
 
             // 移除匹配的样式规则
             // 注意：这是一个简单的实现，实际上应该使用CSS解析器
-            let re = js_sys::RegExp::new(&format!(r"\.{}\s*\{{[^}}]*\}}", class_name), "g");
+            let re = RegExp::new(&format!(r"\.{}\s*\{{[^}}]*\}}", class_name), "g");
             let new_content = current_content.replace(&re.to_string(), "");
 
             // 更新样式元素

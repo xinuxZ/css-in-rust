@@ -28,6 +28,7 @@ static GLOBAL_THEME_MANAGER: LazyLock<Mutex<Option<ThemeManager>>> =
 /// // 或使用默认配置
 /// let default_config = ThemeManagerConfig::default();
 /// ```
+#[derive(Debug)]
 pub struct ThemeManagerConfig {
     /// 默认主题名称
     pub default_theme: String,
@@ -91,6 +92,7 @@ impl Default for ThemeManagerConfig {
 /// // 切换主题模式
 /// manager.toggle_theme_mode();
 /// ```
+#[derive(Debug)]
 pub struct ThemeManager {
     /// 当前主题
     current_theme: Arc<RwLock<Theme>>,

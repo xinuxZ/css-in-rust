@@ -239,8 +239,9 @@ impl StyleHydration {
         let window = window().ok_or_else(|| "无法获取window对象".to_string())?;
 
         // 创建一个闭包来移除服务端样式
+        let window_clone = window.clone();
         let remove_styles = Closure::wrap(Box::new(move || {
-            if let Some(document) = window.document() {
+            if let Some(document) = window_clone.document() {
                 let style_elements = document.get_elements_by_tag_name("style");
 
                 let mut to_remove = Vec::new();
