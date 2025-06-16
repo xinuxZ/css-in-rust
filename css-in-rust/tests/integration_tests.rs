@@ -2,6 +2,11 @@
 //!
 //! These tests verify the complete functionality of the library,
 //! including macro expansion, CSS processing, and style injection.
+use js_sys as _;
+use proc_macro2 as _;
+use quote as _;
+use sha2 as _;
+use syn as _;
 
 use css_in_rust::css;
 
