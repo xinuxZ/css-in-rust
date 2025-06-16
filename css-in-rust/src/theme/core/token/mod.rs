@@ -39,10 +39,11 @@ pub mod values;
 // Re-export commonly used types
 /// 从各子模块重新导出的常用类型
 pub use definitions::{
-    ColorValue, DimensionUnit, DimensionValue, TokenMetadata, TokenReference, TokenType, TokenValue,
+    ColorValue, DimensionUnit, DimensionValue, ThemeVariant, TokenMetadata, TokenReference,
+    TokenType, TokenValue,
 };
 /// 从 simple_system 模块重新导出的类型
-pub use simple_system::{ThemeVariant, TokenSystem};
+pub use simple_system::TokenSystem;
 /// 从 values 模块重新导出的类型
 pub use values::{DesignTokens, TokenStore, TokenValuesImpl};
 

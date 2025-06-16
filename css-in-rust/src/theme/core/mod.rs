@@ -47,7 +47,8 @@ pub mod transform;
 /// 从 token 模块重新导出的类型和函数
 pub use token::{
     definitions::{
-        DimensionUnit, DimensionValue, TokenDefinitions, TokenDefinitionsImpl, TokenMetadata,
+        DimensionUnit, DimensionValue, ThemeVariant, TokenDefinitions, TokenDefinitionsImpl,
+        TokenMetadata,
     },
     values::TokenValues,
 };

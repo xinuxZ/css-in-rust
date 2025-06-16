@@ -11,14 +11,15 @@
 //! # Examples
 //!
 //! ```
-//! use css_in_rust::theme::{Theme, ThemeMode, ThemeSystem};
+//! use css_in_rust::theme::{Theme, ThemeVariant, ThemeSystem};
+//! use css_in_rust::theme::core::token::definitions::ThemeVariant;
 //!
 //! // 初始化主题系统
 //! ThemeSystem::initialize();
 //!
 //! // 创建自定义主题
 //! let theme = Theme::new("custom-theme")
-//!     .with_mode(ThemeMode::Dark)
+//!     .with_mode(ThemeVariant::Dark)
 //!     .with_custom_variable("--primary-color", "#3366ff");
 //! ```
 
@@ -28,7 +29,8 @@ pub mod systems;
 pub mod theme_types;
 
 // Re-exports
-pub use theme_types::{Theme, ThemeMode};
+pub use core::ThemeVariant;
+pub use theme_types::Theme;
 
 // Dioxus集成导出
 #[cfg(feature = "dioxus")]

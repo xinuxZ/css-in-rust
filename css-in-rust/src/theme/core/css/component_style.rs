@@ -1,5 +1,7 @@
-use crate::theme::theme_types::{Theme, ThemeMode};
 use std::collections::HashMap;
+
+use crate::theme::theme_types::Theme;
+use crate::theme::ThemeVariant;
 
 /// 组件样式生成器
 ///
@@ -231,19 +233,19 @@ pub fn create_button_style_generator() -> DefaultComponentStyleGenerator {
 
     // 添加变体样式
     generator.add_variant_style("default", |theme| {
-        let border_color = if theme.mode == ThemeMode::Dark {
+        let border_color = if theme.mode == ThemeVariant::Dark {
             "#424242"
         } else {
             "#d9d9d9"
         };
 
-        let text_color = if theme.mode == ThemeMode::Dark {
+        let text_color = if theme.mode == ThemeVariant::Dark {
             "#fff"
         } else {
             "rgba(0, 0, 0, 0.88)"
         };
 
-        let bg_color = if theme.mode == ThemeMode::Dark {
+        let bg_color = if theme.mode == ThemeVariant::Auto {
             "#1f1f1f"
         } else {
             "#ffffff"

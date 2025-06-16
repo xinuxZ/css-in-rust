@@ -1,6 +1,7 @@
 pub mod theme_history;
 
-use crate::theme::theme_types::{Theme, ThemeMode};
+use crate::theme::theme_types::Theme;
+use crate::theme::ThemeVariant;
 use std::sync::{Arc, LazyLock, Mutex, RwLock};
 use theme_history::ThemeHistory;
 
@@ -75,7 +76,8 @@ impl Default for ThemeManagerConfig {
 ///
 /// ```
 /// use css_in_rust::theme::core::manager::{ThemeManager, ThemeManagerConfig};
-/// use css_in_rust::theme::theme_types::{Theme, ThemeMode};
+/// use css_in_rust::theme::theme_types::Theme;
+/// use css_in_rust::theme::ThemeVariant;
 ///
 /// // 创建主题管理器
 /// let manager = ThemeManager::new(ThemeManagerConfig::default());
@@ -86,7 +88,7 @@ impl Default for ThemeManagerConfig {
 /// }
 ///
 /// // 设置新主题
-/// let dark_theme = Theme::new("dark").with_mode(ThemeMode::Dark);
+/// let dark_theme = Theme::new("dark").with_mode(ThemeVariant::Dark);
 /// manager.set_theme(dark_theme).unwrap();
 ///
 /// // 切换主题模式
@@ -177,18 +179,19 @@ impl ThemeManager {
     ///
     /// ```
     /// use css_in_rust::theme::core::manager::{ThemeManager, ThemeManagerConfig};
-    /// use css_in_rust::theme::theme_types::{Theme, ThemeMode};
+    /// use css_in_rust::theme::theme_types::Theme;
+    /// use css_in_rust::theme::ThemeVariant;
     ///
     /// let manager = ThemeManager::new(ThemeManagerConfig::default());
     ///
     /// // 创建并设置暗色主题
-    /// let dark_theme = Theme::new("dark").with_mode(ThemeMode::Dark);
+    /// let dark_theme = Theme::new("dark").with_mode(ThemeVariant::Dark);
     /// manager.set_theme(dark_theme).unwrap();
     ///
     /// // 验证主题已设置
     /// if let Some(theme) = manager.get_current_theme() {
     ///     assert_eq!(theme.name, "dark");
-    ///     assert!(matches!(theme.mode, ThemeMode::Dark));
+    ///     assert!(matches!(theme.mode, ThemeVariant::Dark));
     /// }
     /// ```
     pub fn set_theme(&self, theme: Theme) -> Result<(), String> {
@@ -216,7 +219,7 @@ impl ThemeManager {
     ///
     /// ```
     /// use css_in_rust::theme::core::manager::{ThemeManager, ThemeManagerConfig};
-    /// use css_in_rust::theme::theme_types::ThemeMode;
+    /// use css_in_rust::theme::ThemeVariant;
     ///
     /// let manager = ThemeManager::new(ThemeManagerConfig::default());
     ///
@@ -225,7 +228,7 @@ impl ThemeManager {
     ///
     /// // 验证模式已切换
     /// if let Some(theme) = manager.get_current_theme() {
-    ///     assert!(matches!(theme.mode, ThemeMode::Dark));
+    ///     assert!(matches!(theme.mode, ThemeVariant::Dark));
     /// }
     ///
     /// // 再次切换回亮色模式
@@ -234,9 +237,9 @@ impl ThemeManager {
     pub fn toggle_theme_mode(&self) {
         if let Ok(mut theme) = self.current_theme.write() {
             theme.mode = match theme.mode {
-                ThemeMode::Light => ThemeMode::Dark,
-                ThemeMode::Dark => ThemeMode::Light,
-                ThemeMode::Auto => ThemeMode::Light,
+                ThemeVariant::Light => ThemeVariant::Dark,
+                ThemeVariant::Dark => ThemeVariant::Light,
+                ThemeVariant::Auto => ThemeVariant::Light,
             };
         }
     }
@@ -435,27 +438,27 @@ impl ThemeManager {
     ///
     /// ```
     /// use css_in_rust::theme::core::manager::{ThemeManager, ThemeManagerConfig};
-    /// use css_in_rust::theme::theme_types::ThemeMode;
+    /// use css_in_rust::theme::ThemeVariant;
     ///
     /// let manager = ThemeManager::new(ThemeManagerConfig::default());
     ///
     /// // 查找亮色主题
-    /// if let Some(theme_name) = manager.find_theme_by_mode(ThemeMode::Light) {
+    /// if let Some(theme_name) = manager.find_theme_by_mode(ThemeVariant::Light) {
     ///     println!("找到亮色主题: {}", theme_name);
     /// }
     ///
     /// // 查找暗色主题
-    /// if let Some(theme_name) = manager.find_theme_by_mode(ThemeMode::Dark) {
+    /// if let Some(theme_name) = manager.find_theme_by_mode(ThemeVariant::Dark) {
     ///     println!("找到暗色主题: {}", theme_name);
     /// }
     /// ```
-    pub fn find_theme_by_mode(&self, mode: ThemeMode) -> Option<String> {
+    pub fn find_theme_by_mode(&self, mode: ThemeVariant) -> Option<String> {
         // 在实际实现中，这里应该查询可用的主题列表
         // 这里只是一个简化的实现
         match mode {
-            ThemeMode::Light => Some("light".to_string()),
-            ThemeMode::Dark => Some("dark".to_string()),
-            ThemeMode::Auto => Some("auto".to_string()),
+            ThemeVariant::Light => Some("light".to_string()),
+            ThemeVariant::Dark => Some("dark".to_string()),
+            ThemeVariant::Auto => Some("auto".to_string()),
         }
     }
 

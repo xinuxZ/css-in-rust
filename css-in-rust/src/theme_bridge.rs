@@ -5,8 +5,7 @@
 
 use super::theme::{
     core::css::variables::{CssVariableInjector, InjectionStrategy},
-    theme_types::ThemeMode,
-    Theme,
+    Theme, ThemeVariant,
 };
 use std::collections::HashMap;
 
@@ -101,14 +100,11 @@ impl ThemeBridge {
 
     /// 切换明暗模式
     pub fn toggle_mode(&mut self) -> Result<(), ThemeBridgeError> {
-        let theme = match self.current_theme.mode {
-            ThemeMode::Light => ThemeMode::Dark,
-            ThemeMode::Dark => ThemeMode::Light,
-            ThemeMode::Auto => ThemeMode::Light,
-        };
-
+        let theme = self.current_theme.mode;
         let mut new_theme = self.current_theme.clone();
+
         new_theme.mode = theme;
+
         self.set_theme(new_theme)
     }
 
@@ -224,12 +220,12 @@ impl ThemeBridge {
 
     /// 检查是否为暗色模式
     pub fn is_dark_mode(&self) -> bool {
-        matches!(self.current_theme.mode, ThemeMode::Dark)
+        matches!(self.current_theme.mode, ThemeVariant::Dark)
     }
 
     /// 检查是否为亮色模式
     pub fn is_light_mode(&self) -> bool {
-        matches!(self.current_theme.mode, ThemeMode::Light)
+        matches!(self.current_theme.mode, ThemeVariant::Light)
     }
 
     /// 获取主题名称

@@ -1,41 +1,8 @@
-use crate::theme::core::token::definitions::TokenValue;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// 主题变体
-///
-/// 定义了系统支持的主题类型，包括亮色主题、暗色主题和自动主题。
-/// 自动主题通常会根据用户的系统设置自动选择亮色或暗色主题。
-///
-/// # 示例
-///
-/// ```
-/// use css_in_rust::theme::core::token::simple_system::ThemeVariant;
-///
-/// // 创建亮色主题
-/// let light_theme = ThemeVariant::Light;
-///
-/// // 创建暗色主题
-/// let dark_theme = ThemeVariant::Dark;
-///
-/// // 创建自动主题（根据系统设置）
-/// let auto_theme = ThemeVariant::Auto;
-/// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum ThemeVariant {
-    /// 亮色主题
-    Light,
-    /// 暗色主题
-    Dark,
-    /// 自动主题（根据系统设置）
-    Auto,
-}
+use serde::{Deserialize, Serialize};
 
-impl Default for ThemeVariant {
-    fn default() -> Self {
-        Self::Light
-    }
-}
+use super::definitions::{TokenValue, ThemeVariant};
 
 /// 简化版的令牌系统
 ///

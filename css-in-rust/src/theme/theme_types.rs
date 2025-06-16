@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use crate::theme::core::token::definitions::ThemeVariant;
 use crate::theme::core::token::simple_system::TokenSystem;
 
 /// 主题定义
@@ -10,14 +11,15 @@ use crate::theme::core::token::simple_system::TokenSystem;
 /// # Examples
 ///
 /// ```
-/// use css_in_rust::theme::theme_types::{Theme, ThemeMode};
+/// use css_in_rust::theme::theme_types::{Theme};
+/// use crate::theme::core::token::definitions::ThemeVariant;
 ///
 /// // 创建默认主题
 /// let default_theme = Theme::default();
 ///
 /// // 创建自定义主题
 /// let custom_theme = Theme::new("custom-theme")
-///     .with_mode(ThemeMode::Dark)
+///     .with_mode(ThemeVariant::Dark)
 ///     .with_custom_variable("--primary-color", "#3366ff");
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -25,47 +27,11 @@ pub struct Theme {
     /// 主题名称
     pub name: String,
     /// 主题模式
-    pub mode: ThemeMode,
+    pub mode: ThemeVariant,
     /// Token 系统
     pub token_system: TokenSystem,
     /// 自定义变量
     pub custom_variables: HashMap<String, String>,
-}
-
-/// 主题模式
-///
-/// 定义主题的显示模式，如亮色、暗色或自动
-///
-/// # Examples
-///
-/// ```
-/// use css_in_rust::theme::theme_types::ThemeMode;
-///
-/// let light_mode = ThemeMode::Light;
-/// let dark_mode = ThemeMode::Dark;
-/// let auto_mode = ThemeMode::Auto;
-/// ```
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
-pub enum ThemeMode {
-    Light,
-    Dark,
-    Auto,
-}
-
-impl Default for ThemeMode {
-    /// 创建默认的主题模式（亮色）
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use css_in_rust::theme::theme_types::ThemeMode;
-    ///
-    /// let mode = ThemeMode::default();
-    /// // mode 是 ThemeMode::Light
-    /// ```
-    fn default() -> Self {
-        Self::Light
-    }
 }
 
 impl Default for Theme {
@@ -84,17 +50,10 @@ impl Default for Theme {
     fn default() -> Self {
         Self {
             name: "default".to_string(),
-            mode: ThemeMode::default(),
+            mode: ThemeVariant::default(),
             token_system: TokenSystem::default(),
             custom_variables: HashMap::new(),
         }
-    }
-}
-
-/// Display for ThemeMode
-impl std::fmt::Display for ThemeMode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
     }
 }
 
@@ -118,7 +77,7 @@ impl Theme {
     pub fn new(name: impl Into<String>) -> Self {
         Self {
             name: name.into(),
-            mode: ThemeMode::default(),
+            mode: ThemeVariant::default(),
             token_system: TokenSystem::default(),
             custom_variables: HashMap::new(),
         }
@@ -133,11 +92,11 @@ impl Theme {
     /// # Examples
     ///
     /// ```
-    /// use css_in_rust::theme::theme_types::{Theme, ThemeMode};
+    /// use css_in_rust::theme::theme_types::{Theme, ThemeVariant};
     ///
-    /// let theme = Theme::new("my-theme").with_mode(ThemeMode::Dark);
+    /// let theme = Theme::new("my-theme").with_mode(ThemeVariant::Dark);
     /// ```
-    pub fn with_mode(mut self, mode: ThemeMode) -> Self {
+    pub fn with_mode(mut self, mode: ThemeVariant) -> Self {
         self.mode = mode;
         self
     }
