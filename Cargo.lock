@@ -351,6 +351,7 @@ dependencies = [
  "css-in-rust-macros",
  "dioxus",
  "hex",
+ "js-sys",
  "lazy_static",
  "lightningcss",
  "log",
