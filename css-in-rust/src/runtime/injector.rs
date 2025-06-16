@@ -484,7 +484,8 @@ impl StyleInjector {
             // 移除匹配的样式规则
             // 注意：这是一个简单的实现，实际上应该使用CSS解析器
             let re = RegExp::new(&format!(r"\.{}\s*\{{[^}}]*\}}", class_name), "g");
-            let new_content = current_content.replace(&re.to_string(), "");
+            let pattern = re.to_string().as_string().unwrap_or_default();
+            let new_content = current_content.replace(&pattern, "");
 
             // 更新样式元素
             style_element.set_text_content(Some(&new_content));
