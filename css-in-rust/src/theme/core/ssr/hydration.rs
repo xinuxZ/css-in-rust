@@ -185,7 +185,8 @@ impl StyleHydration {
         for i in 0..style_elements.length() {
             if let Some(element) = style_elements.item(i) {
                 if let Some(style_element) = element.dyn_ref::<web_sys::HtmlStyleElement>() {
-                    if let Some(id) = style_element.id() {
+                    let id = style_element.id();
+                    if !id.is_empty() {
                         if let Some(hash) = style_element.get_attribute("data-hash") {
                             self.style_hashes.insert(id.clone(), hash);
                             self.hydrated_styles.insert(id);
