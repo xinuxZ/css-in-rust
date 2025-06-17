@@ -24,7 +24,6 @@
 //! ```
 
 pub mod core;
-pub mod dioxus;
 pub mod systems;
 pub mod theme_types;
 

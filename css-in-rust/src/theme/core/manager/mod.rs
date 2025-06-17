@@ -104,6 +104,17 @@ pub struct ThemeManager {
     theme_history: ThemeHistory,
 }
 
+/// impl Default
+impl Default for ThemeManager {
+    fn default() -> Self {
+        Self {
+            current_theme: Arc::new(RwLock::new(Theme::default())),
+            config: ThemeManagerConfig::default(),
+            theme_history: ThemeHistory::new(),
+        }
+    }
+}
+
 impl PartialEq for ThemeManager {
     fn eq(&self, other: &Self) -> bool {
         self.config.default_theme == other.config.default_theme
